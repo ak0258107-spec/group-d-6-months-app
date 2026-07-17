@@ -1,0 +1,143 @@
+[
+  {
+    "question_type": "normal_mcq",
+    "question_text": "नमूना प्रश्न",
+    "options": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "correct_answer": 1,
+    "explanation": "व्याख्या"
+  },
+  {
+    "question_type": "multi_statement",
+    "question_text": "कथनों पर विचार करें",
+    "statements": [
+      "कथन 1",
+      "कथन 2"
+    ],
+    "options": [
+      "केवल 1",
+      "केवल 2",
+      "दोनों",
+      "कोई नहीं"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_type": "statement_conclusion",
+    "question_text": "कथन–निष्कर्ष",
+    "statements": [
+      "कथन"
+    ],
+    "options": [
+      "केवल I",
+      "केवल II",
+      "दोनों",
+      "कोई नहीं"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_type": "assertion_reason",
+    "question_text": "अभिकथन–कारण",
+    "assertion_text": "अभिकथन",
+    "reason_text": "कारण",
+    "options": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_type": "matching",
+    "question_text": "मिलान करें",
+    "list_a": [
+      "A",
+      "B"
+    ],
+    "list_b": [
+      "1",
+      "2"
+    ],
+    "options": [
+      "A-1,B-2",
+      "A-2,B-1",
+      "C",
+      "D"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_type": "chronology",
+    "question_text": "क्रमानुसार लगाएँ",
+    "sequence_items": [
+      "1",
+      "2",
+      "3"
+    ],
+    "options": [
+      "1-2-3",
+      "3-2-1",
+      "2-1-3",
+      "2-3-1"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_type": "fill_blank",
+    "question_text": "रिक्त स्थान भरें",
+    "options": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_type": "correct_code",
+    "question_text": "सही कूट चुनें",
+    "statements": [
+      "1",
+      "2"
+    ],
+    "options": [
+      "केवल 1",
+      "केवल 2",
+      "1 और 2",
+      "कोई नहीं"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_type": "odd_one_out",
+    "question_text": "विषम चुनें",
+    "options": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "correct_answer": 3
+  },
+  {
+    "question_type": "multiple_statement_correctness",
+    "question_text": "कथनों की सत्यता चुनें",
+    "statements": [
+      "1",
+      "2"
+    ],
+    "options": [
+      "केवल 1 सही",
+      "केवल 2 सही",
+      "दोनों सही",
+      "दोनों गलत"
+    ],
+    "correct_answer": 2
+  }
+]
