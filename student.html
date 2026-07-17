@@ -1,8 +1,14 @@
-<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script></head><body><div class="top"><div class="row"><b>GK BY PURUSHOTAM SIR</b><div><button class="btn light" onclick="tab('today')">Today</button><button class="btn light" onclick="tab('schedule')">90 Days</button><button class="btn light" onclick="tab('tests')">Tests</button><button class="btn red" onclick="logout()">Logout</button></div></div></div><main class="container"><section id="today"><div id="todayBox"></div></section><section id="schedule" class="hidden"><h2>90 Days Schedule</h2><div id="scheduleList" class="list"></div></section><section id="tests" class="hidden"><h2>Tests</h2><div id="testsList" class="list"></div></section></main><script>
-let user;function tab(n){['today','schedule','tests'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==n))}
-async function load(){user=await requireAuth();if(!user)return;await Promise.all([loadToday(),loadSchedule(),loadTests()])}
-async function loadToday(){const today=new Date().toISOString().slice(0,10);const {data:d}=await sb.from('schedule_days').select('*').eq('day_date',today).maybeSingle();if(!d){todayBox.innerHTML='<div class="card">आज का schedule उपलब्ध नहीं है।</div>';return}const {data:t=[]}=await sb.from('daily_targets').select('*').eq('schedule_day_id',d.id).order('target_order');todayBox.innerHTML='<div class="card"><h2>Day '+d.day_number+' — '+esc(d.phase||'')+'</h2>'+t.map(x=>'<div class="target"><b>'+esc(x.subject)+':</b> '+esc(x.topic)+'</div>').join('')+'</div>'}
-async function loadSchedule(){const {data:d=[]}=await sb.from('schedule_days').select('*').order('day_number');const {data:t=[]}=await sb.from('daily_targets').select('*').order('target_order');const g={};t.forEach(x=>(g[x.schedule_day_id]??=[]).push(x));scheduleList.innerHTML=d.map(x=>'<div class="card"><b>Day '+x.day_number+' — '+fmtDate(x.day_date)+'</b>'+(g[x.id]||[]).map(y=>'<div class="target"><b>'+esc(y.subject)+':</b> '+esc(y.topic)+'</div>').join('')+'</div>').join('')}
-async function loadTests(){const {data:t=[]}=await sb.from('tests').select('*').eq('status','published').order('created_at',{ascending:false});testsList.innerHTML=t.length?t.map(x=>'<div class="item row"><div><b>'+esc(x.title)+'</b><div class="muted">'+x.total_questions+' Questions</div></div><a class="btn green" href="test.html?id='+x.id+'">Start Test</a></div>').join(''):'<div class="card">अभी कोई Published Test नहीं है।</div>'}
-load();
-</script></body></html>
+<!doctype html><html lang="hi"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#2563eb"><link rel="manifest" href="manifest.webmanifest">
+<title>Student Dashboard</title><link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script>
+</head><body>
+<header class="topbar"><div class="topbar-inner"><div class="brand">GK BY PURUSHOTAM SIR<small>GROUP D 90 DAYS TARGET BATCH</small></div>
+<div class="nav"><button class="btn btn-light" onclick="tab('home')">Home</button><button class="btn btn-light" onclick="tab('schedule')">90 Days</button><button class="btn btn-light" onclick="tab('tests')">Tests</button><button class="btn btn-light" onclick="tab('progress')">Progress</button><button class="btn btn-light" onclick="tab('messages')">Messages</button><button class="btn btn-red" onclick="logout()">Logout</button></div></div></header>
+<main class="container">
+<section id="homeTab"><div id="homeBox"></div></section>
+<section id="scheduleTab" class="hidden"><h2 class="section-title">90-Day Schedule</h2><div id="scheduleList" class="list"></div></section>
+<section id="testsTab" class="hidden"><h2 class="section-title">Available Tests</h2><div id="testsList" class="list"></div></section>
+<section id="progressTab" class="hidden"><h2 class="section-title">My Progress</h2><div id="progressBox"></div></section>
+<section id="messagesTab" class="hidden"><h2 class="section-title">Messages</h2><div id="messagesList" class="list"></div></section>
+</main><script src="student.js"></script></body></html>

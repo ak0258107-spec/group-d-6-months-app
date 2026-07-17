@@ -1,4 +1,86 @@
-<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script></head><body><div class="container" style="max-width:430px;padding-top:10vh"><div class="card"><h1>GROUP D 90 DAYS TARGET BATCH</h1><p class="muted">GK BY PURUSHOTAM SIR</p><div id="msg"></div><input id="email" type="email" placeholder="Email"><input id="password" type="password" placeholder="Password"><button class="btn blue" style="width:100%" onclick="login()">Login</button><br><br><button class="btn light" style="width:100%" onclick="signup()">New Student Registration</button></div></div><script>
-async function login(){const {data,error}=await sb.auth.signInWithPassword({email:email.value.trim(),password:password.value});if(error){msg.textContent=error.message;return}const p=await getProfile(data.user.id);location.href=p?.role==='admin'?'admin.html':'student.html'}
-async function signup(){const name=prompt('विद्यार्थी का पूरा नाम');const {error}=await sb.auth.signUp({email:email.value.trim(),password:password.value,options:{data:{full_name:name||''}}});msg.textContent=error?error.message:'Registration हो गया। अब Login करें।'}
+<!doctype html><html lang="hi"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#2563eb"><link rel="manifest" href="manifest.webmanifest">
+<title>GROUP D 90 DAYS TARGET BATCH</title><link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script>
+</head><body><div class="center"><div class="card auth-card">
+<h1>GROUP D 90 DAYS TARGET BATCH</h1><p class="muted">GK BY PURUSHOTAM SIR</p><div id="msg"></div>
+
+<div id="loginMode">
+  <div class="form-group"><label>मोबाइल नंबर</label><input id="loginPhone" inputmode="numeric" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर"></div>
+  <div class="form-group"><label>पासवर्ड</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="अपना पासवर्ड"></div>
+  <button class="btn btn-blue" style="width:100%" onclick="login()">Login</button>
+  <div style="height:8px"></div>
+  <button class="btn btn-light" style="width:100%" onclick="showRegister()">New Student Registration</button>
+</div>
+
+<div id="registerMode" class="hidden">
+  <div class="form-group"><label>विद्यार्थी का नाम</label><input id="regName" placeholder="पूरा नाम"></div>
+  <div class="form-group"><label>मोबाइल नंबर</label><input id="regPhone" inputmode="numeric" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर"></div>
+  <div class="form-group"><label>पासवर्ड</label><input id="regPassword" type="password" autocomplete="new-password" placeholder="कम से कम 6 अक्षर"></div>
+  <div class="form-group"><label>पासवर्ड दोबारा</label><input id="regPassword2" type="password" autocomplete="new-password" placeholder="पासवर्ड दोबारा लिखें"></div>
+  <button class="btn btn-green" style="width:100%" onclick="signup()">Register</button>
+  <div style="height:8px"></div>
+  <button class="btn btn-light" style="width:100%" onclick="showLogin()">Back to Login</button>
+</div>
+</div></div>
+<script>
+registerSW();
+
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    const p=await getProfile(session.user.id);
+    location.href=p?.role==="admin"?"admin.html":"student.html";
+  }
+})();
+
+function showRegister(){msg.innerHTML="";loginMode.classList.add("hidden");registerMode.classList.remove("hidden")}
+function showLogin(){msg.innerHTML="";registerMode.classList.add("hidden");loginMode.classList.remove("hidden")}
+function showMsg(text,type="error"){msg.innerHTML='<div class="notice notice-'+type+'">'+esc(text)+'</div>'}
+
+async function login(){
+  msg.innerHTML="";
+  const phone=normalizeIndianPhone(loginPhone.value);
+  if(!phone){showMsg("सही 10 अंकों का मोबाइल नंबर लिखें।");return}
+  if(!loginPassword.value){showMsg("पासवर्ड लिखें।");return}
+  const email=phoneToAuthEmail(phone);
+  const {data,error}=await sb.auth.signInWithPassword({email,password:loginPassword.value});
+  if(error){showMsg("मोबाइल नंबर या पासवर्ड गलत है।");return}
+  const p=await getProfile(data.user.id);
+  location.href=p?.role==="admin"?"admin.html":"student.html";
+}
+
+async function signup(){
+  msg.innerHTML="";
+  const name=regName.value.trim();
+  const phone=normalizeIndianPhone(regPhone.value);
+  const password=regPassword.value;
+  if(name.length<2){showMsg("विद्यार्थी का पूरा नाम लिखें।");return}
+  if(!phone){showMsg("सही 10 अंकों का मोबाइल नंबर लिखें।");return}
+  if(password.length<6){showMsg("पासवर्ड कम से कम 6 अक्षर का रखें।");return}
+  if(password!==regPassword2.value){showMsg("दोनों पासवर्ड एक जैसे नहीं हैं।");return}
+
+  const email=phoneToAuthEmail(phone);
+  const {data,error}=await sb.auth.signUp({
+    email,
+    password,
+    options:{data:{full_name:name,phone}}
+  });
+
+  if(error){
+    const m=(error.message||"").toLowerCase();
+    if(m.includes("already")||m.includes("registered"))showMsg("यह मोबाइल नंबर पहले से Registered है। Login करें।");
+    else showMsg(error.message);
+    return;
+  }
+
+  if(!data.session){
+    showMsg("Registration बना, लेकिन Supabase में Email Confirmation अभी ON है। इसे OFF करने के बाद मोबाइल Login सीधे काम करेगा।","error");
+    return;
+  }
+
+  showMsg("Registration सफल। अब Dashboard खुल रहा है…","success");
+  setTimeout(()=>location.href="student.html",600);
+}
 </script></body></html>
