@@ -46,3 +46,6 @@ Authentication -> Providers / Sign In -> Email -> Confirm email = OFF
 This prevents fake/internal auth identifiers from requiring email confirmation.
 
 Phone is stored in profiles.phone through signup metadata.
+
+
+PREMIUM FINAL: Run RUN_ONCE_PREMIUM_VERIFICATION_PATCH.sql once before using this version. Manual Mark Complete is removed; correct verification answer is required.

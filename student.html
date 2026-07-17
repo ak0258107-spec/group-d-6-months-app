@@ -1,14 +1,1 @@
-<!doctype html><html lang="hi"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#2563eb"><link rel="manifest" href="manifest.webmanifest">
-<title>Student Dashboard</title><link rel="stylesheet" href="styles.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script>
-</head><body>
-<header class="topbar"><div class="topbar-inner"><div class="brand">GK BY PURUSHOTAM SIR<small>GROUP D 90 DAYS TARGET BATCH</small></div>
-<div class="nav"><button class="btn btn-light" onclick="tab('home')">Home</button><button class="btn btn-light" onclick="tab('schedule')">90 Days</button><button class="btn btn-light" onclick="tab('tests')">Tests</button><button class="btn btn-light" onclick="tab('progress')">Progress</button><button class="btn btn-light" onclick="tab('messages')">Messages</button><button class="btn btn-red" onclick="logout()">Logout</button></div></div></header>
-<main class="container">
-<section id="homeTab"><div id="homeBox"></div></section>
-<section id="scheduleTab" class="hidden"><h2 class="section-title">90-Day Schedule</h2><div id="scheduleList" class="list"></div></section>
-<section id="testsTab" class="hidden"><h2 class="section-title">Available Tests</h2><div id="testsList" class="list"></div></section>
-<section id="progressTab" class="hidden"><h2 class="section-title">My Progress</h2><div id="progressBox"></div></section>
-<section id="messagesTab" class="hidden"><h2 class="section-title">Messages</h2><div id="messagesList" class="list"></div></section>
-</main><script src="student.js"></script></body></html>
+<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script></head><body><div class="mobile-shell"><header class="student-top"><div class="student-top-inner"><div class="student-brand">‹ &nbsp; GK BY PURUSHOTAM SIR</div><div>🔔</div></div></header><main class="student-main"><section id="homeTab"><div id="homeBox"></div></section><section id="targetsTab" class="hidden"><h2>Today's Target</h2><div id="targetsBox"></div></section><section id="testsTab" class="hidden"><h2>Tests</h2><div id="testsList" class="list"></div></section><section id="pdfsTab" class="hidden"><h2>PDFs</h2><div id="pdfList" class="list"></div></section><section id="profileTab" class="hidden"><h2>Profile</h2><div id="profileBox"></div></section></main><nav class="bottom-nav"><button class="active" onclick="tab('home',this)">⌂<br>Home</button><button onclick="tab('targets',this)">✓<br>Targets</button><button onclick="tab('tests',this)">▣<br>Test</button><button onclick="tab('pdfs',this)">▤<br>PDFs</button><button onclick="tab('profile',this)">○<br>Profile</button></nav></div><script src="student.js"></script></body></html>

@@ -1,64 +1,51 @@
-let user=null, profile=null;
-function tab(name){["home","schedule","tests","progress","messages"].forEach(x=>document.getElementById(x+"Tab").classList.toggle("hidden",x!==name))}
-async function init(){
-  registerSW();user=await requireAuth();if(!user)return;profile=await getProfile(user.id);
-  await Promise.all([loadHome(),loadSchedule(),loadTests(),loadProgress(),loadMessages()]);
+
+let user=null,profile=null,currentDay=null,currentTargets=[],targetCompletionMap=new Map(),verificationMap=new Map(),materials=[],latestDailyTest=null;
+const SUBJECT_CLASS={"Maths":"subject-maths","Mathematics":"subject-maths","Reasoning":"subject-reasoning","Haryana GK":"subject-haryana","Hindi":"subject-hindi","Science":"subject-science","Polity":"subject-polity","History":"subject-history","Geography":"subject-geography","Static GK":"subject-static"};
+function tab(name,el){["home","targets","tests","pdfs","profile"].forEach(x=>document.getElementById(x+"Tab").classList.toggle("hidden",x!==name));document.querySelectorAll(".bottom-nav button").forEach(b=>b.classList.remove("active"));if(el)el.classList.add("active")}
+function sclass(s){return SUBJECT_CLASS[s]||"subject-other"}
+async function init(){registerSW();user=await requireAuth();if(!user)return;profile=await getProfile(user.id);await loadDayData();await Promise.all([renderHome(),renderTargets(),loadTests(),loadPdfs(),renderProfile()])}
+async function loadDayData(){
+ const today=new Date().toISOString().slice(0,10);let r=await sb.from("schedule_days").select("*").eq("batch_id",APP_CONFIG.BATCH_ID).eq("day_date",today).maybeSingle();
+ if(!r.data)r=await sb.from("schedule_days").select("*").eq("batch_id",APP_CONFIG.BATCH_ID).order("day_number").limit(1).maybeSingle();currentDay=r.data;if(!currentDay)return;
+ const tr=await sb.from("daily_targets").select("*").eq("schedule_day_id",currentDay.id).order("target_order");currentTargets=tr.data||[];
+ const tc=await sb.from("target_completions").select("*").eq("user_id",user.id);(tc.data||[]).forEach(x=>targetCompletionMap.set(x.target_id,x));
+ const vr=await sb.from("verification_questions").select("*").eq("schedule_day_id",currentDay.id).eq("is_active",true);(vr.data||[]).forEach(x=>verificationMap.set(x.target_id||x.id,x));
+ const mr=await sb.from("study_materials").select("*").eq("schedule_day_id",currentDay.id).eq("status","published").order("created_at");materials=mr.data||[];
+ const tt=await sb.from("tests").select("*").eq("schedule_day_id",currentDay.id).eq("status","published").order("created_at",{ascending:false}).limit(1);latestDailyTest=tt.data?.[0]||null;
 }
-async function getCurrentDay(){
-  const today=new Date().toISOString().slice(0,10);
-  let {data}=await sb.from("schedule_days").select("*").eq("batch_id",APP_CONFIG.BATCH_ID).eq("day_date",today).maybeSingle();
-  if(data)return data;
-  const {data:first}=await sb.from("schedule_days").select("*").eq("batch_id",APP_CONFIG.BATCH_ID).order("day_number").limit(1).maybeSingle();
-  return first;
+async function latestAttempt(){if(!latestDailyTest)return null;const r=await sb.from("test_attempts").select("*").eq("user_id",user.id).eq("test_id",latestDailyTest.id).eq("status","submitted").order("submitted_at",{ascending:false}).limit(1);return r.data?.[0]||null}
+async function statusModel(){
+ const a=await latestAttempt(),total=currentTargets.length,done=currentTargets.filter(t=>targetCompletionMap.has(t.id)).length,all=total>0&&done===total,testDone=!!a,score=a?.percentage||0;
+ let key="notstarted",title="Work Complete नहीं हुआ है ❌",msg="आपने आज का कोई भी Target पूरा नहीं किया है।";
+ if(done>0&&!all){key="pending";title="आज का Target पूरा करें ⚠️";msg=`आपने ${total} में से ${done} Target पूरे किए हैं।`}
+ if(all&&!testDone){key="pending";title="Target पूरा — Test Pending ⚠️";msg="सभी Targets verified हैं। अब Daily Test complete करें।"}
+ if(all&&testDone&&score>=80){key="excellent";title="Excellent 🌹";msg="बहुत बढ़िया! सभी Target और Test शानदार तरीके से पूरा।"}
+ else if(all&&testDone){key="verygood";title="Very Good 👍";msg="आपने सभी Target और Test पूरा किया।"}
+ return {key,title,msg,total,done,testDone,score};
 }
-async function loadHome(){
-  const day=await getCurrentDay();if(!day){homeBox.innerHTML='<div class="card">Schedule नहीं मिला।</div>';return}
-  const {data:targets=[]}=await sb.from("daily_targets").select("*").eq("schedule_day_id",day.id).order("target_order");
-  const {data:done=[]}=await sb.from("target_completions").select("target_id,is_completed").eq("user_id",user.id);
-  const doneSet=new Set(done.filter(x=>x.is_completed).map(x=>x.target_id));
-  const {data:materials=[]}=await sb.from("study_materials").select("*").eq("schedule_day_id",day.id).eq("status","published").order("created_at");
-  const {data:vqs=[]}=await sb.from("verification_questions").select("*").eq("schedule_day_id",day.id).eq("is_active",true);
-  let html=`<div class="grid"><div class="card span-8"><div class="row wrap"><div><h2>Day ${day.day_number} — ${esc(day.phase||"")}</h2><div class="muted">${fmtDate(day.day_date)} • ${esc(day.day_name||"")}</div></div><span class="badge badge-blue">${esc(day.day_kind)}</span></div>`;
-  html+=targets.map(t=>`<div class="target"><div class="row wrap"><div><div class="target-title">${esc(t.subject)}</div><div>${esc(t.topic)}</div></div><div>${t.youtube_url?`<a target="_blank" class="btn btn-blue" href="${esc(t.youtube_url)}">Class</a>`:""} <button class="btn ${doneSet.has(t.id)?"btn-green":"btn-light"}" onclick="toggleTarget('${t.id}',${doneSet.has(t.id)})">${doneSet.has(t.id)?"Completed ✓":"Mark Complete"}</button></div></div></div>`).join("");
-  html+=`</div><div class="card span-4"><h3>My Snapshot</h3><p><b>${esc(profile?.full_name||"Student")}</b></p><p>Current Streak: ${profile?.current_streak||0}</p><p>Best Streak: ${profile?.best_streak||0}</p><p>Average Test: ${profile?.average_test_percentage||0}%</p></div></div>`;
-  if(materials.length){html+=`<div class="card"><h3>Study Materials / PDF</h3><div class="list">${materials.map(m=>`<div class="item material"><div><b>${esc(m.title)}</b><div class="muted small">${Math.round((m.file_size_bytes||0)/1024)} KB</div></div><button class="btn btn-blue" onclick="openMaterial('${m.storage_path}')">Open PDF</button></div>`).join("")}</div></div>`}
-  if(vqs.length){html+=`<div class="card"><h3>Verification Questions</h3>${vqs.map(v=>`<div class="item"><b>${esc(v.verification_kind.toUpperCase())}</b><p>${esc(v.question_text)}</p>${v.answer_type==="mcq"&&Array.isArray(v.options)?`<select id="vq_${v.id}"><option value="">उत्तर चुनें</option>${v.options.map(o=>`<option>${esc(o)}</option>`).join("")}</select>`:`<input id="vq_${v.id}" placeholder="उत्तर लिखें">`}<button class="btn btn-green" onclick="verifyAnswer('${v.id}')">Submit Answer</button></div>`).join("")}</div>`}
-  homeBox.innerHTML=html;
+async function renderHome(){
+ const st=await statusModel();
+ homeBox.innerHTML=`<div class="hello">Hello, ${esc(profile?.full_name||"Student")} 👋</div><div class="muted">Welcome Back!</div>
+ <div class="status-hero ${st.key}"><div class="small">आज का संदेश</div><h2>${esc(st.title)}</h2><p>${esc(st.msg)}</p></div>
+ <div class="card"><h3>Today's Progress</h3><div class="progress-icons">
+ <div class="progress-box"><div class="circle ${st.done>0?"done":"bad"}">${st.done>0?"✓":"×"}</div><div>Class</div></div>
+ <div class="progress-box"><div class="circle ${materials.length?"done":"pending"}">${materials.length?"✓":"–"}</div><div>PDF</div></div>
+ <div class="progress-box"><div class="circle ${st.testDone?"done":"pending"}">${st.testDone?"✓":"–"}</div><div>Test</div></div>
+ <div class="progress-box"><div class="circle ${st.done===st.total&&st.total?"done":"pending"}">${st.done}/${st.total}</div><div>Total</div></div></div></div>
+ <div class="stat-row" style="margin-top:10px"><div class="stat-mini"><div class="muted">Streak</div><div class="kpi">${profile?.current_streak||0} Days</div></div><div class="stat-mini"><div class="muted">Rank</div><div class="kpi">#${profile?.rank_position||"-"}</div></div></div>`;
 }
-async function toggleTarget(id,isDone){
-  if(isDone){await sb.from("target_completions").delete().eq("user_id",user.id).eq("target_id",id)}
-  else{await sb.from("target_completions").upsert({user_id:user.id,target_id:id,is_completed:true,completion_source:"app"},{onConflict:"user_id,target_id"})}
-  const day=await getCurrentDay();await sb.rpc("refresh_daily_progress",{p_user_id:user.id,p_schedule_day_id:day.id});await loadHome();await loadProgress();await loadMessages();
+async function renderTargets(){
+ let html=`<div class="row wrap"><h3>Day ${currentDay?.day_number||"-"}</h3><div class="muted">${currentDay?fmtDate(currentDay.day_date):""}</div></div>`;
+ for(const t of currentTargets){const done=targetCompletionMap.has(t.id),v=verificationMap.get(t.id)||null;
+ html+=`<div class="target-card ${sclass(t.subject)}"><div class="small">${esc(t.subject)}</div><div class="topic">${esc(t.topic)}</div><div style="margin-top:8px">${done?'<span class="badge badge-green">Verified & Completed ✓</span>':v?'<span class="badge badge-orange">Verification Pending</span>':'<span class="badge badge-red">Teacher verification not added</span>'}</div></div>`;
+ if(!done&&v)html+=`<div class="verify-card"><h4>${v.verification_kind==="pdf"?"PDF Question":"Class Question"}</h4><p>${esc(v.question_text)}</p><input id="vq_${v.id}" placeholder="अपना उत्तर लिखें"><div style="height:8px"></div><button class="btn btn-green" onclick="verifyTarget('${v.id}','${t.id}')">Submit Answer</button></div>`;
+ }
+ if(latestDailyTest)html+=`<div class="card"><div class="row wrap"><div><b>Daily Test</b><div class="muted">${esc(latestDailyTest.title)}</div></div><a class="btn btn-blue" href="test.html?id=${latestDailyTest.id}">Start Test</a></div></div>`;
+ targetsBox.innerHTML=html;
 }
-async function verifyAnswer(id){
-  const input=document.getElementById("vq_"+id);const answer=input?.value||"";if(!answer){toast("उत्तर भरें","error");return}
-  const {data,error}=await sb.rpc("submit_verification_answer",{p_verification_question_id:id,p_answer:answer});
-  if(error){toast(error.message,"error");return}toast(data?"सही उत्तर ✓":"उत्तर सही नहीं है",data?"success":"error");
-  const day=await getCurrentDay();await sb.rpc("refresh_daily_progress",{p_user_id:user.id,p_schedule_day_id:day.id});loadProgress();loadMessages();
-}
-async function openMaterial(path){
-  const {data,error}=await sb.storage.from("study-pdfs").createSignedUrl(path,60*10);
-  if(error){toast(error.message,"error");return}window.open(data.signedUrl,"_blank");
-}
-async function loadSchedule(){
-  const {data:days=[]}=await sb.from("schedule_days").select("*").eq("batch_id",APP_CONFIG.BATCH_ID).order("day_number");
-  const {data:targets=[]}=await sb.from("daily_targets").select("schedule_day_id,subject,topic,target_order").order("target_order");
-  const g={};targets.forEach(t=>(g[t.schedule_day_id]??=[]).push(t));
-  scheduleList.innerHTML=days.map(d=>`<div class="card day-card"><div class="row wrap"><div><b>Day ${d.day_number}</b> — ${fmtDate(d.day_date)}</div><span class="badge badge-blue">${esc(d.phase||"")}</span></div>${(g[d.id]||[]).map(t=>`<div class="target"><b>${esc(t.subject)}:</b> ${esc(t.topic)}</div>`).join("")}</div>`).join("");
-}
-async function loadTests(){
-  const now=new Date().toISOString();
-  const {data:tests=[]}=await sb.from("tests").select("*").eq("batch_id",APP_CONFIG.BATCH_ID).eq("status","published").order("created_at",{ascending:false});
-  testsList.innerHTML=tests.length?tests.map(t=>`<div class="item"><div class="row wrap"><div><b>${esc(t.title)}</b><div class="muted">${t.total_questions} Questions • ${t.time_limit_minutes||"No timer"} min • ${esc(t.test_type)}</div></div><a class="btn btn-green" href="test.html?id=${t.id}">Start Test</a></div></div>`).join(""):"<div class='card'>अभी कोई Published Test नहीं है।</div>";
-}
-async function loadProgress(){
-  const {data:rows=[]}=await sb.from("daily_progress").select("*,schedule_days(day_number,day_date)").eq("user_id",user.id).order("updated_at",{ascending:false});
-  const completed=rows.filter(x=>x.status==="completed").length, partial=rows.filter(x=>x.status==="partial").length;
-  const pct=rows.length?Math.round(completed/rows.length*100):0;
-  progressBox.innerHTML=`<div class="grid"><div class="card span-4"><div class="muted">Completed Days</div><div class="kpi">${completed}</div></div><div class="card span-4"><div class="muted">Partial Days</div><div class="kpi">${partial}</div></div><div class="card span-4"><div class="muted">Completion</div><div class="kpi">${pct}%</div></div></div><div class="card"><div class="progressbar"><span style="width:${pct}%"></span></div></div><div class="list">${rows.map(r=>`<div class="item"><div class="row wrap"><div>Day ${r.schedule_days?.day_number||"-"} — ${r.schedule_days?.day_date?fmtDate(r.schedule_days.day_date):""}</div><span class="badge ${r.status==="completed"?"badge-green":r.status==="partial"?"badge-orange":"badge-gray"}">${esc(r.status)}</span></div><div class="muted">Targets ${r.completed_targets}/${r.total_targets} • Test ${r.test_score_percent??"-"}%</div></div>`).join("")}</div>`;
-}
-async function loadMessages(){
-  const {data:msgs=[]}=await sb.from("student_messages").select("*,message_templates(*)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);
-  messagesList.innerHTML=msgs.length?msgs.map(m=>`<div class="item"><b>${esc(m.message_templates?.title||m.template_code)} ${esc(m.message_templates?.emoji||"")}</b><p>${esc(m.message_templates?.message_text||"")}</p><div class="muted small">${new Date(m.created_at).toLocaleString("hi-IN")}</div></div>`).join(""):"<div class='card'>अभी कोई Message नहीं है।</div>";
-}
+async function verifyTarget(vId,targetId){const a=document.getElementById("vq_"+vId)?.value?.trim();if(!a){toast("उत्तर भरें","error");return}const r=await sb.rpc("submit_target_verification",{p_verification_question_id:vId,p_target_id:targetId,p_answer:a});if(r.error){toast(r.error.message,"error");return}if(r.data===true){toast("सही उत्तर — Target Completed ✓","success");targetCompletionMap.set(targetId,{target_id:targetId});await sb.rpc("refresh_daily_progress",{p_user_id:user.id,p_schedule_day_id:currentDay.id});await renderTargets();await renderHome()}else toast("उत्तर सही नहीं है।","error")}
+async function loadTests(){const r=await sb.from("tests").select("*").eq("batch_id",APP_CONFIG.BATCH_ID).eq("status","published").order("created_at",{ascending:false});testsList.innerHTML=(r.data||[]).map(t=>`<div class="item"><div class="row wrap"><div><b>${esc(t.title)}</b><div class="muted">${t.total_questions} Questions • ${t.time_limit_minutes||"-"} min</div></div><a class="btn btn-blue" href="test.html?id=${t.id}">Start Test</a></div></div>`).join("")||'<div class="card">अभी कोई Test नहीं है।</div>'}
+async function loadPdfs(){const r=await sb.from("study_materials").select("*,schedule_days(day_number)").eq("status","published").order("created_at",{ascending:false});pdfList.innerHTML=(r.data||[]).map(m=>`<div class="item row wrap"><div><b>${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||"-"}</div></div><button class="btn btn-blue" onclick="openPdf('${m.storage_path}')">Open PDF</button></div>`).join("")||'<div class="card">अभी कोई PDF नहीं है।</div>'}
+async function openPdf(path){const r=await sb.storage.from("study-pdfs").createSignedUrl(path,600);if(r.error){toast(r.error.message,"error");return}window.open(r.data.signedUrl,"_blank")}
+async function renderProfile(){profileBox.innerHTML=`<div class="card"><h3>${esc(profile?.full_name||"Student")}</h3><p>Mobile: ${esc(profile?.phone||"")}</p><p>Completed Days: ${profile?.total_completed_days||0}</p><p>Average Test: ${profile?.average_test_percentage||0}%</p><p>Current Streak: ${profile?.current_streak||0}</p><button class="btn btn-red" onclick="logout()">Logout</button></div>`}
 init();
