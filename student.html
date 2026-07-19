@@ -1,11 +1,12 @@
 <!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script><title>Student App</title></head><body><div class="mobile-shell">
-<header class="student-top"><div class="student-top-inner"><div class="student-brand">‹ &nbsp; GK BY PURUSHOTAM SIR</div><div>🔔</div></div></header>
+<header class="student-top"><div class="student-top-inner"><div class="student-brand">‹ &nbsp; GK BY PURUSHOTAM SIR</div><button class="bell-btn notification-bell" onclick="openNotifications()">🔔<span id="notificationBadge" class="notification-badge hidden">0</span></button></div></header>
 <main class="student-main">
 <section id="homeTab"><div id="homeBox"></div></section>
 <section id="targetsTab" class="hidden"><h2>Today's Target</h2><div id="targetsBox"></div></section>
 <section id="testsTab" class="hidden"><h2>Tests</h2><div id="testsList" class="list"></div></section>
 <section id="onelinersTab" class="hidden"><h2>One-Liners</h2><div id="oneLinersList" class="list"></div></section>
 <section id="pdfsTab" class="hidden"><h2>PDFs</h2><div id="pdfList" class="list"></div></section>
+<section id="notificationsTab" class="hidden"><div class="row wrap"><h2>Notifications</h2><button class="btn btn-blue" onclick="markAllNotificationsRead()">Mark all read</button></div><div id="notificationsList" class="list"></div></section>
 <section id="profileTab" class="hidden"><h2>Profile</h2><div id="profileBox"></div></section>
 </main>
 <nav class="bottom-nav bottom-nav-6"><button class="active" onclick="tab('home',this)">⌂<br>Home</button><button onclick="tab('targets',this)">✓<br>Targets</button><button onclick="tab('tests',this)">▣<br>Test</button><button onclick="tab('oneliners',this)">≡<br>One-Liner</button><button onclick="tab('pdfs',this)">▤<br>PDFs</button><button onclick="tab('profile',this)">○<br>Profile</button></nav>
