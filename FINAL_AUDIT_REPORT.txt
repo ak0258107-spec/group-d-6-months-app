@@ -1,0 +1,18 @@
+GK BY PURUSHOTAM SIR — FINAL AUDIT REPORT
+
+CHECKED AT CODE LEVEL:
+- JavaScript syntax checked for common.js, admin.js, student.js, test.js, final-fix.js, config.js, sw.js.
+- Inline OTP/login script syntax checked.
+- Mock test: answer required before Next.
+- Failed test: correct answers/explanations remain hidden until passing score.
+- Verification: bulk parser -> atomic admin RPC save.
+- One-Liner: topic-wise parser -> admin RPC publish -> student topic filters.
+- PDF read/download gate functions included.
+- Automatic date unlock + manual admin lock/unlock included.
+- Broadcast + in-app notifications included.
+- Premium 3D Student/Admin styling retained.
+- Full 125-day roadmap remains hidden from students.
+
+EXTERNAL LIVE CHECK REQUIRED:
+- Real SMS delivery requires your Supabase Phone provider and SMS provider credentials.
+- Live Supabase/network behavior cannot be executed inside this offline ZIP build environment.

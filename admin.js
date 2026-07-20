@@ -51,26 +51,23 @@ async function saveVerificationBatch(targetId,dayId){
   const show=document.getElementById('show_'+targetId).value==='true';
   const parsed=parseRawQuestions(raw);
   if(!parsed.length){toast('Valid verification question नहीं मिला। Mock Test वाला format paste करें।','error');return}
-  const old=await sb.from('verification_questions').select('id').eq('target_id',targetId).eq('verification_kind','class');
-  if(old.error){toast(old.error.message,'error');return}
-  const ids=(old.data||[]).map(x=>x.id);
-  if(ids.length){
-    const dk=await sb.from('verification_answer_keys').delete().in('verification_question_id',ids);if(dk.error){toast(dk.error.message,'error');return}
-    const dq=await sb.from('verification_questions').delete().in('id',ids);if(dq.error){toast(dq.error.message,'error');return}
-  }
-  for(let i=0;i<parsed.length;i++){
-    const q=parsed[i];
-    const ins=await sb.from('verification_questions').insert({
-      schedule_day_id:dayId,target_id:targetId,verification_kind:'class',question_text:q.question_text||'Class Verification',
-      answer_type:'mcq',options:q.options,show_question:show,is_active:true,explanation:q.explanation||null
-    }).select().single();
-    if(ins.error){toast('Q'+(i+1)+': '+ins.error.message,'error');return}
-    const key=await sb.from('verification_answer_keys').insert({verification_question_id:ins.data.id,correct_answer:String(q.correct_answer)});
-    if(key.error){toast('Q'+(i+1)+': '+key.error.message,'error');return}
-  }
+  const items=parsed.map((q,i)=>({
+    question_text:q.question_text||'Class Verification',
+    options:q.options,
+    correct_answer:String(q.correct_answer),
+    explanation:q.explanation||null,
+    sort_order:i+1
+  }));
+  const rr=await sb.rpc('admin_replace_target_verifications',{
+    p_target_id:targetId,
+    p_schedule_day_id:dayId,
+    p_show_question:show,
+    p_items:items
+  });
+  if(rr.error){toast('Verification save नहीं हुआ: '+rr.error.message,'error');return}
   toast(parsed.length+' Verification Question save हो गए।','success');
   document.getElementById('vqraw_'+targetId).value='';
-  loadDaySetup()
+  await loadDaySetup();
 }
 async function loadTargetStatus(){const dayId=targetDay.value||days[0]?.id;if(!dayId)return;const r=await sb.from('daily_progress').select('*,profiles(full_name)').eq('schedule_day_id',dayId);const rows=r.data||[],c=rows.filter(x=>x.status==='completed').length,partial=rows.filter(x=>x.status==='partial').length,not=rows.filter(x=>x.status==='not_started').length;targetStatusCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed</div><div class="kpi">${c}</div></div><div class="kpi-card kpi-orange span-4"><div class="muted">Partial</div><div class="kpi">${partial}</div></div><div class="kpi-card kpi-red span-4"><div class="muted">Not Started</div><div class="kpi">${not}</div></div>`;targetStatusBody.innerHTML=rows.map(x=>`<tr><td>${esc(x.profiles?.full_name||'')}</td><td>${x.completed_targets}/${x.total_targets}</td><td>${x.test_score_percent??'-'}%</td><td>${esc(x.status)}</td><td>${x.status==='completed'?'Excellent 🌹':x.feedback==='test_pending'?'Final Test Pass करें 📝':x.status==='partial'?'Target पूरा करें ⚠️':'Work Complete नहीं हुआ ❌'}</td></tr>`).join('');renderDayUnlockState()}
 function currentSelectedDay(){return days.find(d=>String(d.id)===String(targetDay.value))||days[0]}function renderDayUnlockState(){const d=currentSelectedDay();if(!d)return;let txt=d.manual_lock?'🔒 Manually Locked':d.manual_unlock?'🔓 Manually Unlocked':'⏱ Automatic — Date-wise';dayUnlockState.innerHTML=`<span class="lock-chip ${d.manual_lock||d.manual_unlock?'manual':'auto'}">${txt}</span>`}
@@ -80,8 +77,41 @@ function answerIndex(raw){const s=(raw||'').trim().replace(/[()\[\]]/g,'').toUpp
 function parseRawQuestions(raw){const clean=raw.replace(/\r/g,'').trim();if(!clean)return[];const starts=[...clean.matchAll(/(?:^|\n)\s*(?:प्रश्न|Question|Q)\s*(?:No\.?\s*)?(\d+)\s*[.):-]?\s*/gi)];let blocks=[];if(starts.length){for(let i=0;i<starts.length;i++){const a=starts[i].index+(starts[i][0].startsWith('\n')?1:0),b=i+1<starts.length?starts[i+1].index:clean.length;blocks.push(clean.slice(a,b).trim())}}else blocks=clean.split(/\n\s*\n(?=\S)/).filter(Boolean);const out=[];for(const b0 of blocks){let block=b0.replace(/^\s*(?:प्रश्न|Question|Q)\s*(?:No\.?\s*)?\d+\s*[.):-]?\s*/i,'').trim();const ansM=block.match(/\n\s*(?:उत्तर|Answer|Ans\.?|सही उत्तर)\s*[:：-]\s*\(?\s*([A-Da-dकखगघ1-4])\s*\)?/i);if(!ansM)continue;const expM=block.match(/\n\s*(?:व्याख्या|Explanation|Solution)\s*[:：-]\s*([\s\S]*)$/i),answer=answerIndex(ansM[1]);let content=block.slice(0,ansM.index).trim();const optRe=/(?:^|\n)\s*(?:\(([A-Da-dकखगघ])\)|([A-Da-dकखगघ])[.)])\s*([^\n]+)/g,opts=[];let m,first=-1;while((m=optRe.exec(content))){if(first<0)first=m.index+(m[0].startsWith('\n')?1:0);opts.push(m[3].trim())}if(opts.length!==4||answer===null)continue;const qtext=(first>=0?content.slice(0,first):content).trim();out.push({question_type:detectType(qtext),question_text:qtext,options:opts,correct_answer:answer,explanation:expM?expM[1].trim():null})}return out}
 async function publishRawTest(){const parsed=parseRawQuestions(rawQuestions.value);if(!parsed.length){toast('Valid questions नहीं मिले। Format check करें।','error');return}const tr=await sb.from('tests').insert({batch_id:APP_CONFIG.BATCH_ID,schedule_day_id:testDay.value||null,title:testName.value.trim()||'New Test',test_type:'daily',total_questions:parsed.length,total_marks:parsed.length,time_limit_minutes:+testTime.value||null,passing_percent:+testPass.value||0,is_final_daily:isFinalDaily.checked,is_pdf_download_gate:isPdfGate.checked,allow_unlimited_retries:true,status:'published',created_by:adminUser.id}).select().single();if(tr.error){toast(tr.error.message,'error');return}for(let i=0;i<parsed.length;i++){const q=parsed[i],rr=await sb.from('test_questions').insert({test_id:tr.data.id,question_order:i+1,marks:1,difficulty:'normal',question_type:q.question_type,question_text:q.question_text,options:q.options}).select().single();if(rr.error){toast('Q'+(i+1)+': '+rr.error.message,'error');return}await sb.from('test_question_keys').insert({question_id:rr.data.id,correct_answer:q.correct_answer,explanation:q.explanation})}await createGlobalNotification('📝 नया Mock Test',tr.data.title+' उपलब्ध है।','test',tr.data.id);toast(parsed.length+' प्रश्नों का Test Publish हो गया।','success');rawQuestions.value='';loadTests()}
 async function loadTests(){const r=await sb.from('tests').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('created_at',{ascending:false});publishedTests=r.data||[];adminTests.innerHTML=publishedTests.map(t=>`<div class="item"><b>${esc(t.title)}</b><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent||0}% ${t.is_final_daily?'• Final Daily':''}</div></div>`).join('');pdfTest.innerHTML='<option value="">No Test</option>'+publishedTests.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('')}
-function parseOneLiners(raw){const lines=raw.replace(/\r/g,'').split('\n'),out=[];let q=null;for(const l0 of lines){const l=l0.trim();if(!l)continue;const qm=l.match(/^(?:प्रश्न|Question|Q)\s*(?:\d+)?\s*[.):-]?\s*(.+)$/i),am=l.match(/^(?:उत्तर|Answer|Ans\.?)\s*[:：-]\s*(.+)$/i);if(qm)q=qm[1].trim();else if(am&&q){out.push({question:q,answer:am[1].trim()});q=null}}return out}
-async function publishOneLiners(){const rows=parseOneLiners(oneLinerRaw.value);if(!rows.length){toast('One-Liner format नहीं मिला।','error');return}const payload=rows.map(x=>({...x,subject:oneLinerSubject.value.trim()||'General',topic:oneLinerTopic.value.trim()||'General',status:'published',created_by:adminUser.id}));const rr=await sb.from('one_liners').insert(payload);if(rr.error){toast(rr.error.message,'error');return}await createGlobalNotification('📚 नए One-Liners',`${oneLinerTopic.value.trim()||'नए Topic'} के ${rows.length} One-Liners उपलब्ध हैं।`,'oneliner','');toast(rows.length+' One-Liners Publish हो गए।','success');oneLinerRaw.value='';loadOneLinersAdmin()}
+function parseOneLiners(raw){
+  const text=String(raw||'').replace(/\r/g,'').trim();
+  if(!text)return[];
+  const out=[];
+  for(const line0 of text.split('\n')){
+    const line=line0.trim();
+    if(!line)continue;
+    const m=line.match(/^\s*(?:\d+\s*[.)-]?\s*)?(.+?)\s*(?:—|--|-)?\s*(?:उत्तर|Answer|Ans\.?)\s*[:：-]\s*(.+)\s*$/i);
+    if(m&&m[1]&&m[2])out.push({question:m[1].trim().replace(/[—\-\s]+$/,''),answer:m[2].trim()});
+  }
+  if(out.length)return out;
+  const lines=text.split('\n');let q=null;
+  for(const l0 of lines){
+    const l=l0.trim();if(!l)continue;
+    const am=l.match(/^(?:उत्तर|Answer|Ans\.?)\s*[:：-]\s*(.+)$/i);
+    if(am&&q){out.push({question:q,answer:am[1].trim()});q=null;continue}
+    const qm=l.match(/^(?:प्रश्न|Question|Q)?\s*(?:\d+)?\s*[.):-]?\s*(.+)$/i);
+    if(qm)q=qm[1].trim();
+  }
+  return out;
+}
+async function publishOneLiners(){
+  const rows=parseOneLiners(oneLinerRaw.value);
+  if(!rows.length){toast('One-Liner format नहीं मिला। उदाहरण: 1. प्रश्न — उत्तर: जवाब','error');return}
+  const rr=await sb.rpc('admin_publish_one_liners',{
+    p_subject:oneLinerSubject.value.trim()||'General',
+    p_topic:oneLinerTopic.value.trim()||'General',
+    p_items:rows
+  });
+  if(rr.error){toast('One-Liner save नहीं हुआ: '+rr.error.message,'error');return}
+  await createGlobalNotification('📚 नए One-Liners',`${oneLinerTopic.value.trim()||'नए Topic'} के ${rows.length} One-Liners उपलब्ध हैं।`,'oneliner','');
+  toast(rows.length+' One-Liners Publish हो गए।','success');
+  oneLinerRaw.value='';
+  await loadOneLinersAdmin();
+}
 async function loadOneLinersAdmin(){const r=await sb.from('one_liners').select('*').order('created_at',{ascending:false}).limit(100);adminOneLiners.innerHTML=(r.data||[]).map(x=>`<div class="item"><span class="topic-chip">${esc(x.subject||'General')} • ${esc(x.topic||'General')}</span><p><b>${esc(x.question)}</b></p><p>${esc(x.answer)}</p></div>`).join('')||'<div class="item">अभी कोई One-Liner नहीं है।</div>'}
 async function uploadPdf(){const f=pdfFile.files[0];if(!f){toast('PDF चुनें','error');return}if(f.size>25*1024*1024){toast('PDF 25 MB से बड़ी है','error');return}const path=`${pdfDay.value}/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,up=await sb.storage.from('study-pdfs').upload(path,f,{contentType:'application/pdf'});if(up.error){toast(up.error.message,'error');return}const ins=await sb.from('study_materials').insert({schedule_day_id:pdfDay.value,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:path,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',access_mode:pdfAccess.value,download_test_id:pdfTest.value||null,download_pass_percent:+pdfPass.value||80,requires_class_verification:true,uploaded_by:adminUser.id,published_at:new Date().toISOString()}).select().single();if(ins.error){toast(ins.error.message,'error');return}await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);toast('PDF upload हो गई','success');loadMaterials()}
 async function loadMaterials(){const r=await sb.from('study_materials').select('*,schedule_days(day_number)').order('created_at',{ascending:false});materialsList.innerHTML=(r.data||[]).map(m=>`<div class="item"><b>${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${m.access_mode||'read_only'} ${m.access_mode==='test_required'?`• ${m.download_pass_percent}%`:''}</div></div>`).join('')}

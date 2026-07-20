@@ -1,4 +1,4 @@
-const CACHE="group-d-90-v1";
+const CACHE="group-d-6m-audited-otp-v1";
 const ASSETS=["./","./index.html","./student.html","./admin.html","./test.html","./styles.css","./config.js","./common.js","./student.js","./admin.js","./test.js","./manifest.webmanifest"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));

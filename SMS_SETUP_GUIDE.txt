@@ -1,0 +1,20 @@
+GK BY PURUSHOTAM SIR — MOBILE OTP SETUP
+
+APP SIDE IS READY:
+- New registrations use real Supabase Phone + Password accounts.
+- Login first tries Phone + Password.
+- Old synthetic-email accounts still login through automatic fallback.
+- Forgot Password flow: Mobile -> SMS OTP -> Verify -> New Password.
+
+SUPABASE SETUP:
+1. Supabase project खोलें.
+2. Authentication -> Sign In / Providers -> Phone खोलें.
+3. Phone provider enable करें.
+4. Supabase में उपलब्ध supported SMS provider में से एक configure करें.
+5. Provider के credentials केवल Supabase dashboard में रखें.
+6. Save changes करें.
+
+IMPORTANT:
+- OTP file/PDF storage memory नहीं भरता.
+- पुराने synthetic-email users login कर सकते हैं, लेकिन OTP recovery के लिए real phone-auth migration/re-registration की जरूरत पड़ सकती है.
+- SMS provider secret key कभी GitHub या config.js में मत डालें.
