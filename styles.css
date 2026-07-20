@@ -84,3 +84,11 @@ body{background:radial-gradient(circle at 15% 0%,rgba(41,121,255,.12),transparen
 .verification-explanation{margin-top:10px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#ecfdf5,#f7fff9);border-left:5px solid #16a34a;color:#14532d}
 .verify-card{border-radius:20px!important;box-shadow:0 16px 34px rgba(13,55,99,.13)!important;background:linear-gradient(145deg,#fff,#f8fbff)!important}
 @media(max-width:700px){.setup-inline{grid-template-columns:1fr}.target-setup-3d summary{padding:15px}.target-setup-body,.verification-builder-3d{padding:15px}.verification-raw-box{min-height:250px!important}}
+
+
+.gd-final-toast{display:none;position:fixed;z-index:99999;top:78px;left:50%;transform:translateX(-50%);
+padding:13px 18px;border-radius:14px;color:#fff;font-weight:800;box-shadow:0 15px 35px #0003;max-width:92%;text-align:center}
+.gd-final-toast.ok{background:linear-gradient(135deg,#08783f,#12a866)}
+.gd-final-toast.bad{background:linear-gradient(135deg,#8b1e2d,#dc3545)}
+.target-card,.verification-card{box-shadow:0 16px 38px rgba(10,45,84,.16)!important;border-radius:20px!important;
+background:linear-gradient(145deg,#fff,#f5f9ff)!important;border:1px solid #d9e5f2!important}
