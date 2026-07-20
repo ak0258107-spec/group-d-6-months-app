@@ -21,26 +21,36 @@ on public.target_verification_questions(schedule_day_id);
 
 alter table public.target_verification_questions enable row level security;
 
-drop policy if exists "verification_read_authenticated" on public.target_verification_questions;
+drop policy if exists "verification_read_authenticated"
+on public.target_verification_questions;
+
 create policy "verification_read_authenticated"
-on public.target_verification_questions for select
+on public.target_verification_questions
+for select
 to authenticated
 using (true);
 
-drop policy if exists "verification_admin_all" on public.target_verification_questions;
+drop policy if exists "verification_admin_all"
+on public.target_verification_questions;
+
 create policy "verification_admin_all"
-on public.target_verification_questions for all
+on public.target_verification_questions
+for all
 to authenticated
 using (
   exists (
-    select 1 from public.profiles p
-    where p.id = auth.uid() and lower(coalesce(p.role,'')) = 'admin'
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.role::text = 'admin'
   )
 )
 with check (
   exists (
-    select 1 from public.profiles p
-    where p.id = auth.uid() and lower(coalesce(p.role,'')) = 'admin'
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.role::text = 'admin'
   )
 );
 
