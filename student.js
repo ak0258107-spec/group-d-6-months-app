@@ -194,6 +194,37 @@ init=async function(){
 };
 
 
+
+/* ===== HOME STATUS MODEL ===== */
+async function statusModel(){
+  if(!currentDay){
+    return {
+      key:'notstarted',
+      title:'आज का Target अभी उपलब्ध नहीं है',
+      msg:'Target की निर्धारित तारीख या Admin unlock के बाद content उपलब्ध होगा।'
+    };
+  }
+  const total=currentTargets.length;
+  const done=currentTargets.filter(t=>targetCompletionMap.has(t.id)).length;
+  const ft=finalTest();
+  const fa=ft?await bestAttempt(ft.id):null;
+  const finalPassed=!ft || (!!fa && Number(fa.percentage||0)>=Number(ft.passing_percent||0));
+
+  if(total===0){
+    return {key:'notstarted',title:'आज का Target अभी उपलब्ध नहीं है',msg:'Admin द्वारा आज का content publish होने का इंतजार करें।'};
+  }
+  if(done===0){
+    return {key:'notstarted',title:'Work Complete नहीं हुआ है ❌',msg:'आज की Class और Verification से शुरुआत करें।'};
+  }
+  if(done<total){
+    return {key:'pending',title:'आज का Target पूरा करें ⚠️',msg:`${total} में से ${done} Target verified हैं। बाकी target पूरा करें।`};
+  }
+  if(ft && !finalPassed){
+    return {key:'pending',title:'Final Test Pass करना बाकी है 📝',msg:`Daily Target complete करने के लिए Final Test में कम से कम ${ft.passing_percent||0}% score करें।`};
+  }
+  return {key:'excellent',title:'आज का Target Complete 🎉',msg:'बहुत बढ़िया! आज का पूरा target सफलतापूर्वक complete हो गया।'};
+}
+
 /* ===== PREMIUM HOME ACTION CARDS / DAY TASK FLOW ===== */
 function todayClassCardsHtml(){
   if(!currentTargets.length)return '<div class="empty-state">आज की कोई class target उपलब्ध नहीं है।</div>';
