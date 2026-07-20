@@ -1,15 +1,20 @@
-GK BY PURUSHOTAM SIR — FULL AUDITED OTP FINAL
+GK BY PURUSHOTAM SIR — FREE EMAIL RESET + PREMIUM 3D FINAL
 
+INSTALL:
 1. ZIP Extract करें.
 2. GitHub repository root में सारी extracted files upload/replace करके Commit करें.
 3. Supabase SQL Editor में RUN_THIS_ONE_TIME_ONLY.sql एक बार Run करें.
-4. OTP के लिए SMS_SETUP_GUIDE.txt के अनुसार Supabase Phone/SMS provider configure करें.
-5. Live app Ctrl+F5 से refresh करें.
+4. Supabase Phone provider Disabled रखें. Twilio की जरूरत नहीं है.
+5. Authentication -> Email provider Enabled रखें.
+6. Authentication -> URL Configuration में GitHub Pages URL redirect allow करें.
+7. Live app Ctrl+F5 से refresh करें.
 
-पुराने users:
-- Login fallback मौजूद है.
-- OTP recovery पुराने synthetic-email account पर तभी चलेगी जब account real phone-auth में migrate/re-register हो.
+LOGIN:
+- नए users: Email + Password.
+- Mobile optional profile field है.
+- पुराने mobile-number login accounts automatic legacy fallback से login कर सकते हैं.
+- Forgot Password: Registered Email पर reset link.
 
-नए users:
-- Real Phone + Password auth पर register होंगे.
-- SMS provider configured होने पर Forgot Password OTP flow काम करेगा.
+NOTE:
+पुराने synthetic-email mobile accounts का Forgot Password email recovery अपने-आप possible नहीं है क्योंकि उनके पास real registered email नहीं था.
+नए registrations से यह समस्या नहीं होगी.

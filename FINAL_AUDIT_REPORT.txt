@@ -1,18 +1,23 @@
-GK BY PURUSHOTAM SIR — FINAL AUDIT REPORT
+GK BY PURUSHOTAM SIR — FINAL CODE AUDIT REPORT
 
-CHECKED AT CODE LEVEL:
-- JavaScript syntax checked for common.js, admin.js, student.js, test.js, final-fix.js, config.js, sw.js.
-- Inline OTP/login script syntax checked.
-- Mock test: answer required before Next.
-- Failed test: correct answers/explanations remain hidden until passing score.
-- Verification: bulk parser -> atomic admin RPC save.
-- One-Liner: topic-wise parser -> admin RPC publish -> student topic filters.
-- PDF read/download gate functions included.
-- Automatic date unlock + manual admin lock/unlock included.
-- Broadcast + in-app notifications included.
-- Premium 3D Student/Admin styling retained.
-- Full 125-day roadmap remains hidden from students.
+CODE-LEVEL AUDIT CHECKED:
+- JavaScript syntax: common.js, admin.js, student.js, test.js, config.js, sw.js, final-fix.js.
+- Login page inline JavaScript syntax.
+- Email registration + email login.
+- Legacy mobile-number login fallback retained.
+- Free Supabase Email Password Reset flow included.
+- Verification bulk parser/save flow retained.
+- Topic-wise One-Liner parser/publish/load retained.
+- Mock-test parser and 10-type detection retained.
+- Answer required before Next retained.
+- Failed test hides correct answers and explanations retained.
+- PDF read/download gate functions retained.
+- Daily final-test completion logic retained.
+- Auto date unlock + admin manual lock/unlock retained.
+- Broadcast + in-app notifications retained.
+- Student full 125-day roadmap hidden.
+- Premium 3D tactile button/card/input layer added.
 
-EXTERNAL LIVE CHECK REQUIRED:
-- Real SMS delivery requires your Supabase Phone provider and SMS provider credentials.
-- Live Supabase/network behavior cannot be executed inside this offline ZIP build environment.
+EXTERNAL LIVE ITEMS:
+- Actual email delivery depends on Supabase Email Auth configuration.
+- Live database/network behavior cannot be executed from this offline build environment.

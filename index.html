@@ -13,125 +13,146 @@
   <div id="msg"></div>
 
   <section id="loginMode">
-    <div class="form-group"><label>मोबाइल नंबर</label><input id="loginPhone" inputmode="numeric" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर"></div>
-    <div class="form-group"><label>पासवर्ड</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="अपना पासवर्ड"></div>
-    <button class="btn btn-blue auth-main-btn" onclick="login()">Login</button>
-    <button class="auth-link-btn" onclick="showForgot()">पासवर्ड भूल गए? OTP से Reset करें</button>
-    <button class="btn btn-light auth-main-btn" onclick="showRegister()">New Student Registration</button>
+    <div class="form-group"><label>Email या पुराना Mobile Number</label><input id="loginId" autocomplete="username" placeholder="Email या 10 अंकों का मोबाइल नंबर"></div>
+    <div class="form-group"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="अपना Password"></div>
+    <button class="btn btn-blue auth-main-btn premium-press-btn" onclick="login()">Login</button>
+    <button class="auth-link-btn" onclick="showForgot()">Password भूल गए? Email से Reset करें</button>
+    <button class="btn btn-light auth-main-btn premium-press-btn" onclick="showRegister()">New Student Registration</button>
   </section>
 
   <section id="registerMode" class="hidden">
     <div class="form-group"><label>विद्यार्थी का नाम</label><input id="regName" placeholder="पूरा नाम"></div>
-    <div class="form-group"><label>मोबाइल नंबर</label><input id="regPhone" inputmode="numeric" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर"></div>
-    <div class="form-group"><label>पासवर्ड</label><input id="regPassword" type="password" autocomplete="new-password" placeholder="कम से कम 6 अक्षर"></div>
-    <div class="form-group"><label>पासवर्ड दोबारा</label><input id="regPassword2" type="password" autocomplete="new-password" placeholder="पासवर्ड दोबारा लिखें"></div>
-    <button class="btn btn-green auth-main-btn" onclick="signup()">Register</button>
+    <div class="form-group"><label>Email</label><input id="regEmail" type="email" autocomplete="email" placeholder="अपना Email"></div>
+    <div class="form-group"><label>मोबाइल नंबर (Optional)</label><input id="regPhone" inputmode="numeric" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर"></div>
+    <div class="form-group"><label>Password</label><input id="regPassword" type="password" autocomplete="new-password" placeholder="कम से कम 6 अक्षर"></div>
+    <div class="form-group"><label>Password दोबारा</label><input id="regPassword2" type="password" autocomplete="new-password" placeholder="Password दोबारा लिखें"></div>
+    <button class="btn btn-green auth-main-btn premium-press-btn" onclick="signup()">Register</button>
     <button class="auth-link-btn" onclick="showLogin()">← Back to Login</button>
-  </section>
-
-  <section id="registerOtpMode" class="hidden">
-    <div class="otp-icon">📲</div><h2>मोबाइल Verify करें</h2>
-    <p class="muted">आपके मोबाइल पर आया 6 अंकों का OTP डालें।</p>
-    <div class="form-group"><input id="registerOtp" inputmode="numeric" maxlength="6" placeholder="6-digit OTP"></div>
-    <button class="btn btn-green auth-main-btn" onclick="verifyRegistrationOtp()">Verify & Continue</button>
-    <button class="auth-link-btn" onclick="resendRegistrationOtp()">OTP दोबारा भेजें</button>
   </section>
 
   <section id="forgotMode" class="hidden">
-    <div class="otp-icon">🔐</div><h2>Forgot Password</h2>
-    <p class="muted">Registered mobile number डालिए। OTP से नया password बना सकेंगे।</p>
-    <div class="form-group"><label>मोबाइल नंबर</label><input id="forgotPhone" inputmode="numeric" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर"></div>
-    <button class="btn btn-blue auth-main-btn" onclick="sendResetOtp()">Send OTP</button>
+    <div class="otp-icon">📧</div><h2>Password Reset</h2>
+    <p class="muted">Registered Email डालिए। Password reset link आपके Email पर भेजा जाएगा।</p>
+    <div class="form-group"><label>Registered Email</label><input id="forgotEmail" type="email" autocomplete="email" placeholder="your@email.com"></div>
+    <button class="btn btn-blue auth-main-btn premium-press-btn" onclick="sendResetEmail()">Send Reset Link</button>
     <button class="auth-link-btn" onclick="showLogin()">← Back to Login</button>
   </section>
 
-  <section id="resetOtpMode" class="hidden">
-    <div class="otp-icon">📩</div><h2>OTP Verify</h2>
-    <p class="muted">मोबाइल पर आया 6 अंकों का OTP डालिए।</p>
-    <div class="form-group"><input id="resetOtp" inputmode="numeric" maxlength="6" placeholder="6-digit OTP"></div>
-    <button class="btn btn-green auth-main-btn" onclick="verifyResetOtp()">Verify OTP</button>
-    <button class="auth-link-btn" onclick="sendResetOtp(true)">OTP दोबारा भेजें</button>
-  </section>
-
   <section id="newPasswordMode" class="hidden">
-    <div class="otp-icon">✅</div><h2>नया Password</h2>
-    <div class="form-group"><label>नया Password</label><input id="newPassword" type="password" minlength="6" placeholder="कम से कम 6 अक्षर"></div>
-    <div class="form-group"><label>दोबारा Password</label><input id="newPassword2" type="password" minlength="6" placeholder="नया password दोबारा"></div>
-    <button class="btn btn-green auth-main-btn" onclick="saveNewPassword()">Update Password</button>
+    <div class="otp-icon">✅</div><h2>नया Password बनाइए</h2>
+    <p class="muted">Reset link verified है। अब नया password सेट करें।</p>
+    <div class="form-group"><label>नया Password</label><input id="newPassword" type="password" minlength="6" autocomplete="new-password" placeholder="कम से कम 6 अक्षर"></div>
+    <div class="form-group"><label>दोबारा Password</label><input id="newPassword2" type="password" minlength="6" autocomplete="new-password" placeholder="नया Password दोबारा"></div>
+    <button class="btn btn-green auth-main-btn premium-press-btn" onclick="saveNewPassword()">Update Password</button>
   </section>
 </div></div>
 
 <script>
 registerSW();
-let pendingRegisterPhone=null,pendingRegisterName=null,pendingResetPhone=null;
-const authSections=["loginMode","registerMode","registerOtpMode","forgotMode","resetOtpMode","newPasswordMode"];
-function showSection(id){msg.innerHTML="";authSections.forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id))}
-function showLogin(){showSection("loginMode")} function showRegister(){showSection("registerMode")} function showForgot(){showSection("forgotMode")}
-function showMsg(text,type="error"){msg.innerHTML='<div class="notice notice-'+type+'">'+esc(text)+'</div>'}
+const authSections=["loginMode","registerMode","forgotMode","newPasswordMode"];
 
-(async()=>{const {data:{session}}=await sb.auth.getSession();if(session){const p=await getProfile(session.user.id);location.href=p?.role==="admin"?"admin.html":"student.html"}})();
+function showSection(id){
+  msg.innerHTML="";
+  authSections.forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id));
+}
+function showLogin(){showSection("loginMode")}
+function showRegister(){showSection("registerMode")}
+function showForgot(){showSection("forgotMode")}
+function showMsg(text,type="error"){msg.innerHTML='<div class="notice notice-'+type+'">'+esc(text)+'</div>'}
+function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim())}
+
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==="PASSWORD_RECOVERY"){
+    showSection("newPasswordMode");
+    showMsg("Reset link verified. नया Password बनाइए।","success");
+  }
+});
+
+(async()=>{
+  const params=new URLSearchParams(location.search);
+  const {data:{session}}=await sb.auth.getSession();
+  if(params.get("reset")==="1" && session){
+    showSection("newPasswordMode");
+    return;
+  }
+  if(session){
+    const p=await getProfile(session.user.id);
+    location.href=p?.role==="admin"?"admin.html":"student.html";
+  }
+})();
 
 async function login(){
-  const phone=normalizeIndianPhone(loginPhone.value),password=loginPassword.value;msg.innerHTML="";
-  if(!phone)return showMsg("सही 10 अंकों का मोबाइल नंबर लिखें।");
-  if(!password)return showMsg("पासवर्ड लिखें।");
-  let result=await sb.auth.signInWithPassword({phone,password});
-  if(result.error)result=await sb.auth.signInWithPassword({email:phoneToAuthEmail(phone),password});
-  if(result.error)return showMsg("मोबाइल नंबर या पासवर्ड गलत है।");
-  const p=await getProfile(result.data.user.id);location.href=p?.role==="admin"?"admin.html":"student.html";
+  msg.innerHTML="";
+  const raw=loginId.value.trim();
+  const password=loginPassword.value;
+  if(!raw)return showMsg("Email या Mobile Number लिखें।");
+  if(!password)return showMsg("Password लिखें।");
+
+  let result;
+  if(validEmail(raw)){
+    result=await sb.auth.signInWithPassword({email:raw.toLowerCase(),password});
+  }else{
+    const phone=normalizeIndianPhone(raw);
+    if(!phone)return showMsg("सही Email या 10 अंकों का Mobile Number लिखें।");
+    // Backward compatibility for old synthetic-email mobile accounts.
+    result=await sb.auth.signInWithPassword({email:phoneToAuthEmail(phone),password});
+  }
+  if(result.error)return showMsg("Login details गलत हैं।");
+  const p=await getProfile(result.data.user.id);
+  location.href=p?.role==="admin"?"admin.html":"student.html";
 }
 
 async function signup(){
-  const name=regName.value.trim(),phone=normalizeIndianPhone(regPhone.value),password=regPassword.value;msg.innerHTML="";
+  msg.innerHTML="";
+  const name=regName.value.trim();
+  const email=regEmail.value.trim().toLowerCase();
+  const phone=normalizeIndianPhone(regPhone.value);
+  const password=regPassword.value;
+
   if(name.length<2)return showMsg("विद्यार्थी का पूरा नाम लिखें।");
-  if(!phone)return showMsg("सही 10 अंकों का मोबाइल नंबर लिखें।");
-  if(password.length<6)return showMsg("पासवर्ड कम से कम 6 अक्षर का रखें।");
-  if(password!==regPassword2.value)return showMsg("दोनों पासवर्ड एक जैसे नहीं हैं।");
-  pendingRegisterPhone=phone;pendingRegisterName=name;
-  const {data,error}=await sb.auth.signUp({phone,password,options:{data:{full_name:name,phone,auth_mode:"phone"}}});
+  if(!validEmail(email))return showMsg("सही Email लिखें।");
+  if(regPhone.value.trim() && !phone)return showMsg("मोबाइल नंबर सही 10 अंकों का लिखें या खाली छोड़ें।");
+  if(password.length<6)return showMsg("Password कम से कम 6 अक्षर का रखें।");
+  if(password!==regPassword2.value)return showMsg("दोनों Password एक जैसे नहीं हैं।");
+
+  const {data,error}=await sb.auth.signUp({
+    email,
+    password,
+    options:{data:{full_name:name,phone:phone||null,auth_mode:"email"}}
+  });
   if(error){
     const m=(error.message||"").toLowerCase();
-    if(m.includes("already")||m.includes("registered"))return showMsg("यह मोबाइल नंबर पहले से Registered है। Login करें।");
-    if(m.includes("phone")||m.includes("sms")||m.includes("provider"))return showMsg("Phone/SMS provider अभी Supabase में configured नहीं है। SMS_SETUP_GUIDE.txt देखें।");
+    if(m.includes("already")||m.includes("registered"))return showMsg("यह Email पहले से Registered है। Login करें।");
     return showMsg(error.message);
   }
-  if(data.session){showMsg("Registration सफल। Dashboard खुल रहा है…","success");setTimeout(()=>location.href="student.html",500)}
-  else showSection("registerOtpMode");
+
+  if(data.session){
+    showMsg("Registration सफल। Dashboard खुल रहा है…","success");
+    setTimeout(()=>location.href="student.html",600);
+  }else{
+    showMsg("Registration हो गया। अपने Email में confirmation link खोलें, फिर Login करें।","success");
+  }
 }
 
-async function verifyRegistrationOtp(){
-  const token=registerOtp.value.trim();
-  if(!pendingRegisterPhone||token.length<6)return showMsg("सही OTP डालिए।");
-  const {error}=await sb.auth.verifyOtp({phone:pendingRegisterPhone,token,type:"sms"});
-  if(error)return showMsg("OTP सही नहीं है या expire हो गया है।");
-  showMsg("Mobile verified. Registration complete.","success");setTimeout(()=>location.href="student.html",500);
+async function sendResetEmail(){
+  msg.innerHTML="";
+  const email=forgotEmail.value.trim().toLowerCase();
+  if(!validEmail(email))return showMsg("सही Registered Email लिखें।");
+  const base=location.origin+location.pathname.replace(/[^/]+$/,"index.html");
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:base+"?reset=1"});
+  if(error)return showMsg(error.message);
+  showMsg("Password reset link आपके Email पर भेज दिया गया है। Inbox और Spam दोनों check करें।","success");
 }
-async function resendRegistrationOtp(){
-  if(!pendingRegisterPhone)return showRegister();
-  const {error}=await sb.auth.signInWithOtp({phone:pendingRegisterPhone,options:{shouldCreateUser:false}});
-  if(error)showMsg(error.message);else showMsg("OTP दोबारा भेज दिया गया है।","success");
-}
-async function sendResetOtp(isResend=false){
-  if(!isResend){pendingResetPhone=normalizeIndianPhone(forgotPhone.value);if(!pendingResetPhone)return showMsg("सही 10 अंकों का मोबाइल नंबर लिखें।")}
-  if(!pendingResetPhone){showForgot();return showMsg("Mobile number दोबारा डालिए।")}
-  const {error}=await sb.auth.signInWithOtp({phone:pendingResetPhone,options:{shouldCreateUser:false}});
-  if(error)return showMsg("OTP नहीं भेजा जा सका। पुराने account को OTP recovery के लिए phone-auth migration की जरूरत हो सकती है।");
-  showSection("resetOtpMode");showMsg("OTP भेज दिया गया है।","success");
-}
-async function verifyResetOtp(){
-  const token=resetOtp.value.trim();
-  if(!pendingResetPhone||token.length<6)return showMsg("सही 6 अंकों का OTP डालिए।");
-  const {error}=await sb.auth.verifyOtp({phone:pendingResetPhone,token,type:"sms"});
-  if(error)return showMsg("OTP गलत है या expire हो गया है।");
-  showSection("newPasswordMode");
-}
+
 async function saveNewPassword(){
   const p1=newPassword.value,p2=newPassword2.value;
   if(p1.length<6)return showMsg("Password कम से कम 6 अक्षर का रखें।");
-  if(p1!==p2)return showMsg("दोनों passwords एक जैसे नहीं हैं।");
+  if(p1!==p2)return showMsg("दोनों Password एक जैसे नहीं हैं।");
   const {error}=await sb.auth.updateUser({password:p1});
   if(error)return showMsg(error.message);
-  await sb.auth.signOut();showLogin();showMsg("Password सफलतापूर्वक बदल गया। अब Login करें।","success");
+  await sb.auth.signOut();
+  showLogin();
+  showMsg("Password सफलतापूर्वक बदल गया। अब Login करें।","success");
 }
 </script>
 </body></html>

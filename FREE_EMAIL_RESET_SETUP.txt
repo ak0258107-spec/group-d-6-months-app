@@ -1,0 +1,22 @@
+GK BY PURUSHOTAM SIR — FREE EMAIL PASSWORD RESET
+
+APP SIDE:
+- New students register with Email + Password.
+- Mobile number is optional.
+- Login supports Email + Password.
+- Old mobile-number accounts keep working through legacy login fallback.
+- Forgot Password uses Supabase Email Reset Link.
+- No SMS provider and no Twilio required.
+
+SUPABASE:
+1. Authentication -> Sign In / Providers -> Email enabled रखें.
+2. Phone provider Disabled रहने दें.
+3. Authentication -> URL Configuration में अपनी GitHub Pages URL allowed redirect URLs में रखें:
+   https://YOUR-USERNAME.github.io/group-d-6-months-app/**
+4. Email confirmation रखना है या नहीं, यह आपकी choice है.
+5. Password reset email Supabase Auth से जाएगी.
+
+IMPORTANT:
+पुराने mobile-only synthetic-email users के पास real recovery email नहीं है.
+उनका पुराना login चलता रहेगा, लेकिन Forgot Password email reset तभी चलेगा जब उनके account में real registered email हो.
+नए registrations इस build से real Email Auth पर होंगे.
