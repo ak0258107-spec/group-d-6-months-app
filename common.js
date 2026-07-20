@@ -60,3 +60,34 @@ async function installApp(){
   }
   toast('Browser menu में “Install app” या “Add to Home screen” चुनें।','success');
 }
+
+/* ===== PREMIUM ACTION NOTICE ===== */
+function showActionNotice(message, actionLabel='', actionFn=null, type='warning'){
+  let host=document.getElementById('globalActionNoticeHost');
+  if(!host){
+    host=document.createElement('div');
+    host.id='globalActionNoticeHost';
+    host.className='global-action-notice-host';
+    document.body.appendChild(host);
+  }
+  host.innerHTML='';
+  const card=document.createElement('div');
+  card.className='global-action-notice '+type;
+  const text=document.createElement('div');
+  text.className='global-action-notice-text';
+  text.textContent=message;
+  card.appendChild(text);
+  if(actionLabel && actionFn){
+    const btn=document.createElement('button');
+    btn.className='btn btn-blue global-action-notice-btn';
+    btn.textContent=actionLabel;
+    btn.onclick=()=>{ actionFn(); host.innerHTML=''; };
+    card.appendChild(btn);
+  }
+  const close=document.createElement('button');
+  close.className='global-action-notice-close';
+  close.textContent='✕';
+  close.onclick=()=>host.innerHTML='';
+  card.appendChild(close);
+  host.appendChild(card);
+}

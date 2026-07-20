@@ -48,12 +48,26 @@ async function loadPdfs(){
   pdfList.innerHTML=rows.map(m=>`<div class="item pdf-read-card"><div class="row wrap"><div><b>${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${m.access_mode==='direct_download'?'Direct Download':m.access_mode==='test_required'?`Test Gate ${m.download_pass_percent}%`:'Read Only'}</div></div><div class="row wrap"><button class="btn btn-blue" onclick="readPdf('${m.id}','${m.storage_path}','${esc(m.title)}')">Read PDF</button>${m.access_mode!=='read_only'?`<button class="btn btn-green" onclick="downloadPdf('${m.id}','${m.storage_path}')">Download</button>`:''}</div></div></div>`).join('')||'<div class="card">अभी कोई PDF नहीं है।</div>'
 }
 async function readPdf(id,path,title){
-  const gate=await sb.rpc('can_read_material',{p_material_id:id});
-  if(gate.error){toast(gate.error.message,'error');return}
-  if(!gate.data){toast('पहले Class Verification पूरा करें, तभी PDF खुलेगी।','error');return}
-  const rr=await sb.storage.from('study-pdfs').createSignedUrl(path,600);
-  if(rr.error){toast(rr.error.message,'error');return}
-  const modal=document.createElement('div');modal.className='pdf-modal';modal.innerHTML=`<div class="pdf-modal-box"><div class="pdf-modal-head"><b>${title}</b><button class="btn btn-red" onclick="this.closest('.pdf-modal').remove()">Close</button></div><iframe src="${rr.data.signedUrl}#toolbar=0&navpanes=0"></iframe></div>`;document.body.appendChild(modal)
+  const ok=await sb.rpc('can_read_material',{p_material_id:id});
+  if(ok.error){
+    showActionNotice("PDF खोलने में समस्या आई: "+ok.error.message,"",null,"error");
+    return;
+  }
+  if(!ok.data){
+    showActionNotice(
+      "पहले Class Verification पूरा करें, तभी यह PDF खुलेगी।",
+      "Verification यहाँ से करें",
+      ()=>openTodayVerification(),
+      "warning"
+    );
+    return;
+  }
+  const r=await sb.storage.from('study-pdfs').createSignedUrl(path,120);
+  if(r.error){
+    showActionNotice("PDF खोलने में समस्या आई: "+r.error.message,"",null,"error");
+    return;
+  }
+  window.open(r.data.signedUrl,'_blank','noopener');
 }
 async function downloadPdf(id,path){const ok=await sb.rpc('can_download_material',{p_material_id:id});if(ok.error){toast(ok.error.message,'error');return}if(!ok.data){toast('PDF Download Locked — Required Test passing score पूरा करें।','error');return}const rr=await sb.storage.from('study-pdfs').createSignedUrl(path,120);if(rr.error){toast(rr.error.message,'error');return}const a=document.createElement('a');a.href=rr.data.signedUrl;a.download='study-material.pdf';a.target='_blank';a.click()}
 async function renderProfile(){profileBox.innerHTML=`<div class="card"><h3>${esc(profile?.full_name||'Student')}</h3><p>Mobile: ${esc(profile?.phone||'')}</p><p>Completed Days: ${profile?.total_completed_days||0}</p><p>Average Test: ${profile?.average_test_percentage||0}%</p><p>Current Streak: ${profile?.current_streak||0}</p><button class="btn btn-red" onclick="logout()">Logout</button></div>`}
@@ -163,7 +177,7 @@ async function loadPdfs(){
 async function downloadPdf(id,path,testId,mode,passPercent){
   const read=await sb.rpc('can_read_material',{p_material_id:id});
   if(read.error){toast(read.error.message,'error');return}
-  if(!read.data){toast('पहले इस Day के सभी required Tasks/Verification complete करें, तभी PDF खुलेगी।','error');return}
+  if(!read.data){showActionNotice('पहले Class Verification पूरा करें, तभी PDF खुलेगी।','Verification यहाँ से करें',()=>openTodayVerification(),'warning');return}
   if(mode==='read_only'){toast('यह PDF Read Only है। Download उपलब्ध नहीं है।','error');return}
   const ok=await sb.rpc('can_download_material',{p_material_id:id});
   if(ok.error){toast(ok.error.message,'error');return}
@@ -193,37 +207,6 @@ init=async function(){
   if(wanted&&document.getElementById(wanted+'Tab'))tab(wanted,null);
 };
 
-
-
-/* ===== HOME STATUS MODEL ===== */
-async function statusModel(){
-  if(!currentDay){
-    return {
-      key:'notstarted',
-      title:'आज का Target अभी उपलब्ध नहीं है',
-      msg:'Target की निर्धारित तारीख या Admin unlock के बाद content उपलब्ध होगा।'
-    };
-  }
-  const total=currentTargets.length;
-  const done=currentTargets.filter(t=>targetCompletionMap.has(t.id)).length;
-  const ft=finalTest();
-  const fa=ft?await bestAttempt(ft.id):null;
-  const finalPassed=!ft || (!!fa && Number(fa.percentage||0)>=Number(ft.passing_percent||0));
-
-  if(total===0){
-    return {key:'notstarted',title:'आज का Target अभी उपलब्ध नहीं है',msg:'Admin द्वारा आज का content publish होने का इंतजार करें।'};
-  }
-  if(done===0){
-    return {key:'notstarted',title:'Work Complete नहीं हुआ है ❌',msg:'आज की Class और Verification से शुरुआत करें।'};
-  }
-  if(done<total){
-    return {key:'pending',title:'आज का Target पूरा करें ⚠️',msg:`${total} में से ${done} Target verified हैं। बाकी target पूरा करें।`};
-  }
-  if(ft && !finalPassed){
-    return {key:'pending',title:'Final Test Pass करना बाकी है 📝',msg:`Daily Target complete करने के लिए Final Test में कम से कम ${ft.passing_percent||0}% score करें।`};
-  }
-  return {key:'excellent',title:'आज का Target Complete 🎉',msg:'बहुत बढ़िया! आज का पूरा target सफलतापूर्वक complete हो गया।'};
-}
 
 /* ===== PREMIUM HOME ACTION CARDS / DAY TASK FLOW ===== */
 function todayClassCardsHtml(){

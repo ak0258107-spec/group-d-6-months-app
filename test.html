@@ -1,4 +1,8 @@
-<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mock Test</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script></head><body>
+<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mock Test</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script><link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<meta name="theme-color" content="#9f0000">
+</head><body>
 <header class="student-top"><div class="student-top-inner"><div class="student-brand">Mock Test</div><div id="timer" class="badge badge-orange"></div></div></header><main class="student-main">
 <div id="startScreen" class="card"><h2 id="startTitle">Test</h2><p id="startMeta" class="muted"></p><button class="btn btn-green" onclick="startTest()">Start Test</button></div>
 <div id="testArea" class="hidden"><div class="card"><div id="questionBox"></div><div class="simple-test-nav"><button class="btn btn-blue" onclick="prevQ()">Previous</button><button class="btn btn-green" onclick="nextQ()">Next</button><button class="btn btn-red" onclick="submitTest()">Submit</button></div></div></div>

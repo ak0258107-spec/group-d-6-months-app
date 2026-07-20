@@ -158,4 +158,140 @@ init=async function(){
   initInstallUI('adminInstallBtn');
 };
 
+
+/* ===== ADMIN DELETE CONTROLS ===== */
+async function adminConfirmDelete(message){
+  return window.confirm(message);
+}
+async function deleteOneLiner(id){
+  if(!(await adminConfirmDelete('क्या आप यह One-Liner delete करना चाहते हैं?'))) return;
+  const r=await sb.rpc('admin_delete_one_liner',{p_one_liner_id:id});
+  if(r.error){toast(r.error.message,'error');return}
+  toast('One-Liner delete हो गया।','success');
+  await loadOneLinersAdmin();
+}
+async function deleteOneLinerTopic(subject,topic){
+  if(!(await adminConfirmDelete(`क्या "${subject} → ${topic}" के सभी One-Liners delete करने हैं?`))) return;
+  const r=await sb.rpc('admin_delete_one_liner_topic',{p_subject:subject,p_topic:topic});
+  if(r.error){toast(r.error.message,'error');return}
+  toast('इस Topic के सभी One-Liners delete हो गए।','success');
+  await loadOneLinersAdmin();
+}
+async function deleteAllOneLiners(){
+  if(!(await adminConfirmDelete('क्या आप सभी One-Liners delete करना चाहते हैं? यह action वापस नहीं होगा।'))) return;
+  const r=await sb.rpc('admin_delete_all_one_liners');
+  if(r.error){toast(r.error.message,'error');return}
+  toast('सभी One-Liners delete हो गए।','success');
+  await loadOneLinersAdmin();
+}
+
+async function deleteQuestion(questionId,testId){
+  if(!(await adminConfirmDelete('क्या आप केवल यह Question delete करना चाहते हैं?'))) return;
+  const r=await sb.rpc('admin_delete_test_question',{p_question_id:questionId});
+  if(r.error){toast(r.error.message,'error');return}
+  toast('Question delete हो गया।','success');
+  await loadTests();
+  if(testId) await loadTestQuestionsAdmin(testId);
+}
+async function deleteTest(testId){
+  if(!(await adminConfirmDelete('क्या आप पूरा Test और उसके सभी Questions delete करना चाहते हैं?'))) return;
+  const r=await sb.rpc('admin_delete_test',{p_test_id:testId});
+  if(r.error){toast(r.error.message,'error');return}
+  toast('पूरा Test delete हो गया।','success');
+  await loadTests();
+}
+async function deleteAllTests(){
+  if(!(await adminConfirmDelete('क्या आप सभी Tests और उनके सभी Questions delete करना चाहते हैं?'))) return;
+  const r=await sb.rpc('admin_delete_all_tests');
+  if(r.error){toast(r.error.message,'error');return}
+  toast('सभी Tests delete हो गए।','success');
+  await loadTests();
+}
+async function loadTestQuestionsAdmin(testId){
+  const host=document.getElementById('testQuestions_'+testId);
+  if(!host)return;
+  const r=await sb.from('test_questions').select('id,question_text,sort_order').eq('test_id',testId).order('sort_order');
+  const rows=r.data||[];
+  host.innerHTML=rows.map((q,i)=>`<div class="admin-delete-row"><div><b>Q${i+1}.</b> ${esc(q.question_text||'')}</div><button class="btn btn-red btn-mini" onclick="deleteQuestion('${q.id}','${testId}')">Delete Question</button></div>`).join('')||'<div class="muted">इस Test में कोई Question नहीं है।</div>';
+}
+
+async function deletePdf(materialId,storagePath){
+  if(!(await adminConfirmDelete('क्या आप यह PDF पूरी तरह delete करना चाहते हैं?'))) return;
+  const r=await sb.rpc('admin_delete_material',{p_material_id:materialId});
+  if(r.error){toast(r.error.message,'error');return}
+  if(storagePath){
+    try{await sb.storage.from('study-pdfs').remove([storagePath]);}catch(_){}
+  }
+  toast('PDF delete हो गई।','success');
+  await loadMaterials();
+}
+async function deleteAllPdfs(){
+  if(!(await adminConfirmDelete('क्या आप सभी PDFs delete करना चाहते हैं?'))) return;
+  const list=await sb.from('study_materials').select('id,storage_path');
+  const rows=list.data||[];
+  const r=await sb.rpc('admin_delete_all_materials');
+  if(r.error){toast(r.error.message,'error');return}
+  const paths=rows.map(x=>x.storage_path).filter(Boolean);
+  if(paths.length){try{await sb.storage.from('study-pdfs').remove(paths);}catch(_){}}
+  toast('सभी PDFs delete हो गईं।','success');
+  await loadMaterials();
+}
+
+/* Enrich published One-Liner listing with topic delete + individual expand/delete */
+const __deleteOldLoadOneLinersAdmin = typeof loadOneLinersAdmin==='function' ? loadOneLinersAdmin : null;
+loadOneLinersAdmin=async function(){
+  const r=await sb.from('one_liners').select('id,subject,topic,question,answer,created_at').eq('status','published').order('subject').order('topic').order('created_at');
+  const rows=r.data||[];
+  const groups={};
+  rows.forEach(x=>{
+    const k=(x.subject||'General')+'||'+(x.topic||'General');
+    (groups[k] ||= []).push(x);
+  });
+  adminOneLiners.innerHTML=Object.entries(groups).map(([k,items])=>{
+    const [subject,topic]=k.split('||');
+    const safeKey=btoa(unescape(encodeURIComponent(k))).replace(/=/g,'');
+    return `<div class="item admin-delete-group">
+      <div class="row wrap">
+        <div><span class="topic-chip">${esc(subject)}</span><b>${esc(topic)}</b><span class="badge badge-blue">${items.length} One-Liners</span></div>
+        <div class="row wrap">
+          <button class="btn btn-light btn-mini" onclick="document.getElementById('olgrp_${safeKey}').classList.toggle('hidden')">View</button>
+          <button class="btn btn-red btn-mini" onclick='deleteOneLinerTopic(${JSON.stringify(subject)},${JSON.stringify(topic)})'>Delete Topic</button>
+        </div>
+      </div>
+      <div id="olgrp_${safeKey}" class="hidden admin-delete-inner">
+        ${items.map((x,i)=>`<div class="admin-delete-row"><div><b>${i+1}. ${esc(x.question||'')}</b><div class="muted">उत्तर: ${esc(x.answer||'')}</div></div><button class="btn btn-red btn-mini" onclick="deleteOneLiner('${x.id}')">Delete</button></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('')||'<div class="item">अभी कोई One-Liner नहीं है।</div>';
+};
+
+/* Enrich tests listing with delete and question manager */
+const __deleteOldLoadTests = typeof loadTests==='function' ? loadTests : null;
+loadTests=async function(){
+  const r=await sb.from('tests').select('*').order('created_at',{ascending:false});
+  const rows=r.data||[];
+  if(typeof adminTests!=='undefined' && adminTests){
+    adminTests.innerHTML=rows.map(t=>`<div class="item admin-delete-group">
+      <div class="row wrap">
+        <div><b>${esc(t.title||'Untitled Test')}</b><div class="muted">${t.total_questions||0} Questions • Pass ${t.passing_percent||0}%</div></div>
+        <div class="row wrap">
+          <button class="btn btn-light btn-mini" onclick="loadTestQuestionsAdmin('${t.id}');document.getElementById('testQuestions_${t.id}').classList.toggle('hidden')">Manage Questions</button>
+          <button class="btn btn-red btn-mini" onclick="deleteTest('${t.id}')">Delete Test</button>
+        </div>
+      </div>
+      <div id="testQuestions_${t.id}" class="hidden admin-delete-inner"></div>
+    </div>`).join('')||'<div class="item">अभी कोई Test नहीं है।</div>';
+  }
+};
+
+/* Enrich PDF listing with delete buttons */
+const __deleteOldLoadMaterials = typeof loadMaterials==='function' ? loadMaterials : null;
+loadMaterials=async function(){
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date)').order('created_at',{ascending:false});
+  const rows=r.data||[];
+  if(typeof adminPdfs!=='undefined' && adminPdfs){
+    adminPdfs.innerHTML=rows.map(m=>`<div class="item admin-delete-group"><div class="row wrap"><div><b>📄 ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${esc(m.access_mode||'')}</div></div><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>Delete PDF</button></div></div>`).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
+  }
+};
+
 init();

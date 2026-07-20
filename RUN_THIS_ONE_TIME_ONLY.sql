@@ -437,3 +437,91 @@ $$;
 grant execute on function public.refresh_daily_progress(uuid,uuid) to authenticated;
 
 commit;
+
+
+-- ===== ADMIN DELETE CONTROLS =====
+
+create or replace function public.admin_delete_one_liner(p_one_liner_id uuid)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from profiles p where p.id=auth.uid() and p.role::text='admin') then
+    raise exception 'Admin only';
+  end if;
+  delete from one_liners where id=p_one_liner_id;
+end $$;
+
+create or replace function public.admin_delete_one_liner_topic(p_subject text,p_topic text)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from profiles p where p.id=auth.uid() and p.role::text='admin') then
+    raise exception 'Admin only';
+  end if;
+  delete from one_liners where subject=p_subject and topic=p_topic;
+end $$;
+
+create or replace function public.admin_delete_all_one_liners()
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from profiles p where p.id=auth.uid() and p.role::text='admin') then
+    raise exception 'Admin only';
+  end if;
+  delete from one_liners;
+end $$;
+
+create or replace function public.admin_delete_test_question(p_question_id uuid)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from profiles p where p.id=auth.uid() and p.role::text='admin') then
+    raise exception 'Admin only';
+  end if;
+  delete from test_questions where id=p_question_id;
+end $$;
+
+create or replace function public.admin_delete_test(p_test_id uuid)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from profiles p where p.id=auth.uid() and p.role::text='admin') then
+    raise exception 'Admin only';
+  end if;
+  delete from test_questions where test_id=p_test_id;
+  delete from test_attempts where test_id=p_test_id;
+  delete from tests where id=p_test_id;
+end $$;
+
+create or replace function public.admin_delete_all_tests()
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from profiles p where p.id=auth.uid() and p.role::text='admin') then
+    raise exception 'Admin only';
+  end if;
+  delete from test_questions;
+  delete from test_attempts;
+  delete from tests;
+end $$;
+
+create or replace function public.admin_delete_material(p_material_id uuid)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from profiles p where p.id=auth.uid() and p.role::text='admin') then
+    raise exception 'Admin only';
+  end if;
+  delete from study_materials where id=p_material_id;
+end $$;
+
+create or replace function public.admin_delete_all_materials()
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from profiles p where p.id=auth.uid() and p.role::text='admin') then
+    raise exception 'Admin only';
+  end if;
+  delete from study_materials;
+end $$;
+
+grant execute on function public.admin_delete_one_liner(uuid) to authenticated;
+grant execute on function public.admin_delete_one_liner_topic(text,text) to authenticated;
+grant execute on function public.admin_delete_all_one_liners() to authenticated;
+grant execute on function public.admin_delete_test_question(uuid) to authenticated;
+grant execute on function public.admin_delete_test(uuid) to authenticated;
+grant execute on function public.admin_delete_all_tests() to authenticated;
+grant execute on function public.admin_delete_material(uuid) to authenticated;
+grant execute on function public.admin_delete_all_materials() to authenticated;

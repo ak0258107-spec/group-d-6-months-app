@@ -206,3 +206,38 @@ border-radius:30px;padding:30px;box-shadow:0 28px 0 rgba(8,47,87,.08),0 45px 90p
 .today-target-summary{margin-top:14px}.target-summary-list{display:grid;gap:10px}.target-summary-row{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;padding:11px;border-radius:15px;background:#f8fbff;border:1px solid #dbe7f3}
 .text-error{color:#b91c1c;font-weight:850}.text-success{color:#08783f;font-weight:850}
 @media(max-width:620px){.home-action-grid{grid-template-columns:1fr}.premium-home-hero{align-items:flex-start}.hero-day-badge{min-width:62px;height:62px;border-radius:18px}.home-action-card{min-height:112px}.target-summary-row{grid-template-columns:1fr}.target-summary-row .badge{justify-self:start}}
+
+/* ===== PREMIUM REGISTRATION + PDF GUIDANCE NOTICE ===== */
+.global-action-notice-host{
+  position:fixed;left:50%;top:58%;transform:translate(-50%,-50%);
+  width:min(92vw,560px);z-index:99999;pointer-events:none;
+}
+.global-action-notice{
+  pointer-events:auto;position:relative;padding:20px 54px 20px 20px;border-radius:22px;
+  background:linear-gradient(145deg,#fffdf6,#ffffff);border:1px solid #f1d49c;
+  box-shadow:0 12px 0 rgba(146,97,15,.10),0 28px 60px rgba(27,46,73,.24),inset 0 1px 0 #fff;
+}
+.global-action-notice.warning{border-left:7px solid #f59e0b}
+.global-action-notice.error{border-left:7px solid #dc2626}
+.global-action-notice.success{border-left:7px solid #16a34a}
+.global-action-notice-text{font-size:18px;line-height:1.5;font-weight:900;color:#172033;letter-spacing:.1px}
+.global-action-notice-btn{margin-top:14px!important}
+.global-action-notice-close{
+  position:absolute;right:13px;top:11px;width:34px;height:34px;border-radius:50%!important;
+  border:0!important;background:#eef3f8!important;color:#334155!important;box-shadow:none!important;padding:0!important;
+}
+#msg .notice{margin:10px 0 16px;font-weight:850;line-height:1.45;border-radius:16px;padding:13px 15px;box-shadow:0 8px 18px rgba(7,47,87,.10)}
+@media(max-width:600px){
+  .global-action-notice-host{top:62%;width:94vw}
+  .global-action-notice{padding:18px 48px 18px 16px;border-radius:18px}
+  .global-action-notice-text{font-size:16px}
+}
+
+/* ===== ADMIN DELETE CONTROLS ===== */
+.admin-danger-toolbar{display:flex;justify-content:flex-end;margin:0 0 12px}
+.admin-delete-group{border:1px solid #d9e5f0!important;border-radius:18px!important;padding:14px!important;box-shadow:0 10px 0 rgba(7,47,87,.05),0 18px 28px rgba(7,47,87,.09)!important}
+.admin-delete-inner{margin-top:12px;padding:12px;border-radius:15px;background:#f8fbff;border:1px solid #dce7f2}
+.admin-delete-row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px dashed #d5e0eb}
+.admin-delete-row:last-child{border-bottom:0}
+.btn-mini{padding:7px 10px!important;min-height:auto!important;font-size:12px!important;white-space:nowrap}
+@media(max-width:650px){.admin-delete-row{flex-direction:column}.admin-danger-toolbar{justify-content:stretch}.admin-danger-toolbar .btn{width:100%}}

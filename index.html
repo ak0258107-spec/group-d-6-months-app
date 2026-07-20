@@ -5,6 +5,8 @@
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script><script src="common.js"></script>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
 </head><body>
 <div class="auth-premium-bg"><div class="auth-premium-card">
   <div class="auth-logo-orb">GK</div>
@@ -106,31 +108,72 @@ async function signup(){
   msg.innerHTML="";
   const name=regName.value.trim();
   const email=regEmail.value.trim().toLowerCase();
-  const phone=normalizeIndianPhone(regPhone.value);
+  const phoneRaw=regPhone.value.trim();
+  const phone=phoneRaw?normalizeIndianPhone(phoneRaw):null;
   const password=regPassword.value;
 
   if(name.length<2)return showMsg("विद्यार्थी का पूरा नाम लिखें।");
-  if(!validEmail(email))return showMsg("सही Email लिखें।");
-  if(regPhone.value.trim() && !phone)return showMsg("मोबाइल नंबर सही 10 अंकों का लिखें या खाली छोड़ें।");
+  if(!validEmail(email))return showMsg("सही Email ID लिखें।");
+  if(phoneRaw && !phone)return showMsg("मोबाइल नंबर सही 10 अंकों का लिखें या खाली छोड़ें।");
   if(password.length<6)return showMsg("Password कम से कम 6 अक्षर का रखें।");
   if(password!==regPassword2.value)return showMsg("दोनों Password एक जैसे नहीं हैं।");
 
-  const {data,error}=await sb.auth.signUp({
-    email,
-    password,
-    options:{data:{full_name:name,phone:phone||null,auth_mode:"email"}}
-  });
-  if(error){
-    const m=(error.message||"").toLowerCase();
-    if(m.includes("already")||m.includes("registered"))return showMsg("यह Email पहले से Registered है। Login करें।");
-    return showMsg(error.message);
-  }
+  const btn=document.querySelector('#registerMode .btn-green');
+  const oldText=btn?btn.textContent:"Register";
+  if(btn){btn.disabled=true;btn.textContent="Registering...";}
 
-  if(data.session){
-    showMsg("Registration सफल। Dashboard खुल रहा है…","success");
-    setTimeout(()=>location.href="student.html",600);
-  }else{
-    showMsg("Registration हो गया। अपने Email में confirmation link खोलें, फिर Login करें।","success");
+  try{
+    let existing=null;
+    try{
+      const filters=[`email.eq.${email}`];
+      if(phone)filters.push(`phone.eq.${phone}`);
+      const q=await sb.from('profiles').select('id,email,phone').or(filters.join(',')).limit(1);
+      if(!q.error && q.data && q.data.length) existing=q.data[0];
+    }catch(_){}
+
+    if(existing){
+      return showMsg(
+        existing.email===email
+          ?"इस Email ID से पहले ही Registration हो चुका है। कृपया Login करें या Forgot Password का उपयोग करें।"
+          :"इस Mobile Number से पहले ही Registration हो चुका है। कृपया Login करें।"
+      );
+    }
+
+    const {data,error}=await sb.auth.signUp({
+      email,
+      password,
+      options:{
+        data:{full_name:name,phone:phone||null,auth_mode:"email"},
+        emailRedirectTo:location.origin+location.pathname.replace(/[^/]+$/,"index.html")
+      }
+    });
+
+    if(error){
+      const m=(error.message||"").toLowerCase();
+      if(m.includes("already")||m.includes("registered")||m.includes("user already exists")){
+        return showMsg("इस Email ID से पहले ही Registration हो चुका है। कृपया Login करें या Forgot Password का उपयोग करें।");
+      }
+      if(m.includes("password")) return showMsg("Password स्वीकार नहीं हुआ। कम से कम 6 अक्षर का मजबूत Password रखें।");
+      if(m.includes("email")) return showMsg("Email ID स्वीकार नहीं हुई। कृपया सही Email लिखें।");
+      return showMsg("Registration नहीं हो पाया: "+error.message);
+    }
+
+    if(data?.user && Array.isArray(data.user.identities) && data.user.identities.length===0){
+      return showMsg("इस Email ID से पहले ही Registration हो चुका है। कृपया Login करें या Forgot Password का उपयोग करें।");
+    }
+
+    if(data?.session){
+      showMsg("Registration सफल। Dashboard खुल रहा है…","success");
+      setTimeout(()=>location.href="student.html",800);
+    }else{
+      showMsg("Registration सफल। अपने Email में confirmation link खोलें, फिर Login करें।","success");
+      regName.value="";regEmail.value="";regPhone.value="";regPassword.value="";regPassword2.value="";
+    }
+  }catch(err){
+    console.error(err);
+    showMsg("Registration के दौरान समस्या आई। Internet connection check करके दोबारा प्रयास करें।");
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=oldText;}
   }
 }
 
