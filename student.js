@@ -61,4 +61,271 @@ let notificationRows=[];async function loadNotifications(){const [br,ar,reads]=a
 function renderNotifications(){notificationsList.innerHTML=notificationRows.map(x=>`<div class="item notice-premium ${esc(x.type)}"><div class="row"><b>${esc(x.title)}</b>${x.unread?'<span class="badge badge-red">NEW</span>':''}</div><p>${esc(x.message)}</p><div class="small muted">${new Date(x.created_at).toLocaleString('en-IN')}</div></div>`).join('')||'<div class="card">अभी कोई Notification नहीं है।</div>'}
 function openNotifications(){tab('notifications');markAllNotificationsRead()}
 async function markAllNotificationsRead(){for(const x of notificationRows.filter(x=>x.unread&&x.isBroadcast)){await sb.from('student_notification_reads').upsert({student_id:user.id,broadcast_id:x.rawId},{onConflict:'student_id,broadcast_id'})}await loadNotifications()}
+
+/* ===== REFINED STUDENT FLOW ===== */
+let previewDays=[],previewTargets=[],oneLinerPage=1;
+const ONE_LINER_PAGE_SIZE=25;
+
+async function loadFiveDayPreview(){
+  const all=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');
+  const daysAll=all.data||[];
+  let start=0;
+  if(currentDay){
+    const idx=daysAll.findIndex(d=>String(d.id)===String(currentDay.id));
+    start=idx<0?0:idx;
+  }else{
+    const today=new Date().toISOString().slice(0,10);
+    const idx=daysAll.findIndex(d=>d.day_date>=today);
+    start=idx<0?Math.max(0,daysAll.length-5):idx;
+  }
+  previewDays=daysAll.slice(start,start+5);
+  if(!previewDays.length){previewTargets=[];return}
+  const r=await sb.from('daily_targets').select('*').in('schedule_day_id',previewDays.map(d=>d.id)).eq('status','published').order('target_order');
+  previewTargets=r.data||[];
+}
+
+function fiveDayPreviewHtml(){
+  if(!previewDays.length)return '';
+  return `<div class="card five-day-preview"><div class="row wrap"><div><h3>📅 अगले 5 दिनों का Target Preview</h3><div class="muted">Topics दिखाई देंगे; future Class/PDF date/admin unlock से पहले नहीं खुलेंगे।</div></div></div>
+  <div class="preview-day-grid">${previewDays.map(d=>{
+    const isCurrent=currentDay&&String(d.id)===String(currentDay.id);
+    const topics=previewTargets.filter(t=>String(t.schedule_day_id)===String(d.id));
+    return `<div class="preview-day-card ${isCurrent?'current-preview':''}">
+      <div class="row wrap"><b>Day ${d.day_number}</b><span class="badge ${isCurrent?'badge-green':'badge-gray'}">${isCurrent?'Available':'Preview'}</span></div>
+      <div class="muted">${fmtDate(d.day_date)}</div>
+      <div class="preview-topic-list">${topics.map(t=>`<div class="preview-topic"><span class="topic-chip">${esc(t.subject)}</span>${esc(t.topic)}</div>`).join('')}</div>
+    </div>`;
+  }).join('')}</div></div>`;
+}
+
+const __baseRenderTargets=renderTargets;
+renderTargets=async function(){
+  if(!currentDay){
+    targetsBox.innerHTML=fiveDayPreviewHtml()||'<div class="card">अभी Target उपलब्ध नहीं है।</div>';
+    return;
+  }
+  let html=fiveDayPreviewHtml()+`<div class="row wrap"><div><h3>आज का Active Target — Day ${currentDay.day_number}</h3><div class="muted">${fmtDate(currentDay.day_date)}</div></div></div>`;
+  for(const t of currentTargets){
+    const done=targetCompletionMap.has(t.id),vs=targetVerifications(t.id);
+    html+=`<div class="target-card ${sclass(t.subject)}"><div class="small">${esc(t.subject)}</div><div class="topic">${esc(t.topic)}</div>${t.youtube_url?`<p><a class="btn btn-red" target="_blank" rel="noopener" href="${esc(t.youtube_url)}">▶ Watch YouTube Class</a></p>`:'<p class="small">Class link अभी add नहीं किया गया।</p>'}<div>${done?'<span class="badge badge-green">Verified & Completed ✓</span>':'<span class="badge badge-orange">Verification Pending</span>'}</div></div>`;
+    if(!done&&vs.length){
+      for(const v of vs){
+        const opts=Array.isArray(v.options)?v.options:[];
+        html+=`<div class="verify-card"><h4>Class Verification</h4>${v.show_question?`<p><b>${esc(v.question_text)}</b></p>`:'<p class="muted"><b>Question class में पूछा गया था। सही option चुनिए।</b></p>'}<div class="choice-grid" id="choices_${v.id}">${opts.map((o,i)=>`<button class="choice-option" onclick="selectVerifyOption('${v.id}',${i},this)">${String.fromCharCode(65+i)}. ${esc(o)}</button>`).join('')}</div><input type="hidden" id="vq_${v.id}"><div style="height:8px"></div><button class="btn btn-green" onclick="verifyTarget('${v.id}','${t.id}')">Submit Answer</button><div id="vres_${v.id}" class="small" style="margin-top:8px"></div></div>`;
+      }
+    }
+  }
+  const ft=finalTest();
+  if(ft)html+=`<div class="card final-test-card"><div class="row wrap"><div><b>Daily Final Mock Test</b><div class="muted">Pass: ${ft.passing_percent}% • ${ft.total_questions} Questions</div></div><a class="btn btn-blue" href="test.html?id=${ft.id}">Start Final Test</a></div></div>`;
+  targetsBox.innerHTML=html;
+};
+
+function updateTopicFilter(){
+  const s=document.getElementById('olSubject')?.value||'';
+  const topics=[...new Set(oneLinerRows.filter(x=>!s||(x.subject||'General')===s).map(x=>x.topic||'General'))];
+  const topicEl=document.getElementById('olTopic');
+  if(!topicEl)return;
+  topicEl.innerHTML=topics.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  oneLinerPage=1;
+  renderOneLiners();
+}
+async function loadOneLiners(){
+  const r=await sb.from('one_liners').select('*').eq('status','published').order('subject').order('topic').order('created_at');
+  oneLinerRows=r.data||[];
+  const subjects=[...new Set(oneLinerRows.map(x=>x.subject||'General'))];
+  if(!subjects.length){
+    oneLinerFilters.innerHTML='<div class="muted">अभी कोई One-Liner publish नहीं है।</div>';
+    oneLinersList.innerHTML='';
+    return;
+  }
+  oneLinerFilters.innerHTML=`<label>Subject</label><select id="olSubject" onchange="updateTopicFilter()">${subjects.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select><label style="margin-top:8px">Topic</label><select id="olTopic" onchange="oneLinerPage=1;renderOneLiners()"></select>`;
+  updateTopicFilter();
+}
+function renderOneLiners(){
+  const s=document.getElementById('olSubject')?.value||'',t=document.getElementById('olTopic')?.value||'';
+  const rows=oneLinerRows.filter(x=>(!s||(x.subject||'General')===s)&&(!t||(x.topic||'General')===t));
+  const pages=Math.max(1,Math.ceil(rows.length/ONE_LINER_PAGE_SIZE));
+  oneLinerPage=Math.min(Math.max(1,oneLinerPage),pages);
+  const start=(oneLinerPage-1)*ONE_LINER_PAGE_SIZE;
+  const pageRows=rows.slice(start,start+ONE_LINER_PAGE_SIZE);
+  oneLinersList.innerHTML=`<div class="one-liner-book-page"><div class="book-page-head"><div><span class="topic-chip">${esc(s)}</span><h3>${esc(t)}</h3></div><span class="badge badge-blue">Page ${oneLinerPage}/${pages}</span></div>
+    <div class="book-one-liners">${pageRows.map((x,i)=>`<div class="book-line"><b>${start+i+1}. ${esc(x.question)}</b><div class="book-answer">उत्तर: ${esc(x.answer)}</div></div>`).join('')}</div>
+    ${rows.length>ONE_LINER_PAGE_SIZE?`<div class="book-pagination"><button class="btn btn-light" ${oneLinerPage<=1?'disabled':''} onclick="oneLinerPage--;renderOneLiners()">← Previous</button><button class="btn btn-blue" ${oneLinerPage>=pages?'disabled':''} onclick="oneLinerPage++;renderOneLiners()">Next →</button></div>`:''}
+  </div>`;
+}
+
+async function loadPdfs(){
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock)').eq('status','published').order('created_at',{ascending:false});
+  const rows=r.data||[];
+  materials=rows;
+  pdfList.innerHTML=rows.map(m=>`<div class="item pdf-read-card"><div class="row wrap"><div><b>📄 ${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • PDF दिखाई दे रही है; पढ़ने के लिए उस Day के required tasks complete करें।</div><div class="pdf-access-note">${m.access_mode==='direct_download'?'✅ Tasks के बाद Direct Download':m.access_mode==='test_required'?`🔒 Download के लिए Mock Test ${m.download_pass_percent}% पास करना होगा`:'👁 Read Only'}</div></div><div class="row wrap"><button class="btn btn-blue" onclick="readPdf('${m.id}','${m.storage_path}','${esc(m.title)}')">Read PDF</button>${m.access_mode!=='read_only'?`<button class="btn btn-green" onclick="downloadPdf('${m.id}','${m.storage_path}','${m.download_test_id||''}','${m.access_mode}',${Number(m.download_pass_percent||80)})">Download</button>`:''}</div></div></div>`).join('')||'<div class="card">अभी कोई PDF नहीं है।</div>';
+}
+async function downloadPdf(id,path,testId,mode,passPercent){
+  const read=await sb.rpc('can_read_material',{p_material_id:id});
+  if(read.error){toast(read.error.message,'error');return}
+  if(!read.data){toast('पहले इस Day के सभी required Tasks/Verification complete करें, तभी PDF खुलेगी।','error');return}
+  if(mode==='read_only'){toast('यह PDF Read Only है। Download उपलब्ध नहीं है।','error');return}
+  const ok=await sb.rpc('can_download_material',{p_material_id:id});
+  if(ok.error){toast(ok.error.message,'error');return}
+  if(ok.data){
+    const rr=await sb.storage.from('study-pdfs').createSignedUrl(path,120);
+    if(rr.error){toast(rr.error.message,'error');return}
+    const a=document.createElement('a');a.href=rr.data.signedUrl;a.download='study-material.pdf';a.target='_blank';a.click();return;
+  }
+  if(mode==='test_required'&&testId){
+    toast(`PDF Download के लिए पहले Mock Test में ${passPercent}% score करें। Test खुल रहा है…`,'error');
+    setTimeout(()=>location.href=`test.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`,900);
+    return;
+  }
+  toast('PDF Download अभी Locked है।','error');
+}
+
+const __oldStudentInit=init;
+init=async function(){
+  registerSW();
+  initInstallUI('studentInstallBtn');
+  user=await requireAuth();if(!user)return;
+  profile=await getProfile(user.id);
+  await loadCurrentDay();
+  await loadFiveDayPreview();
+  await Promise.all([renderHome(),renderTargets(),loadTests(),loadOneLiners(),loadPdfs(),loadNotifications(),renderProfile()]);
+  const wanted=new URLSearchParams(location.search).get('tab');
+  if(wanted&&document.getElementById(wanted+'Tab'))tab(wanted,null);
+};
+
+
+/* ===== PREMIUM HOME ACTION CARDS / DAY TASK FLOW ===== */
+function todayClassCardsHtml(){
+  if(!currentTargets.length)return '<div class="empty-state">आज की कोई class target उपलब्ध नहीं है।</div>';
+  return currentTargets.map(t=>{
+    const hasClass=!!t.youtube_url;
+    return `<div class="home-class-topic-card ${sclass(t.subject)}">
+      <div class="home-card-topline"><span class="home-subject-pill">${esc(t.subject)}</span><span class="home-day-pill">Day ${currentDay?.day_number||'-'}</span></div>
+      <h3>${esc(t.topic)}</h3>
+      <div class="home-target-label">आज का Target</div>
+      <p class="home-target-text">${esc(t.topic)}</p>
+      ${hasClass?`<a class="btn btn-red premium-action-btn" target="_blank" rel="noopener" href="${esc(t.youtube_url)}">▶ Watch YouTube Class</a>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function openTodayClasses(){
+  const box=document.getElementById('homeDynamicPanel');
+  if(!box)return;
+  box.innerHTML=`<div class="premium-section-head"><div><span class="section-kicker">TODAY'S CLASSES</span><h2>आज की Classes</h2></div><button class="btn btn-light" onclick="closeHomePanel()">✕</button></div>
+  <div class="home-class-grid">${todayClassCardsHtml()}</div>`;
+  box.classList.remove('hidden');
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function verificationCardsHtml(){
+  let html='';
+  for(const t of currentTargets){
+    const vs=targetVerifications(t.id);
+    if(!vs.length)continue;
+    html+=`<div class="home-verification-topic-card">
+      <div class="home-card-topline"><span class="home-subject-pill dark">${esc(t.subject)}</span><span class="badge ${targetCompletionMap.has(t.id)?'badge-green':'badge-orange'}">${targetCompletionMap.has(t.id)?'Verified Once':'Pending'}</span></div>
+      <h3>${esc(t.topic)}</h3>
+      <p class="muted">Verification question हर बार खुलेगा। हर नई submission में सही उत्तर देना जरूरी है।</p>
+      ${vs.map(v=>{
+        const opts=Array.isArray(v.options)?v.options:[];
+        return `<div class="repeat-verification-card">
+          ${v.show_question?`<p class="verification-question-text"><b>${esc(v.question_text)}</b></p>`:'<p class="muted"><b>Question class में पूछा गया था। सही option चुनिए।</b></p>'}
+          <div class="choice-grid" id="home_choices_${v.id}">
+            ${opts.map((o,i)=>`<button class="choice-option" onclick="selectHomeVerifyOption('${v.id}',${i},this)">${String.fromCharCode(65+i)}. ${esc(o)}</button>`).join('')}
+          </div>
+          <input type="hidden" id="home_vq_${v.id}">
+          <button class="btn btn-green premium-action-btn" onclick="submitHomeVerification('${v.id}','${t.id}')">Verify Answer</button>
+          <div id="home_vres_${v.id}" class="small" style="margin-top:8px"></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+  return html||'<div class="empty-state">अभी कोई Verification Question उपलब्ध नहीं है।</div>';
+}
+function selectHomeVerifyOption(vId,index,el){
+  document.getElementById('home_vq_'+vId).value=index;
+  el.parentElement.querySelectorAll('.choice-option').forEach(x=>x.classList.remove('selected-choice'));
+  el.classList.add('selected-choice');
+}
+async function submitHomeVerification(vId,targetId){
+  const val=document.getElementById('home_vq_'+vId)?.value;
+  const res=document.getElementById('home_vres_'+vId);
+  if(val===''||val==null){if(res)res.innerHTML='<span class="text-error">पहले कोई option चुनिए।</span>';return}
+  const r=await sb.rpc('submit_target_verification_option',{p_verification_question_id:vId,p_target_id:targetId,p_selected_option:Number(val)});
+  if(r.error){if(res)res.innerHTML='<span class="text-error">'+esc(r.error.message)+'</span>';return}
+  if(r.data===true){
+    if(res)res.innerHTML='<span class="text-success">✅ Correct Answer — Verification Successful</span>';
+    targetCompletionMap.set(targetId,{target_id:targetId});
+    await renderHome();
+  }else{
+    if(res)res.innerHTML='<span class="text-error">❌ Answer Wrong — दोबारा सही उत्तर दीजिए।</span>';
+  }
+}
+
+function openTodayVerification(){
+  const box=document.getElementById('homeDynamicPanel');
+  if(!box)return;
+  box.innerHTML=`<div class="premium-section-head"><div><span class="section-kicker">VERIFICATION</span><h2>Class Verification</h2></div><button class="btn btn-light" onclick="closeHomePanel()">✕</button></div>
+  <div class="home-verification-grid">${verificationCardsHtml()}</div>`;
+  box.classList.remove('hidden');
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function openPdfLibrary(){
+  tab('pdfs',document.querySelector('.bottom-nav button:nth-child(5)'));
+  setTimeout(()=>document.getElementById('pdfsTab')?.scrollIntoView({behavior:'smooth'}),100);
+}
+function openTestsLibrary(){
+  tab('tests',document.querySelector('.bottom-nav button:nth-child(3)'));
+}
+function openOneLinerLibrary(){
+  tab('oneliners',document.querySelector('.bottom-nav button:nth-child(4)'));
+}
+function closeHomePanel(){
+  const box=document.getElementById('homeDynamicPanel');
+  if(box){box.classList.add('hidden');box.innerHTML='';}
+}
+
+const __premiumOldRenderHome=renderHome;
+renderHome=async function(){
+  const st=await statusModel();
+  const classCount=currentTargets.filter(t=>t.youtube_url).length;
+  const verificationCount=currentTargets.reduce((n,t)=>n+targetVerifications(t.id).length,0);
+  const pdfCount=materials.length;
+  const finalT=finalTest();
+  homeBox.innerHTML=`<div class="premium-home-hero">
+    <div><div class="hero-kicker">GK BY PURUSHOTAM SIR</div><div class="hello">Hello, ${esc(profile?.full_name||'Student')} 👋</div><div class="muted">आज का काम step-by-step पूरा करें।</div></div>
+    <div class="hero-day-badge">DAY ${currentDay?.day_number||'-'}</div>
+  </div>
+
+  <div class="status-hero ${st.key}"><div class="small">आज का संदेश</div><h2>${esc(st.title)}</h2><p>${esc(st.msg)}</p></div>
+
+  <div class="home-action-grid">
+    <button class="home-action-card class-card" onclick="openTodayClasses()">
+      <div class="action-icon">▶</div><div class="action-text"><span>Classes</span><b>${classCount} Available</b><small>आज की सभी class links और topics देखें</small></div>
+    </button>
+    <button class="home-action-card verify-card-home" onclick="openTodayVerification()">
+      <div class="action-icon">✓</div><div class="action-text"><span>Verification</span><b>${verificationCount} Questions</b><small>Verification question बार-बार खोलकर answer करें</small></div>
+    </button>
+    <button class="home-action-card pdf-card-home" onclick="openPdfLibrary()">
+      <div class="action-icon">PDF</div><div class="action-text"><span>PDF Library</span><b>${pdfCount} PDFs</b><small>PDF देखें; tasks complete होने पर open होगी</small></div>
+    </button>
+    <button class="home-action-card test-card-home" onclick="openTestsLibrary()">
+      <div class="action-icon">T</div><div class="action-text"><span>Mock Test</span><b>${finalT?'Final Test Ready':'Tests'}</b><small>Daily और दूसरे published tests खोलें</small></div>
+    </button>
+    <button class="home-action-card one-card-home" onclick="openOneLinerLibrary()">
+      <div class="action-icon">1L</div><div class="action-text"><span>One-Liners</span><b>Topic-wise</b><small>Published topic-wise one-liners पढ़ें</small></div>
+    </button>
+  </div>
+
+  <div id="homeDynamicPanel" class="hidden premium-home-panel"></div>
+
+  <div class="card today-target-summary"><h3>🎯 आज का Target</h3>
+    <div class="target-summary-list">${currentTargets.map(t=>`<div class="target-summary-row"><span class="topic-chip">${esc(t.subject)}</span><b>${esc(t.topic)}</b><span class="badge ${targetCompletionMap.has(t.id)?'badge-green':'badge-orange'}">${targetCompletionMap.has(t.id)?'Verified':'Pending'}</span></div>`).join('')}</div>
+  </div>
+
+  <div class="stat-row" style="margin-top:10px"><div class="stat-mini"><div class="muted">Streak</div><div class="kpi">${profile?.current_streak||0} Days</div></div><div class="stat-mini"><div class="muted">Average Test</div><div class="kpi">${profile?.average_test_percentage||0}%</div></div></div>`;
+};
+
 init();

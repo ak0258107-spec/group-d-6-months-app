@@ -32,3 +32,31 @@ function phoneToAuthEmail(phone){
 async function logout(){await sb.auth.signOut();location.href="index.html"}
 async function registerSW(){if("serviceWorker" in navigator){try{await navigator.serviceWorker.register("./sw.js")}catch(e){console.warn(e)}}}
 window.sb=sb;window.requireAuth=requireAuth;window.getProfile=getProfile;window.esc=esc;window.fmtDate=fmtDate;window.toast=toast;window.logout=logout;window.registerSW=registerSW;window.normalizeIndianPhone=normalizeIndianPhone;window.phoneToAuthEmail=phoneToAuthEmail;
+
+/* ===== PWA INSTALL SYSTEM ===== */
+let __deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  __deferredInstallPrompt=e;
+  document.querySelectorAll('[id$="InstallBtn"]').forEach(b=>b.classList.remove('hidden'));
+});
+window.addEventListener('appinstalled',()=>{
+  __deferredInstallPrompt=null;
+  document.querySelectorAll('[id$="InstallBtn"]').forEach(b=>b.classList.add('hidden'));
+});
+function initInstallUI(id){
+  const btn=document.getElementById(id);
+  if(!btn)return;
+  const standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  if(standalone)btn.classList.add('hidden');
+}
+async function installApp(){
+  if(__deferredInstallPrompt){
+    __deferredInstallPrompt.prompt();
+    await __deferredInstallPrompt.userChoice;
+    __deferredInstallPrompt=null;
+    document.querySelectorAll('[id$="InstallBtn"]').forEach(b=>b.classList.add('hidden'));
+    return;
+  }
+  toast('Browser menu में “Install app” या “Add to Home screen” चुनें।','success');
+}

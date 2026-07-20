@@ -119,4 +119,43 @@ async function createGlobalNotification(title,message,relatedType,relatedId){awa
 async function sendBroadcast(){const title=broadcastTitle.value.trim(),message=broadcastMessage.value.trim();if(!title||!message){toast('Title और Message लिखें।','error');return}const rr=await sb.from('broadcast_messages').insert({title,message,message_type:broadcastType.value,is_active:true}).select().single();if(rr.error){toast(rr.error.message,'error');return}await createGlobalNotification(title,message,'broadcast',rr.data.id);broadcastTitle.value='';broadcastMessage.value='';toast('संदेश सभी विद्यार्थियों को भेज दिया गया।','success');loadBroadcasts()}
 async function loadBroadcasts(){const r=await sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(30);broadcastList.innerHTML=(r.data||[]).map(x=>`<div class="item notice-premium ${esc(x.message_type||'info')}"><b>${esc(x.title)}</b><p>${esc(x.message)}</p></div>`).join('')||'<div class="item">अभी कोई Broadcast नहीं है।</div>'}
 async function loadReports(){const top=[...students].sort((a,b)=>(b.total_completed_days||0)-(a.total_completed_days||0)||(b.average_test_percentage||0)-(a.average_test_percentage||0)).slice(0,5);reportCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed Days</div><div class="kpi">${students.reduce((a,s)=>a+(s.total_completed_days||0),0)}</div></div><div class="kpi-card kpi-blue span-4"><div class="muted">Students</div><div class="kpi">${students.length}</div></div><div class="kpi-card kpi-purple span-4"><div class="muted">Average Score</div><div class="kpi">${students.length?Math.round(students.reduce((a,s)=>a+(s.average_test_percentage||0),0)/students.length):0}%</div></div>`;topStudents.innerHTML=top.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.full_name||'')}</td><td>${s.total_completed_days||0}/125</td><td>${s.average_test_percentage||0}%</td></tr>`).join('')}
+
+/* ===== REFINED ADMIN: SUBJECT/TOPIC CATALOG ===== */
+let adminOneLinerCatalog=[];
+async function loadAdminOneLinerCatalog(){
+  const r=await sb.from('daily_targets').select('subject,topic').eq('status','published').order('subject').order('topic');
+  adminOneLinerCatalog=r.data||[];
+  const subjects=[...new Set(adminOneLinerCatalog.map(x=>(x.subject||'').trim()).filter(Boolean))];
+  oneLinerSubject.innerHTML=subjects.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  updateAdminOneLinerTopics();
+}
+function updateAdminOneLinerTopics(){
+  const subject=oneLinerSubject?.value||'';
+  const topics=[...new Set(adminOneLinerCatalog.filter(x=>x.subject===subject).map(x=>(x.topic||'').trim()).filter(Boolean))];
+  oneLinerTopic.innerHTML=topics.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+}
+async function loadOneLinersAdmin(){
+  const r=await sb.from('one_liners').select('subject,topic,id').eq('status','published').order('subject').order('topic');
+  const rows=r.data||[];
+  const groups={};
+  rows.forEach(x=>{
+    const k=(x.subject||'General')+'||'+(x.topic||'General');
+    groups[k]=(groups[k]||0)+1;
+  });
+  adminOneLiners.innerHTML=Object.entries(groups).map(([k,count])=>{
+    const [subject,topic]=k.split('||');
+    return `<div class="item one-topic-summary"><span class="topic-chip">${esc(subject)}</span><b>${esc(topic)}</b><span class="badge badge-blue">${count} One-Liners</span></div>`;
+  }).join('')||'<div class="item">अभी कोई One-Liner नहीं है।</div>';
+}
+const __oldAdminInit=init;
+init=async function(){
+  if(!(await guard()))return;
+  todayDate.textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  await loadDays();
+  await loadStudents();
+  await loadAdminOneLinerCatalog();
+  await Promise.all([loadDashboard(),loadTests(),loadOneLinersAdmin(),loadMaterials(),loadReports(),loadBroadcasts()]);
+  initInstallUI('adminInstallBtn');
+};
+
 init();

@@ -17,7 +17,7 @@
     <div class="form-group"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="अपना Password"></div>
     <button class="btn btn-blue auth-main-btn premium-press-btn" onclick="login()">Login</button>
     <button class="auth-link-btn" onclick="showForgot()">Password भूल गए? Email से Reset करें</button>
-    <button class="btn btn-light auth-main-btn premium-press-btn" onclick="showRegister()">New Student Registration</button>
+    <button class="btn btn-light auth-main-btn premium-press-btn" onclick="showRegister()">New Student Registration</button><button id="loginInstallBtn" class="btn btn-purple auth-main-btn premium-press-btn hidden" onclick="installApp()">⬇ Install App</button>
   </section>
 
   <section id="registerMode" class="hidden">
@@ -48,7 +48,7 @@
 </div></div>
 
 <script>
-registerSW();
+registerSW();initInstallUI('loginInstallBtn');
 const authSections=["loginMode","registerMode","forgotMode","newPasswordMode"];
 
 function showSection(id){
