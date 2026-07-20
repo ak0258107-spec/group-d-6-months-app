@@ -33,3 +33,11 @@ IMPORTANT
 - The app uses the existing 125 schedule_days and 375 daily_targets already loaded in Supabase.
 - True device push notifications while the app is fully closed require a separate push delivery service/backend. In-app notifications are included.
 - Browser-based PDF read-only controls discourage casual download but are not DRM and cannot guarantee prevention of all copying/screenshots.
+
+
+VERIFICATION BULK PARSER UPDATE
+- Run RUN_ONCE_VERIFICATION_BULK_PARSER_3D_PATCH.sql once in Supabase.
+- Admin verification now uses one raw paste box, same format as Mock Test.
+- Multiple pasted verification questions are supported.
+- Target completes only after all active verification questions are answered correctly.
+- Explanation is shown after a correct answer.

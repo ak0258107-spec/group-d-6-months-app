@@ -7,9 +7,71 @@ async function loadStudents(){const r=await sb.from('profiles').select('*').eq('
 function renderStudents(list){studentsBody.innerHTML=list.map(s=>`<tr><td><b>${esc(s.full_name||'')}</b></td><td>${esc(s.phone||'')}</td><td>${s.total_completed_days||0}/125</td><td>${s.average_test_percentage||0}%</td><td>${s.current_streak||0}</td></tr>`).join('')}
 function filterStudents(){const q=studentSearch.value.toLowerCase();renderStudents(students.filter(s=>(s.full_name||'').toLowerCase().includes(q)||(s.phone||'').includes(q)))}
 async function loadDashboard(){const today=new Date().toISOString().slice(0,10),d=await sb.from('schedule_days').select('id').eq('day_date',today).maybeSingle();let p=[];if(d.data){const rr=await sb.from('daily_progress').select('*').eq('schedule_day_id',d.data.id);p=rr.data||[]}const c=p.filter(x=>x.status==='completed').length,partial=p.filter(x=>x.status==='partial').length,not=p.filter(x=>x.status==='not_started').length;kpis.innerHTML=`<div class="kpi-card kpi-blue span-4"><div class="muted">Total Students</div><div class="kpi">${students.length}</div></div><div class="kpi-card kpi-green span-4"><div class="muted">Today Complete</div><div class="kpi">${c}</div></div><div class="kpi-card kpi-red span-4"><div class="muted">Not Started</div><div class="kpi">${not}</div></div>`}
-async function loadDaySetup(){const dayId=setupDay.value||days[0]?.id;if(!dayId)return;const [t,v]=await Promise.all([sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true)]);allTargets=t.data||[];const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));setupTargets.innerHTML=allTargets.map(x=>`<div class="card"><div class="row wrap"><div><span class="topic-chip">${esc(x.subject)}</span><h3>${esc(x.topic)}</h3></div><span class="badge badge-blue">Target ${x.target_order}</span></div><label>YouTube Class Link</label><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><button class="btn btn-red" onclick="saveYoutube('${x.id}')">Save Class Link</button><hr style="margin:18px 0;border:0;border-top:1px solid #e5e7eb"><h4>Class Verification Question</h4><label>Question Visibility</label><select id="show_${x.id}"><option value="false">Hide Question — केवल Options दिखें</option><option value="true">Show Question</option></select><textarea id="vqtext_${x.id}" placeholder="Question text (Hide mode में student को नहीं दिखेगा)"></textarea><div class="grid"><div class="span-6"><input id="oa_${x.id}" placeholder="Option A"></div><div class="span-6"><input id="ob_${x.id}" placeholder="Option B"></div><div class="span-6"><input id="oc_${x.id}" placeholder="Option C"></div><div class="span-6"><input id="od_${x.id}" placeholder="Option D"></div></div><label>Correct Option</label><select id="correct_${x.id}"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select><button class="btn btn-green" onclick="saveVerification('${x.id}','${dayId}')">Save Verification</button><div class="small muted" style="margin-top:8px">Existing verification: ${(vmap[x.id]||[]).length}</div></div>`).join('')}
+async function loadDaySetup(){
+  const dayId=setupDay.value||days[0]?.id;if(!dayId)return;
+  const [t,v]=await Promise.all([
+    sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),
+    sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true).order('created_at')
+  ]);
+  allTargets=t.data||[];
+  const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));
+  setupTargets.innerHTML=allTargets.map((x,idx)=>`<details class="target-setup-3d" ${idx===0?'open':''}>
+    <summary>
+      <div><span class="topic-chip">${esc(x.subject)}</span><b>${esc(x.topic)}</b></div>
+      <span class="badge badge-blue">Target ${x.target_order}</span>
+    </summary>
+    <div class="target-setup-body">
+      <label>YouTube Class Link</label>
+      <div class="setup-inline"><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><button class="btn btn-red" onclick="saveYoutube('${x.id}')">Save Class Link</button></div>
+      <div class="verification-builder-3d">
+        <div class="row wrap"><div><h4>Class Verification Questions</h4><div class="small muted">Mock Test की तरह पूरा Question + Options + उत्तर + व्याख्या एक साथ paste करें।</div></div><span class="badge badge-purple">Existing: ${(vmap[x.id]||[]).length}</span></div>
+        <label>Question Visibility</label>
+        <select id="show_${x.id}"><option value="false">Hide Question — Student को केवल Options दिखें</option><option value="true">Show Question — Question + Options दोनों दिखें</option></select>
+        <label>Verification Question Data</label>
+        <textarea class="verification-raw-box" id="vqraw_${x.id}" placeholder="प्रश्न 1. ........
+(A) ....
+(B) ....
+(C) ....
+(D) ....
+उत्तर: (A)
+व्याख्या: ....
+
+------
+
+प्रश्न 2. ........"></textarea>
+        <div class="format-tip"><b>Format:</b> आप 1, 2, 3 या जितने चाहें प्रश्न paste कर सकते हैं। Save करने पर पुराने verification questions replace हो जाएंगे।</div>
+        <button class="btn btn-green" onclick="saveVerificationBatch('${x.id}','${dayId}')">Parse & Save Verification</button>
+      </div>
+    </div>
+  </details>`).join('')
+}
 async function saveYoutube(id){const url=document.getElementById('yt_'+id).value.trim();const rr=await sb.from('daily_targets').update({youtube_url:url||null}).eq('id',id);if(rr.error)toast(rr.error.message,'error');else toast('YouTube Class Link saved.','success')}
-async function saveVerification(targetId,dayId){const q=document.getElementById('vqtext_'+targetId).value.trim(),opts=['oa','ob','oc','od'].map(k=>document.getElementById(k+'_'+targetId).value.trim()),correct=document.getElementById('correct_'+targetId).value,show=document.getElementById('show_'+targetId).value==='true';if(opts.some(x=>!x)){toast('चारों options भरें।','error');return}const ins=await sb.from('verification_questions').insert({schedule_day_id:dayId,target_id:targetId,verification_kind:'class',question_text:q||'Class Verification',answer_type:'mcq',options:opts,show_question:show,is_active:true}).select().single();if(ins.error){toast(ins.error.message,'error');return}const key=await sb.from('verification_answer_keys').insert({verification_question_id:ins.data.id,correct_answer:String(correct)});if(key.error){toast(key.error.message,'error');return}toast('Verification question saved.','success');loadDaySetup()}
+async function saveVerificationBatch(targetId,dayId){
+  const raw=document.getElementById('vqraw_'+targetId).value.trim();
+  const show=document.getElementById('show_'+targetId).value==='true';
+  const parsed=parseRawQuestions(raw);
+  if(!parsed.length){toast('Valid verification question नहीं मिला। Mock Test वाला format paste करें।','error');return}
+  const old=await sb.from('verification_questions').select('id').eq('target_id',targetId).eq('verification_kind','class');
+  if(old.error){toast(old.error.message,'error');return}
+  const ids=(old.data||[]).map(x=>x.id);
+  if(ids.length){
+    const dk=await sb.from('verification_answer_keys').delete().in('verification_question_id',ids);if(dk.error){toast(dk.error.message,'error');return}
+    const dq=await sb.from('verification_questions').delete().in('id',ids);if(dq.error){toast(dq.error.message,'error');return}
+  }
+  for(let i=0;i<parsed.length;i++){
+    const q=parsed[i];
+    const ins=await sb.from('verification_questions').insert({
+      schedule_day_id:dayId,target_id:targetId,verification_kind:'class',question_text:q.question_text||'Class Verification',
+      answer_type:'mcq',options:q.options,show_question:show,is_active:true,explanation:q.explanation||null
+    }).select().single();
+    if(ins.error){toast('Q'+(i+1)+': '+ins.error.message,'error');return}
+    const key=await sb.from('verification_answer_keys').insert({verification_question_id:ins.data.id,correct_answer:String(q.correct_answer)});
+    if(key.error){toast('Q'+(i+1)+': '+key.error.message,'error');return}
+  }
+  toast(parsed.length+' Verification Question save हो गए।','success');
+  document.getElementById('vqraw_'+targetId).value='';
+  loadDaySetup()
+}
 async function loadTargetStatus(){const dayId=targetDay.value||days[0]?.id;if(!dayId)return;const r=await sb.from('daily_progress').select('*,profiles(full_name)').eq('schedule_day_id',dayId);const rows=r.data||[],c=rows.filter(x=>x.status==='completed').length,partial=rows.filter(x=>x.status==='partial').length,not=rows.filter(x=>x.status==='not_started').length;targetStatusCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed</div><div class="kpi">${c}</div></div><div class="kpi-card kpi-orange span-4"><div class="muted">Partial</div><div class="kpi">${partial}</div></div><div class="kpi-card kpi-red span-4"><div class="muted">Not Started</div><div class="kpi">${not}</div></div>`;targetStatusBody.innerHTML=rows.map(x=>`<tr><td>${esc(x.profiles?.full_name||'')}</td><td>${x.completed_targets}/${x.total_targets}</td><td>${x.test_score_percent??'-'}%</td><td>${esc(x.status)}</td><td>${x.status==='completed'?'Excellent 🌹':x.feedback==='test_pending'?'Final Test Pass करें 📝':x.status==='partial'?'Target पूरा करें ⚠️':'Work Complete नहीं हुआ ❌'}</td></tr>`).join('');renderDayUnlockState()}
 function currentSelectedDay(){return days.find(d=>String(d.id)===String(targetDay.value))||days[0]}function renderDayUnlockState(){const d=currentSelectedDay();if(!d)return;let txt=d.manual_lock?'🔒 Manually Locked':d.manual_unlock?'🔓 Manually Unlocked':'⏱ Automatic — Date-wise';dayUnlockState.innerHTML=`<span class="lock-chip ${d.manual_lock||d.manual_unlock?'manual':'auto'}">${txt}</span>`}
 async function setDayUnlock(mode){const d=currentSelectedDay(),patch=mode==='lock'?{manual_lock:true,manual_unlock:false}:mode==='unlock'?{manual_lock:false,manual_unlock:true}:{manual_lock:false,manual_unlock:false};const r=await sb.from('schedule_days').update(patch).eq('id',d.id).select().single();if(r.error){toast(r.error.message,'error');return}Object.assign(d,r.data);renderDayUnlockState();toast('Day unlock setting updated.','success')}
