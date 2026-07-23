@@ -418,4 +418,37 @@ loadMaterials=async function(){
   }
 };
 
+
+
+/* ===== FINAL PDF DELETE UI FIX ===== */
+loadMaterials=async function(){
+  const r=await sb.from('study_materials')
+    .select('*,schedule_days(day_number,day_date)')
+    .order('created_at',{ascending:false});
+
+  const rows=r.data||[];
+  const host=document.getElementById('materialsList');
+  if(!host)return;
+
+  host.innerHTML=rows.map(m=>`
+    <div class="item admin-delete-group">
+      <div class="row wrap" style="justify-content:space-between;align-items:center">
+        <div>
+          <b>📄 ${esc(m.title||'PDF')}</b>
+          <div class="muted">
+            Day ${m.schedule_days?.day_number||'-'} • ${esc(m.access_mode||'read_only')}
+          </div>
+          <div class="small">
+            ${isR2PdfPath(m.storage_path)?'☁ Cloudflare R2':'Legacy Supabase Storage'}
+          </div>
+        </div>
+        <button class="btn btn-red btn-mini"
+          onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>
+          🗑 Delete PDF
+        </button>
+      </div>
+    </div>
+  `).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
+};
+
 init();

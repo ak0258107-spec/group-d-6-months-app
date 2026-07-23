@@ -531,4 +531,234 @@ loadPdfs=async function(){
     </div>`).join('')||'<div class="card">अभी कोई PDF नहीं है।</div>';
 };
 
+
+
+/* ===== PDF-SPECIFIC VERIFICATION FLOW FIX ===== */
+let materialVerificationContext=null;
+
+async function getMaterialVerificationContext(materialId){
+  const mat=await sb.from('study_materials')
+    .select('id,title,schedule_day_id,storage_path')
+    .eq('id',materialId)
+    .maybeSingle();
+
+  if(mat.error)throw mat.error;
+  if(!mat.data)return {material:null,targets:[],questions:[]};
+
+  const [tr,vr]=await Promise.all([
+    sb.from('daily_targets')
+      .select('*')
+      .eq('schedule_day_id',mat.data.schedule_day_id)
+      .eq('status','published')
+      .order('target_order'),
+    sb.from('verification_questions')
+      .select('*')
+      .eq('schedule_day_id',mat.data.schedule_day_id)
+      .eq('is_active',true)
+      .order('sort_order')
+      .order('created_at')
+  ]);
+
+  return {
+    material:mat.data,
+    targets:tr.data||[],
+    questions:vr.data||[]
+  };
+}
+
+function verificationOptionsArray(v){
+  if(Array.isArray(v.options))return v.options;
+  if(typeof v.options==='string'){
+    try{
+      const x=JSON.parse(v.options);
+      return Array.isArray(x)?x:[];
+    }catch(_){return []}
+  }
+  return [];
+}
+
+function showMaterialVerificationPanel(ctx){
+  let host=document.getElementById('materialVerificationOverlay');
+  if(!host){
+    host=document.createElement('div');
+    host.id='materialVerificationOverlay';
+    host.className='material-verification-overlay';
+    document.body.appendChild(host);
+  }
+
+  const targetMap=new Map((ctx.targets||[]).map(t=>[String(t.id),t]));
+  const questions=ctx.questions||[];
+
+  host.innerHTML=`
+    <div class="material-verification-modal">
+      <div class="row wrap" style="justify-content:space-between;align-items:center">
+        <div>
+          <div class="section-kicker">CLASS VERIFICATION</div>
+          <h2 style="margin:4px 0">${esc(ctx.material?.title||'PDF Verification')}</h2>
+          <div class="muted">सही उत्तर देने के बाद PDF खुलेगी। गलत उत्तर पर दोबारा प्रयास कर सकते हैं।</div>
+        </div>
+        <button class="global-action-notice-close" onclick="closeMaterialVerification()">✕</button>
+      </div>
+
+      <div class="material-verification-list">
+        ${questions.map((v,index)=>{
+          const opts=verificationOptionsArray(v);
+          const target=targetMap.get(String(v.target_id));
+          return `<div class="verify-card material-vq-card">
+            <div class="small muted">${esc(target?.subject||'')} ${target?.topic?'• '+esc(target.topic):''}</div>
+            ${v.show_question!==false?`<h3>${index+1}. ${esc(v.question_text||'Class Verification')}</h3>`:'<h3>Class में पूछे गए प्रश्न का सही विकल्प चुनिए</h3>'}
+            <div id="mat_choices_${v.id}" class="verification-options">
+              ${opts.map((o,i)=>`<button class="choice-option" onclick="selectMaterialVerifyOption('${v.id}',${i},this)">${String.fromCharCode(65+i)}. ${esc(o)}</button>`).join('')}
+            </div>
+            <input type="hidden" id="mat_vq_${v.id}">
+            <button class="btn btn-green" style="margin-top:10px" onclick="submitMaterialVerification('${v.id}','${v.target_id}')">Submit Answer</button>
+            <div id="mat_vres_${v.id}" class="small" style="margin-top:8px"></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  host.classList.add('show');
+}
+
+function closeMaterialVerification(){
+  const host=document.getElementById('materialVerificationOverlay');
+  if(host){host.classList.remove('show');host.innerHTML='';}
+}
+
+function selectMaterialVerifyOption(vId,index,el){
+  const input=document.getElementById('mat_vq_'+vId);
+  if(input)input.value=String(index);
+  el.parentElement.querySelectorAll('.choice-option').forEach(x=>x.classList.remove('selected-choice','selected'));
+  el.classList.add('selected-choice');
+}
+
+async function submitMaterialVerification(vId,targetId){
+  const val=document.getElementById('mat_vq_'+vId)?.value;
+  const res=document.getElementById('mat_vres_'+vId);
+
+  if(val===''||val==null){
+    if(res)res.innerHTML='<span class="text-error">पहले कोई option चुनिए।</span>';
+    return;
+  }
+
+  const r=await sb.rpc('submit_target_verification_option',{
+    p_verification_question_id:vId,
+    p_target_id:targetId,
+    p_selected_option:Number(val)
+  });
+
+  if(r.error){
+    if(res)res.innerHTML='<span class="text-error">'+esc(r.error.message)+'</span>';
+    return;
+  }
+
+  if(r.data===true){
+    if(res)res.innerHTML='<span class="text-success">✅ Correct Answer — Verification Successful</span>';
+    const btn=res.closest('.material-vq-card')?.querySelector('button.btn-green');
+    if(btn)btn.disabled=true;
+
+    // Refresh context. If PDF access is now unlocked, clearly offer direct open.
+    if(materialVerificationContext?.material?.id){
+      const can=await sb.rpc('can_read_material',{p_material_id:materialVerificationContext.material.id});
+      if(can.data===true){
+        const modal=document.querySelector('.material-verification-modal');
+        if(modal){
+          const done=document.createElement('div');
+          done.className='verification-unlocked-banner';
+          done.innerHTML=`<b>🎉 Verification Complete — PDF अब खुल सकती है।</b>
+            <button class="btn btn-blue" onclick="closeMaterialVerification();readPdf(${JSON.stringify(materialVerificationContext.material.id)},${JSON.stringify(materialVerificationContext.material.storage_path||"")},${JSON.stringify(materialVerificationContext.material.title||"PDF")})">Read PDF Now</button>`;
+          modal.prepend(done);
+        }
+      }
+    }
+  }else{
+    if(res)res.innerHTML='<span class="text-error">❌ Answer Wrong — दोबारा सही उत्तर दीजिए।</span>';
+  }
+}
+
+async function openVerificationForMaterial(materialId){
+  try{
+    const ctx=await getMaterialVerificationContext(materialId);
+    materialVerificationContext=ctx;
+
+    if(!ctx.material){
+      showActionNotice('PDF की जानकारी नहीं मिली।','',null,'error');
+      return;
+    }
+
+    if(!ctx.questions.length){
+      showActionNotice(
+        'इस PDF के लिए कोई Class Verification Question सेट नहीं है। इसलिए PDF सीधे खोली जा सकती है।',
+        'Read PDF',
+        ()=>readPdf(ctx.material.id,ctx.material.storage_path,ctx.material.title),
+        'success'
+      );
+      return;
+    }
+
+    showMaterialVerificationPanel(ctx);
+  }catch(e){
+    showActionNotice('Verification खोलने में समस्या आई: '+(e.message||'Unknown error'),'',null,'error');
+  }
+}
+
+/* Final read override: exact PDF-day verification button */
+const __pdfVerificationReadPdf=readPdf;
+readPdf=async function(id,path,title){
+  // For legacy PDFs, first check whether this PDF day actually has any verification questions.
+  if(!isR2PdfPath(path)){
+    try{
+      const ctx=await getMaterialVerificationContext(id);
+      if(ctx.questions.length===0){
+        const legacy=await sb.storage.from('study-pdfs').createSignedUrl(path,120);
+        if(legacy.error){showActionNotice('PDF खोलने में समस्या आई: '+legacy.error.message,'',null,'error');return}
+        window.open(legacy.data.signedUrl,'_blank','noopener');
+        return;
+      }
+    }catch(_){}
+
+    const ok=await sb.rpc('can_read_material',{p_material_id:id});
+    if(ok.error){showActionNotice('PDF खोलने में समस्या आई: '+ok.error.message,'',null,'error');return}
+
+    if(!ok.data){
+      showActionNotice(
+        'पहले Class Verification पूरा करें, तभी यह PDF खुलेगी।',
+        'Verification यहाँ से करें',
+        ()=>openVerificationForMaterial(id),
+        'warning'
+      );
+      return;
+    }
+
+    const legacy=await sb.storage.from('study-pdfs').createSignedUrl(path,120);
+    if(legacy.error){showActionNotice('PDF खोलने में समस्या आई: '+legacy.error.message,'',null,'error');return}
+    window.open(legacy.data.signedUrl,'_blank','noopener');
+    return;
+  }
+
+  // R2 PDF. Updated SQL makes no-question PDFs directly readable.
+  try{
+    const res=await r2ApiFetch(`/material/${encodeURIComponent(id)}/read`);
+    if(!res.ok){
+      let data={};
+      try{data=await res.json()}catch(_){}
+
+      if(data.code==='VERIFICATION_REQUIRED'||res.status===403){
+        showActionNotice(
+          data.error||'पहले Class Verification पूरा करें, तभी PDF खुलेगी।',
+          'Verification यहाँ से करें',
+          ()=>openVerificationForMaterial(id),
+          'warning'
+        );
+        return;
+      }
+      throw new Error(data.error||'PDF नहीं खुल पाई।');
+    }
+    await openR2PdfResponse(res,title,false);
+  }catch(e){
+    showActionNotice('PDF खोलने में समस्या आई: '+(e.message||'Unknown error'),'',null,'error');
+  }
+};
+
 init();
