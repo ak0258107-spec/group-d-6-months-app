@@ -761,4 +761,68 @@ readPdf=async function(id,path,title){
   }
 };
 
+
+
+/* ===== HOME POSTER / BANNER SLIDER ===== */
+let homePosterUrls=[],homePosterIndex=0,homePosterTimer=null,homePosterRows=[];
+function clearHomePosterUrls(){homePosterUrls.forEach(u=>URL.revokeObjectURL(u));homePosterUrls=[]}
+
+async function loadHomePosters(){
+  const section=document.getElementById('homePosterSection');
+  const slider=document.getElementById('homePosterSlider');
+  const dots=document.getElementById('homePosterDots');
+  if(!section||!slider||!dots)return;
+
+  clearHomePosterUrls();
+  if(homePosterTimer)clearInterval(homePosterTimer);
+
+  const r=await sb.from('app_posters').select('*').eq('is_active',true).order('sort_order').order('created_at',{ascending:false});
+  if(r.error){section.style.display='none';return}
+
+  const rows=(r.data||[]).filter(p=>(!p.start_at||new Date(p.start_at)<=new Date())&&(!p.end_at||new Date(p.end_at)>=new Date()));
+  if(!rows.length){section.style.display='none';slider.innerHTML='';dots.innerHTML='';return}
+
+  homePosterRows=[];
+  for(const p of rows){
+    try{
+      const res=await r2ApiFetch(`/poster?key=${encodeURIComponent(p.image_key)}`);
+      if(!res.ok)continue;
+      const blob=await res.blob();
+      const url=URL.createObjectURL(blob);
+      homePosterUrls.push(url);
+      homePosterRows.push({...p,_url:url});
+    }catch(_){}
+  }
+
+  if(!homePosterRows.length){section.style.display='none';return}
+  section.style.display='block';
+  slider.innerHTML=homePosterRows.map((p,i)=>`<button class="home-poster-slide ${i===0?'active':''}" onclick='openPosterLink(${i})'><img src="${p._url}" alt="${esc(p.title||'Poster')}"></button>`).join('');
+  dots.innerHTML=homePosterRows.map((_,i)=>`<button class="${i===0?'active':''}" onclick="showPosterSlide(${i})"></button>`).join('');
+  homePosterIndex=0;
+  if(homePosterRows.length>1)homePosterTimer=setInterval(()=>showPosterSlide((homePosterIndex+1)%homePosterRows.length),5000);
+}
+
+function showPosterSlide(index){
+  const slides=[...document.querySelectorAll('.home-poster-slide')];
+  const dotButtons=[...document.querySelectorAll('#homePosterDots button')];
+  if(!slides.length)return;
+  homePosterIndex=(index+slides.length)%slides.length;
+  slides.forEach((x,i)=>x.classList.toggle('active',i===homePosterIndex));
+  dotButtons.forEach((x,i)=>x.classList.toggle('active',i===homePosterIndex));
+}
+
+function openPosterLink(index){
+  const p=homePosterRows[index];
+  if(!p?.click_url)return;
+  const url=String(p.click_url);
+  if(url.startsWith('http://')||url.startsWith('https://'))window.open(url,'_blank','noopener');
+  else location.href=url;
+}
+
+const __baseStudentInitForPoster=init;
+init=async function(){
+  await __baseStudentInitForPoster();
+  await loadHomePosters();
+};
+
 init();

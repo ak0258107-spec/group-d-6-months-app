@@ -1,5 +1,5 @@
 let adminUser=null,days=[],students=[],allTargets=[],publishedTests=[];
-function tab(n,el){['dashboard','students','daysetup','targets','tests','oneliners','pdfs','messages','reports'].forEach(x=>document.getElementById(x+'Tab').classList.toggle('hidden',x!==n));document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));if(el)el.classList.add('active')}
+function tab(n,el){['dashboard','students','daysetup','targets','tests','oneliners','pdfs','posters','messages','reports'].forEach(x=>document.getElementById(x+'Tab').classList.toggle('hidden',x!==n));document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));if(el)el.classList.add('active');if(n==='posters'&&typeof loadPosters==='function')loadPosters()}
 async function guard(){adminUser=await requireAuth();if(!adminUser)return false;const p=await getProfile(adminUser.id);if(p?.role!=='admin'){alert('Admin access required');location.href='student.html';return false}return true}
 async function init(){if(!(await guard()))return;todayDate.textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});await loadDays();await loadStudents();await Promise.all([loadDashboard(),loadTests(),loadOneLinersAdmin(),loadMaterials(),loadReports(),loadBroadcasts()])}
 async function loadDays(){const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');days=r.data||[];const opts=days.map(d=>`<option value="${d.id}">Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');targetDay.innerHTML=opts;setupDay.innerHTML=opts;pdfDay.innerHTML=opts;testDay.innerHTML='<option value="">No linked day</option>'+opts;await loadTargetStatus();await loadDaySetup()}
@@ -450,5 +450,111 @@ loadMaterials=async function(){
     </div>
   `).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
 };
+
+
+
+/* ===== POSTER / BANNER MANAGEMENT ===== */
+let posterObjectUrls=[];
+function clearPosterObjectUrls(){posterObjectUrls.forEach(u=>URL.revokeObjectURL(u));posterObjectUrls=[]}
+
+async function posterPreviewUrl(key){
+  const res=await r2ApiFetch(`/poster?key=${encodeURIComponent(key)}`);
+  if(!res.ok)throw new Error(await r2ErrorMessage(res,'Poster load failed'));
+  const blob=await res.blob();
+  const url=URL.createObjectURL(blob);
+  posterObjectUrls.push(url);
+  return url;
+}
+
+async function publishPoster(){
+  const f=document.getElementById('posterFile')?.files?.[0];
+  if(!f){toast('Poster image चुनें','error');return}
+  if(!f.type.startsWith('image/')){toast('केवल image file चुनें','error');return}
+  if(f.size>5*1024*1024){toast('Poster 5 MB से कम रखें।','error');return}
+
+  const title=document.getElementById('posterTitle').value.trim()||'Poster';
+  const link=document.getElementById('posterLink').value.trim()||null;
+  const start=document.getElementById('posterStart').value||null;
+  const end=document.getElementById('posterEnd').value||null;
+  const active=document.getElementById('posterActive').value==='true';
+  const order=Number(document.getElementById('posterOrder').value||0);
+
+  let key=null;
+  try{
+    const up=await r2ApiFetch(`/admin/poster-upload?filename=${encodeURIComponent(f.name)}`,{
+      method:'POST',
+      headers:{'Content-Type':f.type,'X-File-Name':f.name},
+      body:f
+    });
+    if(!up.ok)throw new Error(await r2ErrorMessage(up,'Poster upload failed'));
+    key=(await up.json()).key;
+
+    const ins=await sb.from('app_posters').insert({
+      title:title,image_key:key,click_url:link,
+      start_at:start?new Date(start).toISOString():null,
+      end_at:end?new Date(end).toISOString():null,
+      is_active:active,sort_order:order,created_by:adminUser.id
+    });
+    if(ins.error){
+      try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(_){}
+      throw ins.error;
+    }
+
+    ['posterTitle','posterLink','posterStart','posterEnd'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+    document.getElementById('posterFile').value='';
+    document.getElementById('posterOrder').value='0';
+    toast('Poster publish हो गया।','success');
+    await loadPosters();
+  }catch(e){
+    console.error(e);
+    toast(e.message||'Poster publish नहीं हुआ।','error');
+  }
+}
+
+async function deletePoster(id,key){
+  if(!(await adminConfirmDelete('क्या आप यह Poster delete करना चाहते हैं?')))return;
+  const del=await sb.from('app_posters').delete().eq('id',id);
+  if(del.error){toast(del.error.message,'error');return}
+  try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(e){console.warn(e)}
+  toast('Poster delete हो गया।','success');
+  await loadPosters();
+}
+
+async function togglePoster(id,current){
+  const up=await sb.from('app_posters').update({is_active:!current}).eq('id',id);
+  if(up.error){toast(up.error.message,'error');return}
+  await loadPosters();
+}
+
+async function loadPosters(){
+  const host=document.getElementById('posterList');
+  if(!host)return;
+  clearPosterObjectUrls();
+
+  const r=await sb.from('app_posters').select('*').order('sort_order').order('created_at',{ascending:false});
+  const rows=r.data||[];
+  if(r.error){host.innerHTML='<div class="item text-error">'+esc(r.error.message)+'</div>';return}
+  if(!rows.length){host.innerHTML='<div class="item">अभी कोई Poster नहीं है।</div>';return}
+
+  const cards=[];
+  for(const p of rows){
+    let img='';
+    try{img=await posterPreviewUrl(p.image_key)}catch(_){}
+    cards.push(`<div class="item admin-delete-group">
+      <div class="poster-admin-card">
+        ${img?`<img src="${img}" class="poster-admin-thumb" alt="">`:''}
+        <div class="poster-admin-info">
+          <b>${esc(p.title||'Poster')}</b>
+          <div class="small muted">${p.is_active?'Active':'Inactive'} • Order ${p.sort_order||0}</div>
+          <div class="row wrap" style="margin-top:8px">
+            <button class="btn btn-blue btn-mini" onclick='togglePoster(${JSON.stringify(p.id)},${p.is_active})'>${p.is_active?'Deactivate':'Activate'}</button>
+            <button class="btn btn-red btn-mini" onclick='deletePoster(${JSON.stringify(p.id)},${JSON.stringify(p.image_key)})'>🗑 Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>`);
+  }
+  host.innerHTML=cards.join('');
+}
 
 init();

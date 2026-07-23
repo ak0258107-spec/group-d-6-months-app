@@ -1,12 +1,12 @@
 {
-  "name": "GK BY PURUSHOTAM SIR - Group D 6 Months Target Batch",
-  "short_name": "GK BY PURUSHOTAM SIR",
+  "name": "GK BY PURUSHOTAM SIR",
+  "short_name": "GK PURUSHOTAM",
   "description": "Group D 6 Months Target Batch",
   "display": "standalone",
   "start_url": "./index.html",
   "scope": "./",
-  "background_color": "#07111f",
-  "theme_color": "#9f0000",
+  "background_color": "#ffffff",
+  "theme_color": "#0b2d5c",
   "icons": [
     {
       "src": "icon-192.png",

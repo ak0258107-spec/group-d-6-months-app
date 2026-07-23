@@ -1,12 +1,12 @@
 {
-  "name": "GK BY PURUSHOTAM SIR - Group D 6 Months",
-  "short_name": "GK Group D",
+  "name": "GK BY PURUSHOTAM SIR",
+  "short_name": "GK PURUSHOTAM",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#eef5fb",
-  "theme_color": "#071f3d",
+  "background_color": "#ffffff",
+  "theme_color": "#0b2d5c",
   "icons": [
     {
       "src": "icon-192.png",

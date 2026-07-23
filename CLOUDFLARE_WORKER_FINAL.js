@@ -72,6 +72,42 @@ export default {
         return json({success:true,message:"PDF deleted successfully"},200,cors);
       }
 
+
+      if(url.pathname==="/admin/poster-upload" && request.method==="POST"){
+        await requireAdmin(env,accessToken,user.id);
+        const incomingFileName=url.searchParams.get("filename")||request.headers.get("X-File-Name")||"poster.jpg";
+        const safeFileName=sanitizeFileName(incomingFileName);
+        const contentType=request.headers.get("Content-Type")||"image/jpeg";
+        if(!contentType.startsWith("image/"))return json({success:false,error:"Only image files are allowed"},400,cors);
+        if(!request.body)return json({success:false,error:"Poster image missing"},400,cors);
+        const key=`posters/${new Date().getFullYear()}/${crypto.randomUUID()}-${safeFileName}`;
+        await env.PDF_BUCKET.put(key,request.body,{
+          httpMetadata:{contentType,contentDisposition:"inline"},
+          customMetadata:{uploadedBy:user.id,originalName:safeFileName,uploadedAt:new Date().toISOString()}
+        });
+        return json({success:true,key,fileName:safeFileName},200,cors);
+      }
+
+      if(url.pathname==="/poster" && request.method==="GET"){
+        const key=url.searchParams.get("key");
+        if(!key||!key.startsWith("posters/"))return json({success:false,error:"Invalid poster key"},400,cors);
+        const object=await env.PDF_BUCKET.get(key);
+        if(!object)return json({success:false,error:"Poster not found"},404,cors);
+        const headers=new Headers(cors);
+        object.writeHttpMetadata(headers);
+        headers.set("Cache-Control","private, max-age=300");
+        headers.set("X-Content-Type-Options","nosniff");
+        return new Response(object.body,{status:200,headers});
+      }
+
+      if(url.pathname==="/admin/poster" && request.method==="DELETE"){
+        await requireAdmin(env,accessToken,user.id);
+        const key=url.searchParams.get("key");
+        if(!key||!key.startsWith("posters/"))return json({success:false,error:"Invalid poster key"},400,cors);
+        await env.PDF_BUCKET.delete(key);
+        return json({success:true},200,cors);
+      }
+
       return json({success:false,error:"Route not found"},404,cors);
     } catch(error) {
       console.error(error);
