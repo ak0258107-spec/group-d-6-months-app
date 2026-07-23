@@ -294,4 +294,128 @@ loadMaterials=async function(){
   }
 };
 
+
+
+/* ===== R2 PDF STORAGE OVERRIDES ===== */
+async function uploadPdf(){
+  const f=pdfFile.files[0];
+  if(!f){toast('PDF चुनें','error');return}
+  if(f.type && f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}
+  if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
+
+  const btn=document.querySelector('#pdfsTab button[onclick="uploadPdf()"]')||document.querySelector('button[onclick="uploadPdf()"]');
+  const oldText=btn?.textContent||'Upload PDF';
+  if(btn){btn.disabled=true;btn.textContent='Uploading to R2...';}
+
+  let uploadedKey=null;
+  try{
+    const uploadRes=await r2ApiFetch(
+      `/admin/upload?filename=${encodeURIComponent(f.name)}`,
+      {method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f}
+    );
+    if(!uploadRes.ok)throw new Error(await r2ErrorMessage(uploadRes,'R2 upload failed'));
+    const uploadData=await uploadRes.json();
+    uploadedKey=uploadData.key;
+    if(!uploadedKey)throw new Error('R2 file key नहीं मिला।');
+
+    const ins=await sb.from('study_materials').insert({
+      schedule_day_id:pdfDay.value,
+      title:pdfTitle.value.trim()||f.name,
+      material_type:'pdf',
+      storage_path:uploadedKey,
+      file_size_bytes:f.size,
+      mime_type:'application/pdf',
+      status:'published',
+      access_mode:pdfAccess.value,
+      download_test_id:pdfTest.value||null,
+      download_pass_percent:+pdfPass.value||80,
+      requires_class_verification:true,
+      uploaded_by:adminUser.id,
+      published_at:new Date().toISOString()
+    }).select().single();
+
+    if(ins.error){
+      try{
+        await r2ApiFetch(`/admin/file?key=${encodeURIComponent(uploadedKey)}`,{method:'DELETE'});
+      }catch(_){}
+      throw new Error(ins.error.message);
+    }
+
+    await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);
+    pdfTitle.value='';
+    pdfFile.value='';
+    toast('PDF Cloudflare R2 में upload हो गई।','success');
+    await loadMaterials();
+  }catch(e){
+    console.error(e);
+    toast(e.message||'PDF upload नहीं हो पाई।','error');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=oldText;}
+  }
+}
+
+async function deletePdf(materialId,storagePath){
+  if(!(await adminConfirmDelete('क्या आप यह PDF पूरी तरह delete करना चाहते हैं?')))return;
+
+  const db=await sb.rpc('admin_delete_material',{p_material_id:materialId});
+  if(db.error){toast(db.error.message,'error');return}
+
+  try{
+    if(isR2PdfPath(storagePath)){
+      const rr=await r2ApiFetch(`/admin/file?key=${encodeURIComponent(storagePath)}`,{method:'DELETE'});
+      if(!rr.ok)console.warn(await r2ErrorMessage(rr,'R2 delete failed'));
+    }else if(storagePath){
+      await sb.storage.from('study-pdfs').remove([storagePath]);
+    }
+  }catch(e){
+    console.warn('File cleanup warning:',e);
+  }
+
+  toast('PDF delete हो गई।','success');
+  await loadMaterials();
+}
+
+async function deleteAllPdfs(){
+  if(!(await adminConfirmDelete('क्या आप सभी PDFs delete करना चाहते हैं?')))return;
+
+  const list=await sb.from('study_materials').select('id,storage_path');
+  const rows=list.data||[];
+  const db=await sb.rpc('admin_delete_all_materials');
+  if(db.error){toast(db.error.message,'error');return}
+
+  for(const row of rows){
+    try{
+      if(isR2PdfPath(row.storage_path)){
+        await r2ApiFetch(`/admin/file?key=${encodeURIComponent(row.storage_path)}`,{method:'DELETE'});
+      }else if(row.storage_path){
+        await sb.storage.from('study-pdfs').remove([row.storage_path]);
+      }
+    }catch(e){console.warn('Cleanup warning',row.storage_path,e)}
+  }
+
+  toast('सभी PDFs delete हो गईं।','success');
+  await loadMaterials();
+}
+
+const __r2BaseLoadMaterials=loadMaterials;
+loadMaterials=async function(){
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date)').order('created_at',{ascending:false});
+  const rows=r.data||[];
+  if(typeof adminPdfs!=='undefined'&&adminPdfs){
+    adminPdfs.innerHTML=rows.map(m=>`
+      <div class="item admin-delete-group">
+        <div class="row wrap">
+          <div>
+            <b>📄 ${esc(m.title||'PDF')}</b>
+            <div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${esc(m.access_mode||'')}</div>
+            <div class="small">${isR2PdfPath(m.storage_path)?'☁ Cloudflare R2':'Legacy Supabase Storage'}</div>
+          </div>
+          <button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>Delete PDF</button>
+        </div>
+      </div>`).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
+  }else if(typeof materialsList!=='undefined'&&materialsList){
+    materialsList.innerHTML=rows.map(m=>`<div class="item"><b>${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${m.access_mode||'read_only'}</div></div>`).join('');
+  }
+};
+
 init();

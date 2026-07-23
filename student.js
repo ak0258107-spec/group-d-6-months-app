@@ -376,4 +376,159 @@ renderHome=async function(){
   <div class="stat-row" style="margin-top:10px"><div class="stat-mini"><div class="muted">Streak</div><div class="kpi">${profile?.current_streak||0} Days</div></div><div class="stat-mini"><div class="muted">Average Test</div><div class="kpi">${profile?.average_test_percentage||0}%</div></div></div>`;
 };
 
+
+
+/* ===== R2 PDF READ / DOWNLOAD OVERRIDES ===== */
+async function openR2PdfResponse(response,title,download=false){
+  const blob=await response.blob();
+  const blobUrl=URL.createObjectURL(blob);
+  if(download){
+    const a=document.createElement('a');
+    a.href=blobUrl;
+    a.download=(title||'study-material.pdf').toLowerCase().endsWith('.pdf')?(title||'study-material.pdf'):(title||'study-material')+'.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl),60000);
+  }else{
+    const w=window.open(blobUrl,'_blank','noopener');
+    if(!w)location.href=blobUrl;
+    setTimeout(()=>URL.revokeObjectURL(blobUrl),10*60*1000);
+  }
+}
+
+async function readPdf(id,path,title){
+  if(!isR2PdfPath(path)){
+    const ok=await sb.rpc('can_read_material',{p_material_id:id});
+    if(ok.error){showActionNotice('PDF खोलने में समस्या आई: '+ok.error.message,'',null,'error');return}
+    if(!ok.data){
+      showActionNotice('पहले Class Verification पूरा करें, तभी यह PDF खुलेगी।','Verification यहाँ से करें',()=>openTodayVerification(),'warning');
+      return;
+    }
+    const legacy=await sb.storage.from('study-pdfs').createSignedUrl(path,120);
+    if(legacy.error){showActionNotice('PDF खोलने में समस्या आई: '+legacy.error.message,'',null,'error');return}
+    window.open(legacy.data.signedUrl,'_blank','noopener');
+    return;
+  }
+
+  try{
+    const res=await r2ApiFetch(`/material/${encodeURIComponent(id)}/read`);
+    if(!res.ok){
+      let data={};
+      try{data=await res.json()}catch(_){}
+      if(data.code==='VERIFICATION_REQUIRED'||res.status===403){
+        showActionNotice(
+          data.error||'पहले Class Verification पूरा करें, तभी PDF खुलेगी।',
+          'Verification यहाँ से करें',
+          ()=>openTodayVerification(),
+          'warning'
+        );
+        return;
+      }
+      throw new Error(data.error||'PDF नहीं खुल पाई।');
+    }
+    await openR2PdfResponse(res,title,false);
+  }catch(e){
+    showActionNotice('PDF खोलने में समस्या आई: '+(e.message||'Unknown error'),'',null,'error');
+  }
+}
+
+async function downloadPdf(id,path,testId='',mode='direct_download',passPercent=80,title='study-material.pdf'){
+  if(mode==='read_only'){
+    toast('यह PDF Read Only है। Download उपलब्ध नहीं है।','error');
+    return;
+  }
+
+  if(!isR2PdfPath(path)){
+    const read=await sb.rpc('can_read_material',{p_material_id:id});
+    if(read.error){toast(read.error.message,'error');return}
+    if(!read.data){
+      showActionNotice('पहले Class Verification पूरा करें, तभी PDF खुलेगी।','Verification यहाँ से करें',()=>openTodayVerification(),'warning');
+      return;
+    }
+    const ok=await sb.rpc('can_download_material',{p_material_id:id});
+    if(ok.error){toast(ok.error.message,'error');return}
+    if(ok.data){
+      const rr=await sb.storage.from('study-pdfs').createSignedUrl(path,120);
+      if(rr.error){toast(rr.error.message,'error');return}
+      const a=document.createElement('a');a.href=rr.data.signedUrl;a.download=title||'study-material.pdf';a.target='_blank';a.click();return;
+    }
+    if(mode==='test_required'&&testId){
+      toast(`PDF Download के लिए पहले Mock Test में ${passPercent}% score करें। Test खुल रहा है…`,'error');
+      setTimeout(()=>location.href=`test.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`,900);
+      return;
+    }
+    toast('PDF Download अभी Locked है।','error');
+    return;
+  }
+
+  try{
+    const res=await r2ApiFetch(`/material/${encodeURIComponent(id)}/download`);
+    if(res.ok){
+      await openR2PdfResponse(res,title,true);
+      return;
+    }
+
+    let data={};
+    try{data=await res.json()}catch(_){}
+
+    if(data.code==='TEST_REQUIRED'&&mode==='test_required'&&testId){
+      showActionNotice(
+        `PDF Download के लिए पहले Mock Test में ${passPercent}% score करना जरूरी है।`,
+        'Mock Test शुरू करें',
+        ()=>{location.href=`test.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`},
+        'warning'
+      );
+      return;
+    }
+    if(data.code==='VERIFICATION_REQUIRED'){
+      showActionNotice(
+        data.error||'पहले Class Verification पूरा करें।',
+        'Verification यहाँ से करें',
+        ()=>openTodayVerification(),
+        'warning'
+      );
+      return;
+    }
+    throw new Error(data.error||'PDF Download locked है।');
+  }catch(e){
+    toast(e.message||'PDF Download नहीं हो पाई।','error');
+  }
+}
+
+const __r2BaseLoadPdfs=loadPdfs;
+loadPdfs=async function(){
+  const r=await sb.from('study_materials')
+    .select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock)')
+    .eq('status','published')
+    .order('created_at',{ascending:false});
+  const rows=r.data||[];
+  materials=rows;
+
+  pdfList.innerHTML=rows.map(m=>`
+    <div class="item pdf-read-card">
+      <div class="row wrap">
+        <div>
+          <b>📄 ${esc(m.title)}</b>
+          <div class="muted">Day ${m.schedule_days?.day_number||'-'} • PDF दिखाई दे रही है; पढ़ने के लिए required tasks complete करें।</div>
+          <div class="pdf-access-note">${
+            m.access_mode==='direct_download'
+              ?'✅ Verification के बाद Direct Download'
+              :m.access_mode==='test_required'
+                ?`🔒 Download के लिए Mock Test ${m.download_pass_percent}% पास करना होगा`
+                :'👁 Read Only'
+          }</div>
+          <div class="small">${isR2PdfPath(m.storage_path)?'☁ Cloudflare R2':'Legacy PDF'}</div>
+        </div>
+        <div class="row wrap">
+          <button class="btn btn-blue" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")},${JSON.stringify(m.title||"PDF")})'>Read PDF</button>
+          ${m.access_mode!=='read_only'
+            ?`<button class="btn btn-green" onclick='downloadPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")},${JSON.stringify(m.download_test_id||"")},${JSON.stringify(m.access_mode)},${Number(m.download_pass_percent||80)},${JSON.stringify(m.title||"study-material.pdf")})'>Download</button>`
+            :''
+          }
+        </div>
+      </div>
+    </div>`).join('')||'<div class="card">अभी कोई PDF नहीं है।</div>';
+};
+
 init();

@@ -91,3 +91,32 @@ function showActionNotice(message, actionLabel='', actionFn=null, type='warning'
   card.appendChild(close);
   host.appendChild(card);
 }
+
+
+/* ===== CLOUDFLARE R2 PDF API ===== */
+async function getAccessToken(){
+  const {data:{session}}=await sb.auth.getSession();
+  return session?.access_token||null;
+}
+function isR2PdfPath(path){
+  return String(path||'').startsWith('pdfs/');
+}
+async function r2ApiFetch(path,options={}){
+  const token=await getAccessToken();
+  if(!token)throw new Error('Login required');
+  const base=String(APP_CONFIG.R2_PDF_API_URL||'').replace(/\/+$/,'');
+  if(!base)throw new Error('R2 PDF API URL missing');
+  const headers=new Headers(options.headers||{});
+  headers.set('Authorization',`Bearer ${token}`);
+  return fetch(base+path,{...options,headers});
+}
+async function r2ErrorMessage(response,fallback='Request failed'){
+  try{
+    const data=await response.json();
+    return data?.error||fallback;
+  }catch{
+    return fallback;
+  }
+}
+window.r2ApiFetch=r2ApiFetch;
+window.isR2PdfPath=isR2PdfPath;
