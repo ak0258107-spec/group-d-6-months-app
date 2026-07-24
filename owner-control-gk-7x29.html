@@ -35,24 +35,81 @@
 <section id="messagesTab" class="hidden"><div class="grid"><div class="card span-6 broadcast-compose"><h2>📣 Send to All Students</h2><select id="broadcastType"><option value="info">Important Notice</option><option value="urgent">Urgent / Class Update</option><option value="success">Good News</option><option value="warning">Reminder</option></select><input id="broadcastTitle" placeholder="Title"><textarea id="broadcastMessage" placeholder="Message..."></textarea><button class="btn btn-green" onclick="sendBroadcast()">Send to All Students</button></div><div class="card span-6"><h2>Recent Broadcasts</h2><div id="broadcastList" class="list"></div></div></div></section>
 <section id="reportsTab" class="hidden"><h1>Reports & Analytics</h1><div id="reportCards" class="grid"></div><div class="card" style="margin-top:14px"><h3>Top Students</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>Name</th><th>Completed Days</th><th>Average Score</th></tr></thead><tbody id="topStudents"></tbody></table></div></div></section>
 
-<section id="postersTab" class="hidden">
-<div class="grid">
-<div class="card span-6">
-<h2>Poster / Banner Management</h2>
-<label>Poster Title</label><input id="posterTitle" placeholder="जैसे: New Batch / Important Notice">
-<label>Poster Image</label><input id="posterFile" type="file" accept="image/png,image/jpeg,image/webp">
-<div class="small muted">Best size: 1080 × 540 px (2:1). Recommended file size: 2 MB से कम.</div>
-<label>Click Link (Optional)</label><input id="posterLink" placeholder="YouTube / Telegram / Test / कोई भी link">
-<div class="grid two">
-<div><label>Start Date/Time (Optional)</label><input id="posterStart" type="datetime-local"></div>
-<div><label>End Date/Time (Optional)</label><input id="posterEnd" type="datetime-local"></div>
-</div>
-<label>Status</label><select id="posterActive"><option value="true">Active</option><option value="false">Inactive</option></select>
-<label>Order</label><input id="posterOrder" type="number" value="0">
-<button class="btn btn-green" onclick="publishPoster()">Publish Poster</button>
-</div>
-<div class="card span-6"><h2>Published Posters</h2><div id="posterList" class="list"></div></div>
-</div>
+<section id="postersTab" class="hidden poster-panel-page">
+  <div class="poster-panel-hero">
+    <div>
+      <span class="poster-panel-kicker">APP PROMOTION CONTROL</span>
+      <h1>Poster / Banner Management</h1>
+      <p>Student Home पर दिखने वाले posters को यहीं से upload, schedule और manage करें।</p>
+    </div>
+    <div class="poster-panel-hero-icon">🖼️</div>
+  </div>
+
+  <div class="poster-panel-grid">
+    <div class="poster-3d-card poster-form-card">
+      <div class="poster-card-head">
+        <div class="poster-card-icon upload">⬆</div>
+        <div>
+          <h2>नया Poster Publish करें</h2>
+          <p>Best size: 1080 × 540 px (2:1)</p>
+        </div>
+      </div>
+
+      <div class="poster-form-grid">
+        <div class="poster-field full">
+          <label for="posterTitle">Poster Title</label>
+          <input id="posterTitle" placeholder="जैसे: New Batch / Important Notice">
+        </div>
+
+        <div class="poster-field full">
+          <label for="posterFile">Poster Image</label>
+          <input id="posterFile" type="file" accept="image/png,image/jpeg,image/webp">
+          <div class="poster-help">JPG, PNG या WEBP • बेहतर speed के लिए 2 MB से कम रखें</div>
+        </div>
+
+        <div class="poster-field full">
+          <label for="posterLink">Click Link <span>(Optional)</span></label>
+          <input id="posterLink" placeholder="YouTube / Telegram / Test / कोई भी link">
+        </div>
+
+        <div class="poster-field">
+          <label for="posterStart">Start Date & Time <span>(Optional)</span></label>
+          <input id="posterStart" type="datetime-local">
+        </div>
+
+        <div class="poster-field">
+          <label for="posterEnd">End Date & Time <span>(Optional)</span></label>
+          <input id="posterEnd" type="datetime-local">
+        </div>
+
+        <div class="poster-field">
+          <label for="posterActive">Status</label>
+          <select id="posterActive">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+
+        <div class="poster-field">
+          <label for="posterOrder">Display Order</label>
+          <input id="posterOrder" type="number" value="0">
+        </div>
+      </div>
+
+      <button class="btn poster-publish-btn" onclick="publishPoster()">🚀 Publish Poster</button>
+    </div>
+
+    <div class="poster-3d-card poster-list-card">
+      <div class="poster-card-head">
+        <div class="poster-card-icon gallery">▣</div>
+        <div>
+          <h2>Published Posters</h2>
+          <p>Active, inactive और scheduled posters की सूची</p>
+        </div>
+      </div>
+      <div id="posterList" class="list poster-published-list"></div>
+    </div>
+  </div>
 </section>
 </main></div><script src="admin.js"></script><script src="final-fix.js"></script>
 </body></html>

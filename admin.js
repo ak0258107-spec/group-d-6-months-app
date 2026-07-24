@@ -84,29 +84,6 @@ async function loadDaySetup(){
       <span class="badge badge-blue">Target ${x.target_order}</span>
     </summary>
     <div class="target-setup-body">
-      <div class="target-edit-box">
-        <div class="row wrap" style="justify-content:space-between;align-items:center">
-          <div>
-            <h4>✏️ Edit Daily Target</h4>
-            <div class="small muted">Subject, Topic और Target Order कभी भी बदल सकते हैं।</div>
-          </div>
-          <button class="btn btn-green btn-mini" onclick="saveTargetEdit('${x.id}')">Save Target Changes</button>
-        </div>
-        <div class="grid target-edit-grid">
-          <div class="span-4">
-            <label>Subject</label>
-            <input id="target_subject_${x.id}" value="${esc(x.subject||'')}" placeholder="Subject">
-          </div>
-          <div class="span-6">
-            <label>Topic / Target</label>
-            <input id="target_topic_${x.id}" value="${esc(x.topic||'')}" placeholder="आज का Target / Topic">
-          </div>
-          <div class="span-2">
-            <label>Order</label>
-            <input id="target_order_${x.id}" type="number" min="1" value="${Number(x.target_order||idx+1)}">
-          </div>
-        </div>
-      </div>
       <label>YouTube Class Link</label>
       <div class="setup-inline"><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><button class="btn btn-red" onclick="saveYoutube('${x.id}')">Save Class Link</button></div>
       <div class="verification-builder-3d">
@@ -137,29 +114,6 @@ async function loadDaySetup(){
     </div>
   </details>`).join('')
 }
-
-async function saveTargetEdit(targetId){
-  const subject=document.getElementById('target_subject_'+targetId)?.value.trim();
-  const topic=document.getElementById('target_topic_'+targetId)?.value.trim();
-  const order=Number(document.getElementById('target_order_'+targetId)?.value||0);
-
-  if(!subject){toast('Subject खाली नहीं हो सकता।','error');return}
-  if(!topic){toast('Topic/Target खाली नहीं हो सकता।','error');return}
-  if(!Number.isInteger(order)||order<1){toast('Target Order 1 या उससे अधिक रखें।','error');return}
-
-  const rr=await sb.rpc('admin_update_daily_target',{
-    p_target_id:targetId,
-    p_subject:subject,
-    p_topic:topic,
-    p_target_order:order
-  });
-
-  if(rr.error){toast('Target update नहीं हुआ: '+rr.error.message,'error');return}
-  toast('Daily Target सफलतापूर्वक update हो गया।','success');
-  await loadDaySetup();
-  await loadAdminOneLinerCatalog();
-}
-
 async function saveYoutube(id){const url=document.getElementById('yt_'+id).value.trim();const rr=await sb.from('daily_targets').update({youtube_url:url||null}).eq('id',id);if(rr.error)toast(rr.error.message,'error');else toast('YouTube Class Link saved.','success')}
 
 async function deleteTargetVerifications(targetId,dayId){
