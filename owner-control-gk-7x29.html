@@ -12,7 +12,7 @@
     <button id="adminGateButton" class="btn btn-blue" onclick="submitAdminGate()">Unlock Admin Panel</button>
     <div id="adminGateMessage" class="small" style="margin-top:10px"></div>
   </div>
-</div><div class="admin-shell"><nav class="sidebar"><div class="logo">✨ GK BY PURUSHOTAM SIR</div><a class="active" onclick="tab('dashboard',this)">▣ Dashboard</a><a onclick="tab('students',this)">◉ Students</a><a onclick="tab('daysetup',this)">▶ Daily Class Setup</a><a onclick="tab('targets',this)">☑ Daily Status</a><a onclick="tab('tests',this)">▤ Mock Tests</a><a onclick="tab('oneliners',this)">≡ One-Liners</a><a onclick="tab('pdfs',this)">▥ PDFs</a><a onclick="tab('posters',this)">🖼 Posters</a><a onclick="tab('messages',this)">✉ Broadcast</a><a onclick="tab('reports',this)">⌁ Reports</a><a id="adminInstallBtn" class="hidden" onclick="installApp()">⬇ Install App</a><a class="logout-nav" onclick="logout()">↪ Logout</a></nav><main class="main">
+</div><div class="admin-shell"><nav class="sidebar"><div class="logo">✨ GK BY PURUSHOTAM SIR</div><a class="active" onclick="tab('dashboard',this)">▣ Dashboard</a><a onclick="tab('students',this)">◉ Students</a><a onclick="tab('daysetup',this)">▶ Daily Class Setup</a><a onclick="tab('targets',this)">☑ Daily Status</a><a onclick="tab('tests',this)">▤ Mock Tests</a><a onclick="tab('oneliners',this)">≡ One-Liners</a><a onclick="tab('pdfs',this)">▥ PDFs</a><a onclick="tab('posters',this)">🖼 Posters</a><a onclick="tab('messages',this)">✉ Broadcast</a><a onclick="tab('reports',this)">⌁ Reports</a><a id="adminInstallBtn" class="hidden" onclick="installApp()">⬇ Install App</a><a onclick="logout()">↪ Logout</a></nav><main class="main">
 <section id="dashboardTab"><div class="admin-head"><div><h1>Premium Admin Dashboard</h1><div class="muted">GK BY PURUSHOTAM SIR • 6 Months Target Batch</div></div><div id="todayDate"></div></div><div id="kpis" class="grid"></div><div class="admin-grid-actions" style="margin-top:14px"><div class="admin-action a-blue"><b>▶ Class Flow</b><p>YouTube → Verification → PDF</p></div><div class="admin-action a-purple"><b>📝 Mock Tests</b><p>10 Mixed Question Types</p></div><div class="admin-action a-green"><b>✅ Daily Completion</b><p>Final Test Passing Required</p></div></div></section>
 <section id="studentsTab" class="hidden"><div class="admin-head"><h1>Students</h1><input id="studentSearch" style="max-width:260px" placeholder="Search Student..." oninput="filterStudents()"></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Mobile</th><th>Completed Days</th><th>Avg Score</th><th>Streak</th></tr></thead><tbody id="studentsBody"></tbody></table></div></section>
 <section id="daysetupTab" class="hidden"><div class="admin-head"><div><h1>Daily Class Setup</h1><div class="muted">एक जगह से आज का पूरा flow तैयार करें</div></div></div><div class="section-glow"><label>Day</label><select id="setupDay" onchange="loadDaySetup()"></select><div id="setupTargets" class="list" style="margin-top:14px"></div></div></section>
@@ -32,7 +32,7 @@
   </div>
   <div id="materialsList" class="list" style="margin-top:12px"></div>
 </div></div></section>
-<section id="messagesTab" class="hidden"><div class="grid"><div class="card span-6 broadcast-compose"><h2>📣 Send to All Students</h2><select id="broadcastType"><option value="info">Important Notice</option><option value="urgent">Urgent / Class Update</option><option value="success">Good News</option><option value="warning">Reminder</option></select><input id="broadcastTitle" placeholder="Title"><textarea id="broadcastMessage" placeholder="Message..."></textarea><button class="btn btn-green" onclick="sendBroadcast()">Send to All Students</button></div><div class="card span-6"><div class="manage-card-head"><h2>Recent Broadcasts</h2><button class="btn btn-red btn-mini" onclick="deleteAllBroadcasts()">🗑 Delete All Messages</button></div><div id="broadcastList" class="list"></div></div></div></section>
+<section id="messagesTab" class="hidden"><div class="grid"><div class="card span-6 broadcast-compose"><h2>📣 Send to All Students</h2><select id="broadcastType"><option value="info">Important Notice</option><option value="urgent">Urgent / Class Update</option><option value="success">Good News</option><option value="warning">Reminder</option></select><input id="broadcastTitle" placeholder="Title"><textarea id="broadcastMessage" placeholder="Message..."></textarea><button class="btn btn-green" onclick="sendBroadcast()">Send to All Students</button></div><div class="card span-6"><h2>Recent Broadcasts</h2><div id="broadcastList" class="list"></div></div></div></section>
 <section id="reportsTab" class="hidden"><h1>Reports & Analytics</h1><div id="reportCards" class="grid"></div><div class="card" style="margin-top:14px"><h3>Top Students</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>Name</th><th>Completed Days</th><th>Average Score</th></tr></thead><tbody id="topStudents"></tbody></table></div></div></section>
 
 <section id="postersTab" class="hidden poster-panel-page">
@@ -100,13 +100,12 @@
     </div>
 
     <div class="poster-3d-card poster-list-card">
-      <div class="poster-card-head poster-list-head">
+      <div class="poster-card-head">
         <div class="poster-card-icon gallery">▣</div>
-        <div class="poster-head-copy">
+        <div>
           <h2>Published Posters</h2>
           <p>Active, inactive और scheduled posters की सूची</p>
         </div>
-        <button class="btn btn-red btn-mini poster-delete-all" onclick="deleteAllPosters()">🗑 Delete All Posters</button>
       </div>
       <div id="posterList" class="list poster-published-list"></div>
     </div>
