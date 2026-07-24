@@ -3,16 +3,39 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <meta name="theme-color" content="#9f0000">
 </head><body class="admin-security-pending">
+
 <div id="adminGateOverlay" class="admin-gate-overlay">
-  <div class="admin-gate-card">
+  <div class="admin-gate-card admin-login-complete-card">
     <div class="admin-gate-shield">🔐</div>
-    <h2>Owner Admin Security</h2>
-    <p>अपना अलग Admin Panel Password डालें।</p>
-    <input id="adminGatePassword" type="password" placeholder="Admin Panel Password">
-    <button id="adminGateButton" class="btn btn-blue" onclick="submitAdminGate()">Unlock Admin Panel</button>
-    <div id="adminGateMessage" class="small" style="margin-top:10px"></div>
+    <h2>Owner Admin Login</h2>
+    <p id="adminGateIntro">Admin Panel यहीं से खोलें। Student Login page पर जाने की जरूरत नहीं है।</p>
+
+    <div id="adminAccountLoginStep">
+      <div class="admin-gate-field">
+        <label>Admin Email या Mobile Number</label>
+        <input id="adminLoginId" autocomplete="username" placeholder="Admin Email या 10 अंकों का Mobile Number">
+      </div>
+      <div class="admin-gate-field">
+        <label>Admin Login Password</label>
+        <input id="adminLoginPassword" type="password" autocomplete="current-password" placeholder="Supabase Admin Login Password">
+      </div>
+      <button id="adminAccountLoginButton" class="btn btn-blue" onclick="submitAdminAccountLogin()">Continue</button>
+    </div>
+
+    <div id="adminPanelPasswordStep" class="hidden">
+      <div class="admin-gate-success">✓ Admin account verified</div>
+      <div class="admin-gate-field">
+        <label>Extra Admin Panel Password</label>
+        <input id="adminGatePassword" type="password" autocomplete="current-password" placeholder="Cloudflare वाला Admin Panel Password">
+      </div>
+      <button id="adminGateButton" class="btn btn-green" onclick="submitAdminGate()">Unlock Admin Panel</button>
+      <button class="admin-switch-account-btn" onclick="adminSwitchAccount()">दूसरे Admin account से Login करें</button>
+    </div>
+
+    <div id="adminGateMessage" class="small admin-gate-message"></div>
   </div>
-</div><div class="admin-shell"><nav class="sidebar"><div class="logo">✨ GK BY PURUSHOTAM SIR</div><a class="active" onclick="tab('dashboard',this)">▣ Dashboard</a><a onclick="tab('students',this)">◉ Students</a><a onclick="tab('daysetup',this)">▶ Daily Class Setup</a><a onclick="tab('targets',this)">☑ Daily Status</a><a onclick="tab('tests',this)">▤ Mock Tests</a><a onclick="tab('oneliners',this)">≡ One-Liners</a><a onclick="tab('pdfs',this)">▥ PDFs</a><a onclick="tab('posters',this)">🖼 Posters</a><a onclick="tab('messages',this)">✉ Broadcast</a><a onclick="tab('reports',this)">⌁ Reports</a><a id="adminInstallBtn" class="hidden" onclick="installApp()">⬇ Install App</a><a class="logout-nav" onclick="logout()">↪ Logout</a></nav><main class="main">
+</div>
+<div class="admin-shell"><nav class="sidebar"><div class="logo">✨ GK BY PURUSHOTAM SIR</div><a class="active" onclick="tab('dashboard',this)">▣ Dashboard</a><a onclick="tab('students',this)">◉ Students</a><a onclick="tab('daysetup',this)">▶ Daily Class Setup</a><a onclick="tab('targets',this)">☑ Daily Status</a><a onclick="tab('tests',this)">▤ Mock Tests</a><a onclick="tab('oneliners',this)">≡ One-Liners</a><a onclick="tab('pdfs',this)">▥ PDFs</a><a onclick="tab('posters',this)">🖼 Posters</a><a onclick="tab('messages',this)">✉ Broadcast</a><a onclick="tab('reports',this)">⌁ Reports</a><a id="adminInstallBtn" class="hidden" onclick="installApp()">⬇ Install App</a><a class="logout-nav" onclick="logout()">↪ Logout</a></nav><main class="main">
 <section id="dashboardTab"><div class="admin-head"><div><h1>Premium Admin Dashboard</h1><div class="muted">GK BY PURUSHOTAM SIR • 6 Months Target Batch</div></div><div id="todayDate"></div></div><div id="kpis" class="grid"></div><div class="admin-grid-actions" style="margin-top:14px"><div class="admin-action a-blue"><b>▶ Class Flow</b><p>YouTube → Verification → PDF</p></div><div class="admin-action a-purple"><b>📝 Mock Tests</b><p>10 Mixed Question Types</p></div><div class="admin-action a-green"><b>✅ Daily Completion</b><p>Final Test Passing Required</p></div></div></section>
 <section id="studentsTab" class="hidden"><div class="admin-head"><h1>Students</h1><input id="studentSearch" style="max-width:260px" placeholder="Search Student..." oninput="filterStudents()"></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Mobile</th><th>Completed Days</th><th>Avg Score</th><th>Streak</th></tr></thead><tbody id="studentsBody"></tbody></table></div></section>
 <section id="daysetupTab" class="hidden"><div class="admin-head"><div><h1>Daily Class Setup</h1><div class="muted">एक जगह से आज का पूरा flow तैयार करें</div></div></div><div class="section-glow"><label>Day</label><select id="setupDay" onchange="loadDaySetup()"></select><div id="setupTargets" class="list" style="margin-top:14px"></div>

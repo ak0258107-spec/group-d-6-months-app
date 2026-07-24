@@ -1,8 +1,79 @@
 
-/* ===== OWNER ADMIN PANEL PASSWORD GATE ===== */
+
+/* ===== DIRECT ADMIN LOGIN + OWNER PASSWORD GATE ===== */
 let __adminGateUnlocked=false;
+
+function adminGateMessage(text,type='error'){
+  const host=document.getElementById('adminGateMessage');
+  if(!host)return;
+  host.innerHTML=`<div class="notice notice-${type}">${esc(text)}</div>`;
+}
+function isAdminLoginEmail(value){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||'').trim());
+}
+function showAdminAccountStep(message=''){
+  document.getElementById('adminAccountLoginStep')?.classList.remove('hidden');
+  document.getElementById('adminPanelPasswordStep')?.classList.add('hidden');
+  document.getElementById('adminGateOverlay')?.classList.remove('hidden');
+  document.body.classList.add('admin-security-pending');
+  document.body.classList.remove('admin-authorized');
+  if(message)adminGateMessage(message,'error');
+}
+function showAdminPanelPasswordStep(){
+  document.getElementById('adminAccountLoginStep')?.classList.add('hidden');
+  document.getElementById('adminPanelPasswordStep')?.classList.remove('hidden');
+  document.getElementById('adminGateOverlay')?.classList.remove('hidden');
+  document.body.classList.add('admin-security-pending');
+  document.body.classList.remove('admin-authorized');
+  const password=document.getElementById('adminGatePassword');
+  if(password)setTimeout(()=>password.focus(),50);
+}
+async function verifyCurrentAdminSession(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return null;
+  const profile=await getProfile(session.user.id);
+  if(String(profile?.role||'').toLowerCase()!=='admin')return null;
+  adminUser=session.user;
+  return session.user;
+}
+async function submitAdminAccountLogin(){
+  const loginId=document.getElementById('adminLoginId')?.value.trim()||'';
+  const password=document.getElementById('adminLoginPassword')?.value||'';
+  const btn=document.getElementById('adminAccountLoginButton');
+
+  if(!loginId)return adminGateMessage('Admin Email या Mobile Number लिखें।');
+  if(!password)return adminGateMessage('Admin Login Password लिखें।');
+
+  if(btn){btn.disabled=true;btn.textContent='Checking Admin...'}
+  try{
+    let email=loginId.toLowerCase();
+    if(!isAdminLoginEmail(loginId)){
+      const phone=normalizeIndianPhone(loginId);
+      if(!phone)throw new Error('सही Admin Email या 10 अंकों का Mobile Number लिखें।');
+      email=phoneToAuthEmail(phone);
+    }
+
+    const result=await sb.auth.signInWithPassword({email,password});
+    if(result.error)throw new Error('Admin Login details गलत हैं।');
+
+    const profile=await getProfile(result.data.user.id);
+    if(String(profile?.role||'').toLowerCase()!=='admin'){
+      await sb.auth.signOut();
+      throw new Error('यह account Admin नहीं है।');
+    }
+
+    adminUser=result.data.user;
+    adminGateMessage('Admin account verified. अब Extra Admin Panel Password डालें।','success');
+    showAdminPanelPasswordStep();
+  }catch(e){
+    adminGateMessage(e.message||'Admin Login failed.');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Continue'}
+  }
+}
 async function verifyAdminPanelPassword(password){
   const token=await getAccessToken();
+  if(!token)throw new Error('Admin account login required');
   const base=String(APP_CONFIG.R2_PDF_API_URL||'').replace(/\/+$/,'');
   const res=await fetch(base+'/admin/panel-login',{
     method:'POST',
@@ -10,31 +81,65 @@ async function verifyAdminPanelPassword(password){
     body:JSON.stringify({password})
   });
   let data={};try{data=await res.json()}catch(_){}
-  if(!res.ok||!data.success)throw new Error(data.error||'Admin password गलत है।');
+  if(!res.ok||!data.success)throw new Error(data.error||'Admin Panel Password गलत है।');
   return true;
 }
 async function submitAdminGate(){
   const input=document.getElementById('adminGatePassword');
   const btn=document.getElementById('adminGateButton');
-  const msg=document.getElementById('adminGateMessage');
   const password=input?.value||'';
-  if(!password){if(msg)msg.innerHTML='<span class="text-error">Password डालिए।</span>';return}
-  if(btn){btn.disabled=true;btn.textContent='Checking...'}
+  if(!password)return adminGateMessage('Extra Admin Panel Password डालिए।');
+
+  if(btn){btn.disabled=true;btn.textContent='Unlocking...'}
   try{
+    const currentAdmin=await verifyCurrentAdminSession();
+    if(!currentAdmin){
+      sessionStorage.removeItem('gk_admin_gate_ok');
+      showAdminAccountStep('Admin session समाप्त हो गई। दोबारा Login करें।');
+      return;
+    }
     await verifyAdminPanelPassword(password);
     __adminGateUnlocked=true;
     sessionStorage.setItem('gk_admin_gate_ok','1');
     document.getElementById('adminGateOverlay')?.classList.add('hidden');
     document.body.classList.add('admin-authorized');
     document.body.classList.remove('admin-security-pending');
+    adminGateMessage('');
   }catch(e){
     sessionStorage.removeItem('gk_admin_gate_ok');
-    if(msg)msg.innerHTML='<span class="text-error">'+esc(e.message||'Access denied')+'</span>';
+    adminGateMessage(e.message||'Access denied');
   }finally{
     if(btn){btn.disabled=false;btn.textContent='Unlock Admin Panel'}
   }
 }
-async function requireAdminGate(){
+async function adminSwitchAccount(){
+  sessionStorage.removeItem('gk_admin_gate_ok');
+  __adminGateUnlocked=false;
+  await sb.auth.signOut();
+  const id=document.getElementById('adminLoginId');
+  const pass=document.getElementById('adminLoginPassword');
+  const panelPass=document.getElementById('adminGatePassword');
+  if(id)id.value='';
+  if(pass)pass.value='';
+  if(panelPass)panelPass.value='';
+  showAdminAccountStep();
+}
+async function guard(){
+  const currentAdmin=await verifyCurrentAdminSession();
+
+  if(!currentAdmin){
+    sessionStorage.removeItem('gk_admin_gate_ok');
+    showAdminAccountStep();
+    return new Promise(resolve=>{
+      const timer=setInterval(()=>{
+        if(__adminGateUnlocked){
+          clearInterval(timer);
+          resolve(true);
+        }
+      },250);
+    });
+  }
+
   if(sessionStorage.getItem('gk_admin_gate_ok')==='1'){
     __adminGateUnlocked=true;
     document.getElementById('adminGateOverlay')?.classList.add('hidden');
@@ -42,28 +147,21 @@ async function requireAdminGate(){
     document.body.classList.remove('admin-security-pending');
     return true;
   }
-  document.getElementById('adminGateOverlay')?.classList.remove('hidden');
+
+  showAdminPanelPasswordStep();
   return new Promise(resolve=>{
-    const t=setInterval(()=>{if(__adminGateUnlocked){clearInterval(t);resolve(true)}},250);
+    const timer=setInterval(()=>{
+      if(__adminGateUnlocked){
+        clearInterval(timer);
+        resolve(true);
+      }
+    },250);
   });
 }
 
 let adminUser=null,days=[],students=[],allTargets=[],publishedTests=[];
 function tab(n,el){['dashboard','students','daysetup','targets','tests','oneliners','pdfs','posters','messages','reports'].forEach(x=>document.getElementById(x+'Tab').classList.toggle('hidden',x!==n));document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));if(el)el.classList.add('active');if(n==='posters'&&typeof loadPosters==='function')loadPosters()}
-async function guard(){
-  adminUser=await requireAuth();
-  if(!adminUser){location.replace('index.html');return false}
-  const p=await getProfile(adminUser.id);
-  if(String(p?.role||'').toLowerCase()!=='admin'){
-    document.body.classList.remove('admin-authorized');
-    alert('यह पेज केवल Admin के लिए है।');
-    location.replace('student.html');
-    return false;
-  }
-  document.body.classList.add('admin-authorized');
-  document.body.classList.remove('admin-security-pending');
-  return true;
-}
+
 async function init(){if(!(await guard()))return;todayDate.textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});await loadDays();await loadStudents();await Promise.all([loadDashboard(),loadTests(),loadOneLinersAdmin(),loadMaterials(),loadReports(),loadBroadcasts()])}
 async function loadDays(){const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');days=r.data||[];const opts=days.map(d=>`<option value="${d.id}">Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');targetDay.innerHTML=opts;setupDay.innerHTML=opts;pdfDay.innerHTML=opts;testDay.innerHTML='<option value="">No linked day</option>'+opts;await loadTargetStatus();
 const vmDay=document.getElementById('verificationManagerDay');
