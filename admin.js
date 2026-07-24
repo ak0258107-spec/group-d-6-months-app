@@ -65,7 +65,12 @@ async function guard(){
   return true;
 }
 async function init(){if(!(await guard()))return;todayDate.textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});await loadDays();await loadStudents();await Promise.all([loadDashboard(),loadTests(),loadOneLinersAdmin(),loadMaterials(),loadReports(),loadBroadcasts()])}
-async function loadDays(){const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');days=r.data||[];const opts=days.map(d=>`<option value="${d.id}">Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');targetDay.innerHTML=opts;setupDay.innerHTML=opts;pdfDay.innerHTML=opts;testDay.innerHTML='<option value="">No linked day</option>'+opts;await loadTargetStatus();await loadDaySetup()}
+async function loadDays(){const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');days=r.data||[];const opts=days.map(d=>`<option value="${d.id}">Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');targetDay.innerHTML=opts;setupDay.innerHTML=opts;pdfDay.innerHTML=opts;testDay.innerHTML='<option value="">No linked day</option>'+opts;await loadTargetStatus();
+const vmDay=document.getElementById('verificationManagerDay');
+if(vmDay)vmDay.innerHTML='<option value="">सभी Days</option>'+opts;
+await loadDaySetup();
+await loadVerificationManager();
+}
 async function loadStudents(){const r=await sb.from('profiles').select('*').eq('role','student').order('created_at',{ascending:false});students=r.data||[];renderStudents(students)}
 function renderStudents(list){studentsBody.innerHTML=list.map(s=>`<tr><td><b>${esc(s.full_name||'')}</b></td><td>${esc(s.phone||'')}</td><td>${s.total_completed_days||0}/125</td><td>${s.average_test_percentage||0}%</td><td>${s.current_streak||0}</td></tr>`).join('')}
 function filterStudents(){const q=studentSearch.value.toLowerCase();renderStudents(students.filter(s=>(s.full_name||'').toLowerCase().includes(q)||(s.phone||'').includes(q)))}
@@ -114,6 +119,100 @@ async function loadDaySetup(){
     </div>
   </details>`).join('')
 }
+
+/* ===== GLOBAL CLASS VERIFICATION MANAGER ===== */
+async function loadVerificationManager(){
+  const host=document.getElementById('verificationManagerList');
+  if(!host)return;
+
+  host.innerHTML='<div class="item">Verification questions load हो रहे हैं...</div>';
+
+  const selectedDay=document.getElementById('verificationManagerDay')?.value||'';
+  let q=sb.from('verification_questions')
+    .select('id,target_id,schedule_day_id,question_text,options,show_question,is_active,sort_order,created_at')
+    .order('created_at',{ascending:false});
+
+  if(selectedDay)q=q.eq('schedule_day_id',selectedDay);
+
+  const [vr,tr,dr]=await Promise.all([
+    q,
+    sb.from('daily_targets').select('id,subject,topic,schedule_day_id,target_order'),
+    sb.from('schedule_days').select('id,day_number,day_date')
+  ]);
+
+  if(vr.error){
+    host.innerHTML='<div class="item text-error">'+esc(vr.error.message)+'</div>';
+    return;
+  }
+
+  const targets={};
+  (tr.data||[]).forEach(x=>targets[x.id]=x);
+  const daysMap={};
+  (dr.data||[]).forEach(x=>daysMap[x.id]=x);
+
+  const rows=vr.data||[];
+  if(!rows.length){
+    host.innerHTML='<div class="item">कोई Verification Question मौजूद नहीं है।</div>';
+    return;
+  }
+
+  host.innerHTML=rows.map(v=>{
+    const target=targets[v.target_id]||null;
+    const day=daysMap[v.schedule_day_id]||daysMap[target?.schedule_day_id]||null;
+    const opts=Array.isArray(v.options)?v.options:[];
+    const question=v.question_text||'Hidden Class Verification';
+    const questionLabel=v.show_question===false?'Question Hidden — Student को केवल options दिखते हैं':'Question Visible';
+    const activeLabel=v.is_active===false?'Inactive':'Active';
+
+    return `<div class="verification-manager-item">
+      <div class="verification-manager-meta">
+        <span class="badge badge-blue">${day?`Day ${day.day_number}`:'Legacy / Day नहीं मिला'}</span>
+        <span class="badge badge-purple">${target?esc(target.subject):'Legacy Verification'}</span>
+        <span class="badge ${v.is_active===false?'badge-red':'badge-green'}">${activeLabel}</span>
+      </div>
+
+      <div class="verification-manager-topic">${target?esc(target.topic):'यह Question पुराने/legacy data से है'}</div>
+      <div class="verification-manager-question">${esc(question)}</div>
+      <div class="small muted">${esc(questionLabel)}</div>
+
+      ${opts.length?`<div class="verification-manager-options">
+        ${opts.map((o,i)=>`<div><b>${String.fromCharCode(65+i)}.</b> ${esc(String(o))}</div>`).join('')}
+      </div>`:''}
+
+      <div class="verification-manager-actions">
+        ${v.target_id?`<button class="btn btn-orange btn-mini" onclick="deleteTargetVerifications('${v.target_id}','${v.schedule_day_id||''}')">🗑 इस Target के सभी Questions Delete</button>`:''}
+        <button class="btn btn-red btn-mini" onclick="deleteSingleVerificationQuestion('${v.id}')">🗑 केवल यह Question Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteSingleVerificationQuestion(questionId){
+  if(!(await adminConfirmDelete('क्या आप केवल यह Verification Question delete करना चाहते हैं?')))return;
+
+  const rr=await sb.rpc('admin_delete_verification_question',{p_question_id:questionId});
+  if(rr.error){
+    toast('Verification delete नहीं हुआ: '+rr.error.message,'error');
+    return;
+  }
+
+  toast('Verification Question delete हो गया।','success');
+  await Promise.all([loadDaySetup(),loadVerificationManager()]);
+}
+
+async function deleteAllVerificationQuestions(){
+  if(!(await adminConfirmDelete('क्या आप सभी पुराने और वर्तमान Verification Questions delete करना चाहते हैं? यह action वापस नहीं होगा।')))return;
+
+  const rr=await sb.rpc('admin_delete_all_verification_questions');
+  if(rr.error){
+    toast('All Verification delete नहीं हुए: '+rr.error.message,'error');
+    return;
+  }
+
+  toast('सभी Verification Questions delete हो गए।','success');
+  await Promise.all([loadDaySetup(),loadVerificationManager()]);
+}
+
 async function saveYoutube(id){const url=document.getElementById('yt_'+id).value.trim();const rr=await sb.from('daily_targets').update({youtube_url:url||null}).eq('id',id);if(rr.error)toast(rr.error.message,'error');else toast('YouTube Class Link saved.','success')}
 
 async function deleteTargetVerifications(targetId,dayId){
@@ -121,7 +220,7 @@ async function deleteTargetVerifications(targetId,dayId){
   const rr=await sb.rpc('admin_delete_target_verifications',{p_target_id:targetId});
   if(rr.error){toast('Verification delete नहीं हुआ: '+rr.error.message,'error');return}
   toast('Class Verification delete हो गया। अब इस Target के लिए verification नहीं मांगा जाएगा।','success');
-  await loadDaySetup();
+  await Promise.all([loadDaySetup(),loadVerificationManager()]);
 }
 
 async function saveVerificationBatch(targetId,dayId){
@@ -145,7 +244,7 @@ async function saveVerificationBatch(targetId,dayId){
   if(rr.error){toast('Verification save नहीं हुआ: '+rr.error.message,'error');return}
   toast(parsed.length+' Verification Question save हो गए।','success');
   document.getElementById('vqraw_'+targetId).value='';
-  await loadDaySetup();
+  await Promise.all([loadDaySetup(),loadVerificationManager()]);
 }
 async function loadTargetStatus(){const dayId=targetDay.value||days[0]?.id;if(!dayId)return;const r=await sb.from('daily_progress').select('*,profiles(full_name)').eq('schedule_day_id',dayId);const rows=r.data||[],c=rows.filter(x=>x.status==='completed').length,partial=rows.filter(x=>x.status==='partial').length,not=rows.filter(x=>x.status==='not_started').length;targetStatusCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed</div><div class="kpi">${c}</div></div><div class="kpi-card kpi-orange span-4"><div class="muted">Partial</div><div class="kpi">${partial}</div></div><div class="kpi-card kpi-red span-4"><div class="muted">Not Started</div><div class="kpi">${not}</div></div>`;targetStatusBody.innerHTML=rows.map(x=>`<tr><td>${esc(x.profiles?.full_name||'')}</td><td>${x.completed_targets}/${x.total_targets}</td><td>${x.test_score_percent??'-'}%</td><td>${esc(x.status)}</td><td>${x.status==='completed'?'Excellent 🌹':x.feedback==='test_pending'?'Final Test Pass करें 📝':x.status==='partial'?'Target पूरा करें ⚠️':'Work Complete नहीं हुआ ❌'}</td></tr>`).join('');renderDayUnlockState()}
 function currentSelectedDay(){return days.find(d=>String(d.id)===String(targetDay.value))||days[0]}function renderDayUnlockState(){const d=currentSelectedDay();if(!d)return;let txt=d.manual_lock?'🔒 Manually Locked':d.manual_unlock?'🔓 Manually Unlocked':'⏱ Automatic — Date-wise';dayUnlockState.innerHTML=`<span class="lock-chip ${d.manual_lock||d.manual_unlock?'manual':'auto'}">${txt}</span>`}
@@ -195,7 +294,24 @@ async function uploadPdf(){const f=pdfFile.files[0];if(!f){toast('PDF चुन�
 async function loadMaterials(){const r=await sb.from('study_materials').select('*,schedule_days(day_number)').order('created_at',{ascending:false});materialsList.innerHTML=(r.data||[]).map(m=>`<div class="item"><b>${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${m.access_mode||'read_only'} ${m.access_mode==='test_required'?`• ${m.download_pass_percent}%`:''}</div></div>`).join('')}
 async function createGlobalNotification(title,message,relatedType,relatedId){await sb.from('app_notifications').insert({title,message,notification_type:'info',related_type:relatedType||null,related_id:String(relatedId||'')||null,is_active:true})}
 async function sendBroadcast(){const title=broadcastTitle.value.trim(),message=broadcastMessage.value.trim();if(!title||!message){toast('Title और Message लिखें।','error');return}const rr=await sb.from('broadcast_messages').insert({title,message,message_type:broadcastType.value,is_active:true}).select().single();if(rr.error){toast(rr.error.message,'error');return}await createGlobalNotification(title,message,'broadcast',rr.data.id);broadcastTitle.value='';broadcastMessage.value='';toast('संदेश सभी विद्यार्थियों को भेज दिया गया।','success');loadBroadcasts()}
-async function loadBroadcasts(){const r=await sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(30);broadcastList.innerHTML=(r.data||[]).map(x=>`<div class="item notice-premium ${esc(x.message_type||'info')}"><b>${esc(x.title)}</b><p>${esc(x.message)}</p></div>`).join('')||'<div class="item">अभी कोई Broadcast नहीं है।</div>'}
+async function deleteBroadcast(id){
+  if(!(await adminConfirmDelete('क्या आप यह पुराना Message delete करना चाहते हैं?')))return;
+  const rr=await sb.rpc('admin_delete_broadcast',{p_broadcast_id:id});
+  if(rr.error){toast('Message delete नहीं हुआ: '+rr.error.message,'error');return}
+  toast('पुराना Message delete हो गया।','success');
+  await loadBroadcasts();
+}
+async function deleteAllBroadcasts(){
+  if(!(await adminConfirmDelete('क्या आप सभी पुराने Broadcast Messages delete करना चाहते हैं?')))return;
+  const rr=await sb.rpc('admin_delete_all_broadcasts');
+  if(rr.error){toast('Messages delete नहीं हुए: '+rr.error.message,'error');return}
+  toast('सभी पुराने Messages delete हो गए।','success');
+  await loadBroadcasts();
+}
+async function loadBroadcasts(){
+  const r=await sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(100);
+  broadcastList.innerHTML=(r.data||[]).map(x=>`<div class="item notice-premium ${esc(x.message_type||'info')} broadcast-admin-item"><div class="broadcast-copy"><b>${esc(x.title)}</b><p>${esc(x.message)}</p><div class="small muted">${x.created_at?new Date(x.created_at).toLocaleString('hi-IN'):''}</div></div><button class="btn btn-red btn-mini" onclick="deleteBroadcast(${x.id})">🗑 Delete</button></div>`).join('')||'<div class="item">अभी कोई Broadcast नहीं है।</div>'
+}
 async function loadReports(){const top=[...students].sort((a,b)=>(b.total_completed_days||0)-(a.total_completed_days||0)||(b.average_test_percentage||0)-(a.average_test_percentage||0)).slice(0,5);reportCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed Days</div><div class="kpi">${students.reduce((a,s)=>a+(s.total_completed_days||0),0)}</div></div><div class="kpi-card kpi-blue span-4"><div class="muted">Students</div><div class="kpi">${students.length}</div></div><div class="kpi-card kpi-purple span-4"><div class="muted">Average Score</div><div class="kpi">${students.length?Math.round(students.reduce((a,s)=>a+(s.average_test_percentage||0),0)/students.length):0}%</div></div>`;topStudents.innerHTML=top.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.full_name||'')}</td><td>${s.total_completed_days||0}/125</td><td>${s.average_test_percentage||0}%</td></tr>`).join('')}
 
 /* ===== REFINED ADMIN: SUBJECT/TOPIC CATALOG ===== */
@@ -595,6 +711,19 @@ async function deletePoster(id,key){
   if(del.error){toast(del.error.message,'error');return}
   try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(e){console.warn(e)}
   toast('Poster delete हो गया।','success');
+  await loadPosters();
+}
+
+async function deleteAllPosters(){
+  if(!(await adminConfirmDelete('क्या आप सभी पुराने Posters permanently delete करना चाहते हैं?')))return;
+  const r=await sb.from('app_posters').select('id,image_key');
+  if(r.error){toast(r.error.message,'error');return}
+  const rows=r.data||[];
+  if(!rows.length){toast('Delete करने के लिए कोई Poster नहीं है।','info');return}
+  const del=await sb.from('app_posters').delete().in('id',rows.map(x=>x.id));
+  if(del.error){toast(del.error.message,'error');return}
+  for(const p of rows){try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(p.image_key)}`,{method:'DELETE'})}catch(e){console.warn(e)}}
+  toast('सभी Posters delete हो गए।','success');
   await loadPosters();
 }
 
