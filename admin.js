@@ -41,25 +41,28 @@ async function submitAdminAccountLogin(){
   const password=document.getElementById('adminLoginPassword')?.value||'';
   const btn=document.getElementById('adminAccountLoginButton');
 
-  if(!loginId)return adminGateMessage('Admin Email या Mobile Number लिखें।');
+  if(!loginId)return adminGateMessage('Registered Admin Email लिखें।');
+  if(!isAdminLoginEmail(loginId)){
+    return adminGateMessage('Mobile Number नहीं—Supabase में registered पूरा Admin Email लिखें।');
+  }
   if(!password)return adminGateMessage('Admin Login Password लिखें।');
 
   if(btn){btn.disabled=true;btn.textContent='Checking Admin...'}
   try{
-    let email=loginId.toLowerCase();
-    if(!isAdminLoginEmail(loginId)){
-      const phone=normalizeIndianPhone(loginId);
-      if(!phone)throw new Error('सही Admin Email या 10 अंकों का Mobile Number लिखें।');
-      email=phoneToAuthEmail(phone);
-    }
+    const email=loginId.toLowerCase();
+
+    // Clear any stale student/admin session before a fresh owner login.
+    await sb.auth.signOut();
 
     const result=await sb.auth.signInWithPassword({email,password});
-    if(result.error)throw new Error('Admin Login details गलत हैं।');
+    if(result.error){
+      throw new Error('Admin Email या Login Password गलत है।');
+    }
 
     const profile=await getProfile(result.data.user.id);
     if(String(profile?.role||'').toLowerCase()!=='admin'){
       await sb.auth.signOut();
-      throw new Error('यह account Admin नहीं है।');
+      throw new Error('यह account Admin नहीं है। Supabase profiles table में role = admin होना चाहिए।');
     }
 
     adminUser=result.data.user;
@@ -129,7 +132,7 @@ async function guard(){
 
   if(!currentAdmin){
     sessionStorage.removeItem('gk_admin_gate_ok');
-    showAdminAccountStep();
+    showAdminAccountStep('Registered Admin Email और Admin Login Password से Login करें।');
     return new Promise(resolve=>{
       const timer=setInterval(()=>{
         if(__adminGateUnlocked){
