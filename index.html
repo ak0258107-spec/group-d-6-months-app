@@ -79,7 +79,7 @@ sb.auth.onAuthStateChange((event,session)=>{
   }
   if(session){
     const p=await getProfile(session.user.id);
-    location.href=p?.role==="admin"?"admin.html":"student.html";
+    location.href=p?.role==="admin"?"owner-control-gk-7x29.html":"student.html";
   }
 })();
 
@@ -101,7 +101,7 @@ async function login(){
   }
   if(result.error)return showMsg("Login details गलत हैं।");
   const p=await getProfile(result.data.user.id);
-  location.href=p?.role==="admin"?"admin.html":"student.html";
+  location.href=p?.role==="admin"?"owner-control-gk-7x29.html":"student.html";
 }
 
 async function signup(){

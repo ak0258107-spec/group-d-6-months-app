@@ -1,7 +1,7 @@
 {
   "name": "GK BY PURUSHOTAM SIR",
   "short_name": "GK PURUSHOTAM",
-  "start_url": "./index.html",
+  "start_url": "./student.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",

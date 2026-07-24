@@ -108,6 +108,17 @@ export default {
         return json({success:true},200,cors);
       }
 
+
+      if(url.pathname==="/admin/panel-login" && request.method==="POST"){
+        await requireAdmin(env,accessToken,user.id);
+        let body={};try{body=await request.json()}catch(_){}
+        const supplied=String(body?.password||"");
+        const expected=String(env.ADMIN_PANEL_PASSWORD||"");
+        if(!expected)return json({success:false,error:"ADMIN_PANEL_PASSWORD secret is not configured"},500,cors);
+        if(!safeEqual(supplied,expected))return json({success:false,error:"Admin Panel Password गलत है।"},403,cors);
+        return json({success:true,message:"Admin panel unlocked"},200,cors);
+      }
+
       return json({success:false,error:"Route not found"},404,cors);
     } catch(error) {
       console.error(error);
@@ -176,6 +187,13 @@ function sanitizeFileName(name){
 }
 function ensurePdfName(name){return name.toLowerCase().endsWith(".pdf")?name:`${name}.pdf`}
 function apiError(status,message){const e=new Error(message);e.status=status;return e}
+function safeEqual(a,b){
+  const x=new TextEncoder().encode(String(a)),y=new TextEncoder().encode(String(b));
+  const len=Math.max(x.length,y.length);let diff=x.length^y.length;
+  for(let i=0;i<len;i++)diff|=(x[i%x.length]||0)^(y[i%y.length]||0);
+  return diff===0;
+}
+
 function json(data,status,cors){
   return new Response(JSON.stringify(data),{
     status,

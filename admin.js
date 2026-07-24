@@ -1,6 +1,69 @@
+
+/* ===== OWNER ADMIN PANEL PASSWORD GATE ===== */
+let __adminGateUnlocked=false;
+async function verifyAdminPanelPassword(password){
+  const token=await getAccessToken();
+  const base=String(APP_CONFIG.R2_PDF_API_URL||'').replace(/\/+$/,'');
+  const res=await fetch(base+'/admin/panel-login',{
+    method:'POST',
+    headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
+    body:JSON.stringify({password})
+  });
+  let data={};try{data=await res.json()}catch(_){}
+  if(!res.ok||!data.success)throw new Error(data.error||'Admin password गलत है।');
+  return true;
+}
+async function submitAdminGate(){
+  const input=document.getElementById('adminGatePassword');
+  const btn=document.getElementById('adminGateButton');
+  const msg=document.getElementById('adminGateMessage');
+  const password=input?.value||'';
+  if(!password){if(msg)msg.innerHTML='<span class="text-error">Password डालिए।</span>';return}
+  if(btn){btn.disabled=true;btn.textContent='Checking...'}
+  try{
+    await verifyAdminPanelPassword(password);
+    __adminGateUnlocked=true;
+    sessionStorage.setItem('gk_admin_gate_ok','1');
+    document.getElementById('adminGateOverlay')?.classList.add('hidden');
+    document.body.classList.add('admin-authorized');
+    document.body.classList.remove('admin-security-pending');
+  }catch(e){
+    sessionStorage.removeItem('gk_admin_gate_ok');
+    if(msg)msg.innerHTML='<span class="text-error">'+esc(e.message||'Access denied')+'</span>';
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Unlock Admin Panel'}
+  }
+}
+async function requireAdminGate(){
+  if(sessionStorage.getItem('gk_admin_gate_ok')==='1'){
+    __adminGateUnlocked=true;
+    document.getElementById('adminGateOverlay')?.classList.add('hidden');
+    document.body.classList.add('admin-authorized');
+    document.body.classList.remove('admin-security-pending');
+    return true;
+  }
+  document.getElementById('adminGateOverlay')?.classList.remove('hidden');
+  return new Promise(resolve=>{
+    const t=setInterval(()=>{if(__adminGateUnlocked){clearInterval(t);resolve(true)}},250);
+  });
+}
+
 let adminUser=null,days=[],students=[],allTargets=[],publishedTests=[];
 function tab(n,el){['dashboard','students','daysetup','targets','tests','oneliners','pdfs','posters','messages','reports'].forEach(x=>document.getElementById(x+'Tab').classList.toggle('hidden',x!==n));document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));if(el)el.classList.add('active');if(n==='posters'&&typeof loadPosters==='function')loadPosters()}
-async function guard(){adminUser=await requireAuth();if(!adminUser)return false;const p=await getProfile(adminUser.id);if(p?.role!=='admin'){alert('Admin access required');location.href='student.html';return false}return true}
+async function guard(){
+  adminUser=await requireAuth();
+  if(!adminUser){location.replace('index.html');return false}
+  const p=await getProfile(adminUser.id);
+  if(String(p?.role||'').toLowerCase()!=='admin'){
+    document.body.classList.remove('admin-authorized');
+    alert('यह पेज केवल Admin के लिए है।');
+    location.replace('student.html');
+    return false;
+  }
+  document.body.classList.add('admin-authorized');
+  document.body.classList.remove('admin-security-pending');
+  return true;
+}
 async function init(){if(!(await guard()))return;todayDate.textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});await loadDays();await loadStudents();await Promise.all([loadDashboard(),loadTests(),loadOneLinersAdmin(),loadMaterials(),loadReports(),loadBroadcasts()])}
 async function loadDays(){const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');days=r.data||[];const opts=days.map(d=>`<option value="${d.id}">Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');targetDay.innerHTML=opts;setupDay.innerHTML=opts;pdfDay.innerHTML=opts;testDay.innerHTML='<option value="">No linked day</option>'+opts;await loadTargetStatus();await loadDaySetup()}
 async function loadStudents(){const r=await sb.from('profiles').select('*').eq('role','student').order('created_at',{ascending:false});students=r.data||[];renderStudents(students)}
@@ -24,7 +87,13 @@ async function loadDaySetup(){
       <label>YouTube Class Link</label>
       <div class="setup-inline"><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><button class="btn btn-red" onclick="saveYoutube('${x.id}')">Save Class Link</button></div>
       <div class="verification-builder-3d">
-        <div class="row wrap"><div><h4>Class Verification Questions</h4><div class="small muted">Mock Test की तरह पूरा Question + Options + उत्तर + व्याख्या एक साथ paste करें।</div></div><span class="badge badge-purple">Existing: ${(vmap[x.id]||[]).length}</span></div>
+        <div class="row wrap" style="justify-content:space-between;align-items:center">
+          <div><h4>Class Verification Questions</h4><div class="small muted">Mock Test की तरह पूरा Question + Options + उत्तर + व्याख्या एक साथ paste करें।</div></div>
+          <div class="row wrap">
+            <span class="badge badge-purple">Existing: ${(vmap[x.id]||[]).length}</span>
+            ${(vmap[x.id]||[]).length?`<button class="btn btn-red btn-mini" onclick="deleteTargetVerifications('${x.id}','${dayId}')">🗑 Delete Verification</button>`:''}
+          </div>
+        </div>
         <label>Question Visibility</label>
         <select id="show_${x.id}"><option value="false">Hide Question — Student को केवल Options दिखें</option><option value="true">Show Question — Question + Options दोनों दिखें</option></select>
         <label>Verification Question Data</label>
@@ -46,6 +115,15 @@ async function loadDaySetup(){
   </details>`).join('')
 }
 async function saveYoutube(id){const url=document.getElementById('yt_'+id).value.trim();const rr=await sb.from('daily_targets').update({youtube_url:url||null}).eq('id',id);if(rr.error)toast(rr.error.message,'error');else toast('YouTube Class Link saved.','success')}
+
+async function deleteTargetVerifications(targetId,dayId){
+  if(!(await adminConfirmDelete('क्या आप इस Target के सभी Class Verification Questions delete करना चाहते हैं?')))return;
+  const rr=await sb.rpc('admin_delete_target_verifications',{p_target_id:targetId});
+  if(rr.error){toast('Verification delete नहीं हुआ: '+rr.error.message,'error');return}
+  toast('Class Verification delete हो गया। अब इस Target के लिए verification नहीं मांगा जाएगा।','success');
+  await loadDaySetup();
+}
+
 async function saveVerificationBatch(targetId,dayId){
   const raw=document.getElementById('vqraw_'+targetId).value.trim();
   const show=document.getElementById('show_'+targetId).value==='true';
