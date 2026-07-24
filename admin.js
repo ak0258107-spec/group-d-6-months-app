@@ -195,7 +195,24 @@ async function uploadPdf(){const f=pdfFile.files[0];if(!f){toast('PDF चुन�
 async function loadMaterials(){const r=await sb.from('study_materials').select('*,schedule_days(day_number)').order('created_at',{ascending:false});materialsList.innerHTML=(r.data||[]).map(m=>`<div class="item"><b>${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${m.access_mode||'read_only'} ${m.access_mode==='test_required'?`• ${m.download_pass_percent}%`:''}</div></div>`).join('')}
 async function createGlobalNotification(title,message,relatedType,relatedId){await sb.from('app_notifications').insert({title,message,notification_type:'info',related_type:relatedType||null,related_id:String(relatedId||'')||null,is_active:true})}
 async function sendBroadcast(){const title=broadcastTitle.value.trim(),message=broadcastMessage.value.trim();if(!title||!message){toast('Title और Message लिखें।','error');return}const rr=await sb.from('broadcast_messages').insert({title,message,message_type:broadcastType.value,is_active:true}).select().single();if(rr.error){toast(rr.error.message,'error');return}await createGlobalNotification(title,message,'broadcast',rr.data.id);broadcastTitle.value='';broadcastMessage.value='';toast('संदेश सभी विद्यार्थियों को भेज दिया गया।','success');loadBroadcasts()}
-async function loadBroadcasts(){const r=await sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(30);broadcastList.innerHTML=(r.data||[]).map(x=>`<div class="item notice-premium ${esc(x.message_type||'info')}"><b>${esc(x.title)}</b><p>${esc(x.message)}</p></div>`).join('')||'<div class="item">अभी कोई Broadcast नहीं है।</div>'}
+async function deleteBroadcast(id){
+  if(!(await adminConfirmDelete('क्या आप यह पुराना Message delete करना चाहते हैं?')))return;
+  const rr=await sb.rpc('admin_delete_broadcast',{p_broadcast_id:id});
+  if(rr.error){toast('Message delete नहीं हुआ: '+rr.error.message,'error');return}
+  toast('पुराना Message delete हो गया।','success');
+  await loadBroadcasts();
+}
+async function deleteAllBroadcasts(){
+  if(!(await adminConfirmDelete('क्या आप सभी पुराने Broadcast Messages delete करना चाहते हैं?')))return;
+  const rr=await sb.rpc('admin_delete_all_broadcasts');
+  if(rr.error){toast('Messages delete नहीं हुए: '+rr.error.message,'error');return}
+  toast('सभी पुराने Messages delete हो गए।','success');
+  await loadBroadcasts();
+}
+async function loadBroadcasts(){
+  const r=await sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(100);
+  broadcastList.innerHTML=(r.data||[]).map(x=>`<div class="item notice-premium ${esc(x.message_type||'info')} broadcast-admin-item"><div class="broadcast-copy"><b>${esc(x.title)}</b><p>${esc(x.message)}</p><div class="small muted">${x.created_at?new Date(x.created_at).toLocaleString('hi-IN'):''}</div></div><button class="btn btn-red btn-mini" onclick="deleteBroadcast(${x.id})">🗑 Delete</button></div>`).join('')||'<div class="item">अभी कोई Broadcast नहीं है।</div>'
+}
 async function loadReports(){const top=[...students].sort((a,b)=>(b.total_completed_days||0)-(a.total_completed_days||0)||(b.average_test_percentage||0)-(a.average_test_percentage||0)).slice(0,5);reportCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed Days</div><div class="kpi">${students.reduce((a,s)=>a+(s.total_completed_days||0),0)}</div></div><div class="kpi-card kpi-blue span-4"><div class="muted">Students</div><div class="kpi">${students.length}</div></div><div class="kpi-card kpi-purple span-4"><div class="muted">Average Score</div><div class="kpi">${students.length?Math.round(students.reduce((a,s)=>a+(s.average_test_percentage||0),0)/students.length):0}%</div></div>`;topStudents.innerHTML=top.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.full_name||'')}</td><td>${s.total_completed_days||0}/125</td><td>${s.average_test_percentage||0}%</td></tr>`).join('')}
 
 /* ===== REFINED ADMIN: SUBJECT/TOPIC CATALOG ===== */
@@ -595,6 +612,19 @@ async function deletePoster(id,key){
   if(del.error){toast(del.error.message,'error');return}
   try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(e){console.warn(e)}
   toast('Poster delete हो गया।','success');
+  await loadPosters();
+}
+
+async function deleteAllPosters(){
+  if(!(await adminConfirmDelete('क्या आप सभी पुराने Posters permanently delete करना चाहते हैं?')))return;
+  const r=await sb.from('app_posters').select('id,image_key');
+  if(r.error){toast(r.error.message,'error');return}
+  const rows=r.data||[];
+  if(!rows.length){toast('Delete करने के लिए कोई Poster नहीं है।','info');return}
+  const del=await sb.from('app_posters').delete().in('id',rows.map(x=>x.id));
+  if(del.error){toast(del.error.message,'error');return}
+  for(const p of rows){try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(p.image_key)}`,{method:'DELETE'})}catch(e){console.warn(e)}}
+  toast('सभी Posters delete हो गए।','success');
   await loadPosters();
 }
 
