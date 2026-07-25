@@ -2,7 +2,7 @@ GK BY PURUSHOTAM SIR — FINAL AUDITED ADMIN LOGIN FIX
 
 इस ZIP में:
 - Hidden Admin URL बना रहेगा:
-  owner-control-gk-7x29.html
+  gk-vault-7q4m9x2r-k8p3-control.html
 - Admin Login अब Mobile Number स्वीकार नहीं करेगा।
 - केवल Supabase Authentication में registered पूरा Admin Email स्वीकार होगा।
 - Login के बाद profiles.role = admin check होगा।
