@@ -6,5 +6,8 @@ window.APP_CONFIG = Object.freeze({
   BRAND_NAME: "GK BY PURUSHOTAM SIR",
   R2_PDF_API_URL: "https://group-d-pdf-api.ak0258107.workers.dev",
   BATCH_START: "2026-08-03",
-  BATCH_END: "2027-02-28"
+  BATCH_END: "2027-02-28",
+  TELEGRAM_URL: "https://t.me/gkbypurushotamsir",
+  YOUTUBE_URL: "https://www.youtube.com/@gkbypurushotamsir",
+  ADMIN_SESSION_IDLE_MINUTES: 20
 });

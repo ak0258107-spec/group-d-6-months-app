@@ -1,128 +1,204 @@
-/* ===== ADMIN PASSWORD + TOTP MFA + ROLE VERIFICATION ===== */
-const LOCKED_ADMIN_EMAIL='jangra1432@gmail.com';
+/* ===== ADMIN PASSWORD + ROLE + AUTHENTICATOR MFA SECURITY ===== */
 let __adminGateUnlocked=false;
+let __adminMfaFactorId='';
+let __adminMfaChallengeId='';
 let __adminEnrollFactorId='';
-let __adminChallengeFactorId='';
-const ADMIN_IDLE_TIMEOUT_MS=20*60*1000;
-let __adminLastActivity=Date.now();
-let __adminSecurityTimer=null;
-
-function markAdminActivity(){__adminLastActivity=Date.now()}
-async function lockAdminForSecurity(message='सुरक्षा के लिए Admin session समाप्त कर दिया गया है। दोबारा Login करें।'){
-  __adminGateUnlocked=false;
-  if(__adminSecurityTimer){clearInterval(__adminSecurityTimer);__adminSecurityTimer=null}
-  try{await sb.auth.signOut()}catch(_){}
-  showAdminAccountStep(message);
-}
-function startAdminSessionProtection(){
-  ['click','keydown','mousemove','touchstart','scroll'].forEach(evt=>window.addEventListener(evt,markAdminActivity,{passive:true}));
-  if(__adminSecurityTimer)clearInterval(__adminSecurityTimer);
-  __adminSecurityTimer=setInterval(async()=>{
-    if(!__adminGateUnlocked)return;
-    if(Date.now()-__adminLastActivity>ADMIN_IDLE_TIMEOUT_MS){await lockAdminForSecurity('20 मिनट निष्क्रिय रहने के कारण Admin session बंद कर दिया गया है।');return}
-    try{
-      const user=await verifyCurrentAdminSession();
-      const {data:aal,error}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-      if(!user||error||aal?.currentLevel!=='aal2')await lockAdminForSecurity('Admin सुरक्षा verification समाप्त हो गई है। दोबारा Login करें।');
-    }catch(_){await lockAdminForSecurity('Admin session verify नहीं हो सका। दोबारा Login करें।')}
-  },60000);
-}
+let __adminEnrollChallengeId='';
+let __adminIdleTimer=null;
 
 function adminGateMessage(text,type='error'){
   const host=document.getElementById('adminGateMessage');
-  if(host)host.innerHTML=text?`<div class="notice notice-${type}">${esc(text)}</div>`:'';
+  if(!host)return;
+  host.innerHTML=text?`<div class="notice notice-${type}">${esc(text)}</div>`:'';
 }
-function isAdminLoginEmail(value){return String(value||'').trim().toLowerCase()===LOCKED_ADMIN_EMAIL}
-function hideAdminGateSteps(){['adminAccountLoginStep','adminMfaEnrollStep','adminMfaChallengeStep','adminForgotStep'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
-function secureOverlay(){document.getElementById('adminGateOverlay')?.classList.remove('hidden');document.body.classList.add('admin-security-pending');document.body.classList.remove('admin-authorized')}
-function showAdminAccountStep(message=''){hideAdminGateSteps();document.getElementById('adminAccountLoginStep')?.classList.remove('hidden');secureOverlay();if(message)adminGateMessage(message,'error')}
-function showMfaEnrollStep(){hideAdminGateSteps();document.getElementById('adminMfaEnrollStep')?.classList.remove('hidden');secureOverlay()}
-function showMfaChallengeStep(){hideAdminGateSteps();document.getElementById('adminMfaChallengeStep')?.classList.remove('hidden');secureOverlay()}
-function unlockAdminPanel(){__adminGateUnlocked=true;markAdminActivity();startAdminSessionProtection();document.getElementById('adminGateOverlay')?.classList.add('hidden');document.body.classList.add('admin-authorized');document.body.classList.remove('admin-security-pending');adminGateMessage('')}
+function isAdminLoginEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||'').trim())}
+function adminShowOnly(stepId){
+  ['adminAccountLoginStep','adminMfaEnrollStep','adminMfaChallengeStep','adminForgotStep'].forEach(id=>{
+    document.getElementById(id)?.classList.toggle('hidden',id!==stepId);
+  });
+  document.getElementById('adminForgotOpenButton')?.classList.toggle('hidden',stepId!=='adminAccountLoginStep');
+  document.getElementById('adminGateOverlay')?.classList.remove('hidden');
+  document.body.classList.add('admin-security-pending');
+  document.body.classList.remove('admin-authorized');
+}
+function showAdminAccountStep(message=''){
+  adminShowOnly('adminAccountLoginStep');
+  if(message)adminGateMessage(message,'error'); else adminGateMessage('');
+}
+function showAdminMfaEnrollStep(){adminShowOnly('adminMfaEnrollStep')}
+function showAdminMfaChallengeStep(){adminShowOnly('adminMfaChallengeStep')}
 
 async function verifyCurrentAdminSession(){
-  const {data:{session}}=await sb.auth.getSession(); if(!session)return null;
-  if(String(session.user.email||'').toLowerCase()!==LOCKED_ADMIN_EMAIL)return null;
-  const profile=await getProfile(session.user.id);
-  if(String(profile?.role||'').toLowerCase()!=='admin')return null;
-  adminUser=session.user; return session.user;
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return null;
+  let isAdmin=false;
+  try{
+    const rpc=await sb.rpc('is_admin');
+    if(!rpc.error)isAdmin=rpc.data===true;
+  }catch(_){ }
+  if(!isAdmin){
+    const profile=await getProfile(session.user.id);
+    isAdmin=String(profile?.role||'').toLowerCase()==='admin';
+  }
+  if(!isAdmin)return null;
+  adminUser=session.user;
+  return session.user;
 }
-async function getTotpFactors(){
-  const {data,error}=await sb.auth.mfa.listFactors(); if(error)throw error;
+async function currentAal(){
+  const {data,error}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(error)return {currentLevel:null,nextLevel:null};
+  return data||{currentLevel:null,nextLevel:null};
+}
+async function listTotpFactors(){
+  const {data,error}=await sb.auth.mfa.listFactors();
+  if(error)throw error;
   return data?.totp||[];
 }
-async function ensureAdminMfaFlow(){
-  const {data:aal,error:aalError}=await sb.auth.mfa.getAuthenticatorAssuranceLevel(); if(aalError)throw aalError;
-  if(aal.currentLevel==='aal2'){unlockAdminPanel();return}
-  const factors=await getTotpFactors();
-  const factor=factors.find(f=>f.status==='verified');
-  if(factor){__adminChallengeFactorId=factor.id;showMfaChallengeStep();adminGateMessage('Google Authenticator code डालकर दूसरा सुरक्षा चरण पूरा करें।','success');return}
-  for(const stale of factors.filter(f=>f.status!=='verified')){try{await sb.auth.mfa.unenroll({factorId:stale.id})}catch(_){}}
-  const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'GK BY PURUSHOTAM SIR ADMIN'}); if(error)throw error;
-  __adminEnrollFactorId=data.id;
-  const qr=document.getElementById('adminMfaQr'); if(qr)qr.src=data.totp.qr_code;
-  const secret=document.getElementById('adminMfaSecret'); if(secret)secret.textContent=data.totp.secret;
-  showMfaEnrollStep();adminGateMessage('QR Code केवल अपने सुरक्षित Google Authenticator में scan करें।','success');
+async function startMfaChallenge(factorId){
+  const {data,error}=await sb.auth.mfa.challenge({factorId});
+  if(error)throw error;
+  __adminMfaFactorId=factorId;
+  __adminMfaChallengeId=data.id;
+  showAdminMfaChallengeStep();
+  adminGateMessage('Authenticator App का वर्तमान code लिखें।','success');
 }
+async function prepareAdminMfa(){
+  const factors=await listTotpFactors();
+  const verified=factors.find(f=>f.status==='verified');
+  if(verified)return startMfaChallenge(verified.id);
+
+  // पुराने अधूरे enrollment हटाकर नया साफ enrollment बनाएं।
+  for(const f of factors.filter(x=>x.status!=='verified')){
+    try{await sb.auth.mfa.unenroll({factorId:f.id})}catch(_){ }
+  }
+  const friendlyName='GK BY PURUSHOTAM SIR OWNER';
+  const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName});
+  if(error)throw error;
+  __adminEnrollFactorId=data.id;
+  const qr=data.totp?.qr_code||'';
+  const secret=data.totp?.secret||'';
+  const qrHost=document.getElementById('adminMfaQr');
+  if(qrHost){
+    qrHost.innerHTML='';
+    const img=document.createElement('img');
+    img.alt='Authenticator QR Code';img.src=qr;qrHost.appendChild(img);
+  }
+  const secretHost=document.getElementById('adminMfaSecret');
+  if(secretHost)secretHost.textContent=secret;
+  const challenge=await sb.auth.mfa.challenge({factorId:data.id});
+  if(challenge.error)throw challenge.error;
+  __adminEnrollChallengeId=challenge.data.id;
+  showAdminMfaEnrollStep();
+  adminGateMessage('QR scan करके 6-अंकों का code डालें। यह setup केवल पहली बार होगा।','success');
+}
+
 async function submitAdminAccountLogin(){
-  const email=document.getElementById('adminLoginId')?.value.trim().toLowerCase()||'';
+  const loginId=document.getElementById('adminLoginId')?.value.trim().toLowerCase()||'';
   const password=document.getElementById('adminLoginPassword')?.value||'';
   const btn=document.getElementById('adminAccountLoginButton');
-  if(!isAdminLoginEmail(email))return adminGateMessage('यह registered Owner Admin Email नहीं है।');
-  if(!password)return adminGateMessage('Admin Password लिखें।');
-  if(btn){btn.disabled=true;btn.textContent='Security Check...'}
+  if(!isAdminLoginEmail(loginId))return adminGateMessage('Registered Admin Email लिखें।');
+  if(password.length<6)return adminGateMessage('Admin Password लिखें।');
+  if(btn){btn.disabled=true;btn.textContent='Checking Security...'}
   try{
-    await sb.auth.signOut();
-    const result=await sb.auth.signInWithPassword({email,password});
+    await sb.auth.signOut({scope:'local'});
+    const result=await sb.auth.signInWithPassword({email:loginId,password});
     if(result.error)throw new Error('Admin Email या Password गलत है।');
     const profile=await getProfile(result.data.user.id);
-    if(String(profile?.role||'').toLowerCase()!=='admin'){await sb.auth.signOut();throw new Error('इस account को Admin role प्राप्त नहीं है।')}
-    adminUser=result.data.user; await ensureAdminMfaFlow();
-  }catch(e){adminGateMessage(e.message||'Admin Login failed.');}
-  finally{if(btn){btn.disabled=false;btn.textContent='Password Verify करें'}}
+    if(String(profile?.role||'').toLowerCase()!=='admin'){
+      await sb.auth.signOut();throw new Error('यह account Admin नहीं है।');
+    }
+    adminUser=result.data.user;
+    await prepareAdminMfa();
+  }catch(e){
+    await sb.auth.signOut({scope:'local'}).catch(()=>{});
+    showAdminAccountStep();adminGateMessage(e.message||'Admin Login failed.');
+  }finally{if(btn){btn.disabled=false;btn.textContent='Secure Login'}}
 }
-async function verifyCodeForFactor(factorId,code){
-  const challenge=await sb.auth.mfa.challenge({factorId}); if(challenge.error)throw challenge.error;
-  const verify=await sb.auth.mfa.verify({factorId,challengeId:challenge.data.id,code}); if(verify.error)throw verify.error;
-  const {data:aal}=await sb.auth.mfa.getAuthenticatorAssuranceLevel(); if(aal?.currentLevel!=='aal2')throw new Error('Second-factor verification पूरा नहीं हुआ।');
-}
+
 async function verifyAdminMfaEnrollment(){
-  const code=String(document.getElementById('adminMfaEnrollCode')?.value||'').replace(/\D/g,'');
-  const btn=document.getElementById('adminMfaEnrollButton'); if(code.length!==6)return adminGateMessage('Google Authenticator का पूरा 6 अंकों का code लिखें।');
-  if(btn){btn.disabled=true;btn.textContent='Enabling MFA...'}
-  try{await verifyCodeForFactor(__adminEnrollFactorId,code);unlockAdminPanel();}
-  catch(e){adminGateMessage('Code गलत या expire हो चुका है। नया code देखकर दोबारा डालें।');}
-  finally{if(btn){btn.disabled=false;btn.textContent='MFA Enable करके Panel खोलें'}}
+  const code=String(document.getElementById('adminEnrollCode')?.value||'').replace(/\D/g,'');
+  const btn=document.getElementById('adminEnrollButton');
+  if(code.length!==6)return adminGateMessage('पूरा 6-अंकों का Authenticator code लिखें।');
+  if(btn){btn.disabled=true;btn.textContent='Activating...'}
+  try{
+    const {data,error}=await sb.auth.mfa.verify({factorId:__adminEnrollFactorId,challengeId:__adminEnrollChallengeId,code});
+    if(error||!data)throw new Error('Code गलत है या समय समाप्त हो गया। नया code देखकर दोबारा प्रयास करें।');
+    await authorizeAdminPanel();
+  }catch(e){adminGateMessage(e.message||'MFA activate नहीं हुआ।')}
+  finally{if(btn){btn.disabled=false;btn.textContent='Verify & Activate MFA'}}
 }
-async function verifyAdminMfaChallenge(){
+
+async function submitAdminMfaChallenge(){
   const code=String(document.getElementById('adminMfaCode')?.value||'').replace(/\D/g,'');
-  const btn=document.getElementById('adminMfaButton'); if(code.length!==6)return adminGateMessage('पूरा 6 अंकों का Authenticator code लिखें।');
+  const btn=document.getElementById('adminGateButton');
+  if(code.length!==6)return adminGateMessage('पूरा 6-अंकों का Authenticator code लिखें।');
   if(btn){btn.disabled=true;btn.textContent='Verifying...'}
-  try{await verifyCodeForFactor(__adminChallengeFactorId,code);unlockAdminPanel();}
-  catch(e){adminGateMessage('Authenticator code गलत या expire हो चुका है। नया code डालें।');}
-  finally{if(btn){btn.disabled=false;btn.textContent='Verify & Open Admin Panel'}}
+  try{
+    const {data,error}=await sb.auth.mfa.verify({factorId:__adminMfaFactorId,challengeId:__adminMfaChallengeId,code});
+    if(error||!data)throw new Error('Authenticator code गलत है या expire हो चुका है।');
+    await authorizeAdminPanel();
+  }catch(e){adminGateMessage(e.message||'Access denied')}
+  finally{if(btn){btn.disabled=false;btn.textContent='Verify Code & Open Panel'}}
 }
-function showAdminForgotPassword(){hideAdminGateSteps();document.getElementById('adminForgotStep')?.classList.remove('hidden');secureOverlay();adminGateMessage('')}
+
+async function authorizeAdminPanel(){
+  const user=await verifyCurrentAdminSession();
+  const aal=await currentAal();
+  if(!user||aal.currentLevel!=='aal2')throw new Error('Admin MFA verification पूर्ण नहीं हुई।');
+  __adminGateUnlocked=true;
+  document.getElementById('adminGateOverlay')?.classList.add('hidden');
+  document.body.classList.add('admin-authorized');
+  document.body.classList.remove('admin-security-pending');
+  adminGateMessage('');
+  startAdminIdleProtection();
+}
+
+function showAdminForgotPassword(){adminShowOnly('adminForgotStep');adminGateMessage('')}
 function cancelAdminForgotPassword(){showAdminAccountStep()}
 async function sendAdminRecoveryLink(){
   const email=document.getElementById('adminForgotEmail')?.value.trim().toLowerCase()||'';
-  if(!isAdminLoginEmail(email))return adminGateMessage('Registered Owner Admin Email लिखें।');
+  if(!isAdminLoginEmail(email))return adminGateMessage('Registered Admin Email लिखें।');
   try{
     const redirectTo=new URL('index.html',location.href).href;
-    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo}); if(error)throw error;
-    adminGateMessage('Password Reset Link Admin Gmail पर भेज दिया गया है। Inbox, Promotions और Spam देखें।','success');
-  }catch(e){adminGateMessage(e.message||'Reset link नहीं भेजा जा सका।')}
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+    if(error)throw error;
+    adminGateMessage('Password Reset Link Admin Email पर भेज दिया गया है। Reset के बाद Authenticator सुरक्षा फिर भी लागू रहेगी।','success');
+  }catch(e){adminGateMessage(e.message||'Reset Link नहीं भेजा जा सका।')}
 }
+
 async function adminSwitchAccount(){
-  __adminGateUnlocked=false;__adminEnrollFactorId='';__adminChallengeFactorId='';await sb.auth.signOut();
-  ['adminLoginId','adminLoginPassword','adminMfaCode','adminMfaEnrollCode'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});showAdminAccountStep();
+  clearTimeout(__adminIdleTimer);__adminGateUnlocked=false;
+  __adminMfaFactorId='';__adminMfaChallengeId='';__adminEnrollFactorId='';__adminEnrollChallengeId='';
+  await sb.auth.signOut({scope:'local'});
+  ['adminLoginId','adminLoginPassword','adminMfaCode','adminEnrollCode'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  showAdminAccountStep();
 }
+
+function startAdminIdleProtection(){
+  const minutes=Math.max(5,Number(APP_CONFIG.ADMIN_SESSION_IDLE_MINUTES||20));
+  const reset=()=>{
+    clearTimeout(__adminIdleTimer);
+    __adminIdleTimer=setTimeout(async()=>{
+      await sb.auth.signOut({scope:'local'});
+      location.replace('index.html');
+    },minutes*60*1000);
+  };
+  ['pointerdown','keydown','touchstart','scroll'].forEach(evt=>window.addEventListener(evt,reset,{passive:true}));
+  reset();
+}
+
 async function guard(){
   const currentAdmin=await verifyCurrentAdminSession();
-  if(!currentAdmin){await sb.auth.signOut();showAdminAccountStep('Admin Email और Password से Login करें।')}
-  else{try{await ensureAdminMfaFlow()}catch(e){showAdminAccountStep(e.message||'Security verification शुरू नहीं हो सकी।')}}
-  if(__adminGateUnlocked)return true;
-  return new Promise(resolve=>{const timer=setInterval(()=>{if(__adminGateUnlocked){clearInterval(timer);resolve(true)}},250)});
+  if(!currentAdmin){showAdminAccountStep('Admin Email और Password से Login करें।');return false;}
+  const aal=await currentAal();
+  if(aal.currentLevel==='aal2'){
+    await authorizeAdminPanel();return true;
+  }
+  try{await prepareAdminMfa();}
+  catch(e){showAdminAccountStep(e.message||'Authenticator सुरक्षा शुरू नहीं हो सकी।')}
+  return new Promise(resolve=>{
+    const timer=setInterval(()=>{if(__adminGateUnlocked){clearInterval(timer);resolve(true)}},250);
+  });
 }
 
 let adminUser=null,days=[],students=[],allTargets=[],publishedTests=[];

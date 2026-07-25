@@ -826,22 +826,3 @@ init=async function(){
 };
 
 init();
-
-
-/* ===== FIRST-LAUNCH PREMIUM WELCOME EXPERIENCE ===== */
-const WELCOME_STORAGE_KEY='gkps_welcome_seen_v1';
-function openWelcome(manual=false){
-  const el=document.getElementById('welcomeExperience'); if(!el)return;
-  el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); document.body.classList.add('welcome-open');
-  const close=el.querySelector('.welcome-close'); if(close) close.style.display=manual?'grid':'none';
-  const check=document.getElementById('welcomeReadCheck'); if(check){check.checked=manual; toggleWelcomeStart();}
-}
-function closeWelcomeWithoutStarting(){document.getElementById('welcomeExperience')?.classList.add('hidden');document.body.classList.remove('welcome-open')}
-function toggleWelcomeStart(){const b=document.getElementById('welcomeStartBtn'),c=document.getElementById('welcomeReadCheck');if(b)b.disabled=!c?.checked}
-function startStudyExperience(){
-  localStorage.setItem(WELCOME_STORAGE_KEY,'1');
-  document.getElementById('welcomeExperience')?.classList.add('hidden');
-  const loader=document.getElementById('studyLoading'); loader?.classList.remove('hidden');
-  setTimeout(()=>{loader?.classList.add('hidden');document.body.classList.remove('welcome-open');window.scrollTo({top:0,behavior:'smooth'})},2300);
-}
-setTimeout(()=>{if(!localStorage.getItem(WELCOME_STORAGE_KEY))openWelcome(false)},350);

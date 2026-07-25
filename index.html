@@ -8,6 +8,28 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 </head><body>
+<div id="welcomeScreen" class="welcome-screen hidden" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+  <div class="welcome-shell">
+    <div class="welcome-brand-mark">GK</div>
+    <div class="welcome-kicker">स्वागत है</div>
+    <h1 id="welcomeTitle">GK BY PURUSHOTAM SIR</h1>
+    <div class="welcome-batch-title">GROUP D 6 MONTHS TARGET BATCH</div>
+    <p class="welcome-intro">हरियाणा CET Group D की व्यवस्थित तैयारी—एक ही ऐप में दैनिक लक्ष्य, कक्षाएँ, PDF नोट्स, टेस्ट और प्रगति।</p>
+    <div class="welcome-features">
+      <div><span>✓</span><b>Daily Target</b><small>हर दिन का स्पष्ट अध्ययन लक्ष्य</small></div>
+      <div><span>✓</span><b>Free Classes</b><small>YouTube पर विषयवार कक्षाएँ</small></div>
+      <div><span>✓</span><b>PDF & Tests</b><small>नोट्स, अभ्यास और परिणाम विश्लेषण</small></div>
+      <div><span>✓</span><b>Progress Tracking</b><small>Completion, score और streak</small></div>
+    </div>
+    <div class="welcome-actions">
+      <a id="welcomeTelegram" class="welcome-btn telegram" target="_blank" rel="noopener noreferrer">✈ Telegram Channel</a>
+      <a id="welcomeYoutube" class="welcome-btn youtube" target="_blank" rel="noopener noreferrer">▶ YouTube Channel</a>
+      <button class="welcome-btn next" onclick="enterApp()">आगे बढ़ें →</button>
+    </div>
+    <p class="welcome-note">अध्ययन सामग्री और महत्वपूर्ण सूचना पाने के लिए Telegram व YouTube अवश्य जोड़ें।</p>
+  </div>
+</div>
+
 <div class="auth-premium-bg"><div class="auth-premium-card">
   <div class="auth-logo-orb">GK</div>
   <h1>GK BY PURUSHOTAM SIR</h1>
@@ -18,6 +40,7 @@
     <div class="form-group"><label>Email या पुराना Mobile Number</label><input id="loginId" autocomplete="username" placeholder="Email या 10 अंकों का मोबाइल नंबर"></div>
     <div class="form-group"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="अपना Password"></div>
     <button class="btn btn-blue auth-main-btn premium-press-btn" onclick="login()">Login</button>
+    <button class="auth-link-btn" onclick="openWelcome()">ऐप की सुविधाएँ और चैनल देखें</button>
     <button class="auth-link-btn" onclick="showForgot()">Password भूल गए? Email से Reset करें</button>
     <button class="btn btn-light auth-main-btn premium-press-btn" onclick="showRegister()">New Student Registration</button><button id="loginInstallBtn" class="btn btn-purple auth-main-btn premium-press-btn hidden" onclick="installApp()">⬇ Install App</button>
   </section>
@@ -60,6 +83,21 @@
 
 <script>
 registerSW();initInstallUI('loginInstallBtn');
+const WELCOME_KEY='gk_groupd_welcome_seen_v1';
+function openWelcome(){
+  const w=document.getElementById('welcomeScreen');
+  if(!w)return;
+  document.getElementById('welcomeTelegram').href=APP_CONFIG.TELEGRAM_URL||'#';
+  document.getElementById('welcomeYoutube').href=APP_CONFIG.YOUTUBE_URL||'#';
+  w.classList.remove('hidden');
+  document.body.classList.add('welcome-open');
+}
+function enterApp(){
+  localStorage.setItem(WELCOME_KEY,'1');
+  document.getElementById('welcomeScreen')?.classList.add('hidden');
+  document.body.classList.remove('welcome-open');
+}
+if(localStorage.getItem(WELCOME_KEY)!=='1')openWelcome();
 const authSections=["loginMode","registerMode","forgotMode","forgotOtpMode","newPasswordMode"];
 
 function showSection(id){
@@ -76,7 +114,7 @@ function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").tr
   const {data:{session}}=await sb.auth.getSession();
   if(session){
     const p=await getProfile(session.user.id);
-    location.href=p?.role==="admin"?"gk-portal-x9q7m2v4k8r6-auth-3p5n1c7d.html":"student.html";
+    location.href=p?.role==="admin"?"vault-gk-6m-q7v9x2p4-k8r3.html":"student.html";
   }
 })();
 
@@ -98,7 +136,7 @@ async function login(){
   }
   if(result.error)return showMsg("Login details गलत हैं।");
   const p=await getProfile(result.data.user.id);
-  location.href=p?.role==="admin"?"gk-portal-x9q7m2v4k8r6-auth-3p5n1c7d.html":"student.html";
+  location.href=p?.role==="admin"?"vault-gk-6m-q7v9x2p4-k8r3.html":"student.html";
 }
 
 async function signup(){

@@ -1,7 +1,7 @@
 <!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071f3d"><link rel="manifest" href="manifest.webmanifest"><title>GK BY PURUSHOTAM SIR</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 </head><body><div class="mobile-shell">
-<header class="student-top"><div class="student-top-inner"><div class="student-brand"><span class="brand-emblem">GK</span>GK BY PURUSHOTAM SIR</div><div class="row"><button class="btn btn-light about-mini-btn" onclick="openWelcome(true)">ℹ निर्देश</button><button id="studentInstallBtn" class="btn btn-green hidden" onclick="installApp()">⬇ Install</button><button class="btn btn-light notification-bell" onclick="openNotifications()">🔔<span id="notificationBadge" class="notification-badge hidden">0</span></button></div></div></header>
+<header class="student-top"><div class="student-top-inner"><div class="student-brand"><span class="brand-emblem">GK</span>GK BY PURUSHOTAM SIR</div><div class="row"><button id="studentInstallBtn" class="btn btn-green hidden" onclick="installApp()">⬇ Install</button><button class="btn btn-light notification-bell" onclick="openNotifications()">🔔<span id="notificationBadge" class="notification-badge hidden">0</span></button></div></div></header>
 <main class="student-main">
 <div id="homePosterSection" class="home-poster-section" style="display:none"><div id="homePosterSlider" class="home-poster-slider"></div><div id="homePosterDots" class="home-poster-dots"></div></div>
 <section id="homeTab"><div id="homeBox"></div></section>
@@ -13,38 +13,5 @@
 <section id="profileTab" class="hidden"><h2>My Profile</h2><div id="profileBox"></div></section>
 </main>
 <nav class="bottom-nav bottom-nav-6"><button class="active" onclick="tab('home',this)">⌂<br>Home</button><button onclick="tab('targets',this)">✓<br>Targets</button><button onclick="tab('tests',this)">▣<br>Test</button><button onclick="tab('oneliners',this)">≡<br>One-Liner</button><button onclick="tab('pdfs',this)">▤<br>PDFs</button><button onclick="tab('profile',this)">○<br>Profile</button></nav>
-</div>
-<div id="welcomeExperience" class="welcome-experience hidden" aria-hidden="true">
-  <div class="welcome-bg-shape ws-1"></div><div class="welcome-bg-shape ws-2"></div><div class="welcome-bg-shape ws-3"></div>
-  <div class="welcome-card-3d">
-    <button class="welcome-close" onclick="closeWelcomeWithoutStarting()" aria-label="Close">×</button>
-    <div class="welcome-logo-orb">GK</div>
-    <div class="welcome-brand">GK BY PURUSHOTAM SIR</div>
-    <div class="welcome-batch">GROUP D – 6 MONTHS TARGET BATCH</div>
-    <div class="welcome-slogan">अबकी बार आखरी बार... जीत फिक्स!</div>
-    <div class="welcome-support">सही दिशा <span>•</span> निरंतर अभ्यास <span>•</span> पक्का चयन</div>
-    <div class="welcome-copy">
-      <h2>आपकी व्यवस्थित तैयारी का डिजिटल साथी</h2>
-      <p>यहाँ हर दिन एक नया लक्ष्य है, हर टेस्ट आपकी प्रगति का माप है और हर कदम आपको चयन के और करीब ले जाने के लिए बनाया गया है।</p>
-    </div>
-    <div class="welcome-features">
-      <div class="wf wf-blue"><b>🎯 Daily Target</b><span>हर दिन स्पष्ट अध्ययन लक्ष्य</span></div>
-      <div class="wf wf-purple"><b>📘 PDF Notes</b><span>Topic-wise study material</span></div>
-      <div class="wf wf-orange"><b>🎥 Classes</b><span>Live एवं Recorded Classes</span></div>
-      <div class="wf wf-green"><b>📝 Tests</b><span>Practice, Mock एवं Analysis</span></div>
-    </div>
-    <div class="welcome-promise"><b>हमारा संकल्प</b><p>हर विद्यार्थी को व्यवस्थित, अनुशासित और गुणवत्तापूर्ण तैयारी उपलब्ध कराना, ताकि उसकी मेहनत सही दिशा में लगे और वह आत्मविश्वास के साथ परीक्षा में सफलता की ओर बढ़ सके।</p></div>
-    <div class="welcome-join-note">Free Classes, Daily PDFs और महत्वपूर्ण Updates के लिए हमारे आधिकारिक चैनल अवश्य Join करें।</div>
-    <div class="welcome-actions">
-      <a class="welcome-btn youtube" href="https://youtube.com/@gkbypurushotamsir007?si=nOQLN11CTw2V3KrI" target="_blank" rel="noopener">▶ YouTube Channel</a>
-      <a class="welcome-btn telegram" href="https://t.me/gkbypurushotamsir" target="_blank" rel="noopener">➤ Telegram Channel</a>
-    </div>
-    <label class="welcome-check"><input id="welcomeReadCheck" type="checkbox" onchange="toggleWelcomeStart()"><span>मैं सभी निर्देश पढ़ चुका/चुकी हूँ।</span></label>
-    <button id="welcomeStartBtn" class="welcome-start" onclick="startStudyExperience()" disabled>आज की पढ़ाई शुरू करें</button>
-  </div>
-</div>
-<div id="studyLoading" class="study-loading hidden">
-  <div class="study-loader-card"><div class="loader-orb">GK</div><h2>GK BY PURUSHOTAM SIR</h2><p>आपके आज के अध्ययन लक्ष्य तैयार किए जा रहे हैं...</p><div class="premium-loader"><span></span></div></div>
-</div>
-<script src="student.js?v=20260720-final2"></script><script src="final-fix.js"></script>
+</div><script src="student.js?v=20260720-final2"></script><script src="final-fix.js"></script>
 </body></html>
