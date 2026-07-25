@@ -2,11 +2,11 @@
 -- This keeps the specified account as the only owner admin in profiles.
 update public.profiles
 set role = 'admin'
-where lower(email) = 'ak0258107@gmail.com';
+where lower(email) = 'jangra1432@gmail.com';
 
 update public.profiles
 set role = 'student'
-where lower(coalesce(email,'')) <> 'ak0258107@gmail.com'
+where lower(coalesce(email,'')) <> 'jangra1432@gmail.com'
   and role = 'admin';
 
 -- Verify result
@@ -27,7 +27,7 @@ as $$
     and exists (
       select 1 from public.profiles p
       where p.id = auth.uid()
-        and lower(coalesce(p.email, '')) = 'ak0258107@gmail.com'
+        and lower(coalesce(p.email, '')) = 'jangra1432@gmail.com'
         and lower(coalesce(p.role, '')) = 'admin'
     );
 $$;

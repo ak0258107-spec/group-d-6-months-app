@@ -1,8 +1,32 @@
 /* ===== ADMIN PASSWORD + TOTP MFA + ROLE VERIFICATION ===== */
-const LOCKED_ADMIN_EMAIL='ak0258107@gmail.com';
+const LOCKED_ADMIN_EMAIL='jangra1432@gmail.com';
 let __adminGateUnlocked=false;
 let __adminEnrollFactorId='';
 let __adminChallengeFactorId='';
+const ADMIN_IDLE_TIMEOUT_MS=20*60*1000;
+let __adminLastActivity=Date.now();
+let __adminSecurityTimer=null;
+
+function markAdminActivity(){__adminLastActivity=Date.now()}
+async function lockAdminForSecurity(message='सुरक्षा के लिए Admin session समाप्त कर दिया गया है। दोबारा Login करें।'){
+  __adminGateUnlocked=false;
+  if(__adminSecurityTimer){clearInterval(__adminSecurityTimer);__adminSecurityTimer=null}
+  try{await sb.auth.signOut()}catch(_){}
+  showAdminAccountStep(message);
+}
+function startAdminSessionProtection(){
+  ['click','keydown','mousemove','touchstart','scroll'].forEach(evt=>window.addEventListener(evt,markAdminActivity,{passive:true}));
+  if(__adminSecurityTimer)clearInterval(__adminSecurityTimer);
+  __adminSecurityTimer=setInterval(async()=>{
+    if(!__adminGateUnlocked)return;
+    if(Date.now()-__adminLastActivity>ADMIN_IDLE_TIMEOUT_MS){await lockAdminForSecurity('20 मिनट निष्क्रिय रहने के कारण Admin session बंद कर दिया गया है।');return}
+    try{
+      const user=await verifyCurrentAdminSession();
+      const {data:aal,error}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+      if(!user||error||aal?.currentLevel!=='aal2')await lockAdminForSecurity('Admin सुरक्षा verification समाप्त हो गई है। दोबारा Login करें।');
+    }catch(_){await lockAdminForSecurity('Admin session verify नहीं हो सका। दोबारा Login करें।')}
+  },60000);
+}
 
 function adminGateMessage(text,type='error'){
   const host=document.getElementById('adminGateMessage');
@@ -14,7 +38,7 @@ function secureOverlay(){document.getElementById('adminGateOverlay')?.classList.
 function showAdminAccountStep(message=''){hideAdminGateSteps();document.getElementById('adminAccountLoginStep')?.classList.remove('hidden');secureOverlay();if(message)adminGateMessage(message,'error')}
 function showMfaEnrollStep(){hideAdminGateSteps();document.getElementById('adminMfaEnrollStep')?.classList.remove('hidden');secureOverlay()}
 function showMfaChallengeStep(){hideAdminGateSteps();document.getElementById('adminMfaChallengeStep')?.classList.remove('hidden');secureOverlay()}
-function unlockAdminPanel(){__adminGateUnlocked=true;document.getElementById('adminGateOverlay')?.classList.add('hidden');document.body.classList.add('admin-authorized');document.body.classList.remove('admin-security-pending');adminGateMessage('')}
+function unlockAdminPanel(){__adminGateUnlocked=true;markAdminActivity();startAdminSessionProtection();document.getElementById('adminGateOverlay')?.classList.add('hidden');document.body.classList.add('admin-authorized');document.body.classList.remove('admin-security-pending');adminGateMessage('')}
 
 async function verifyCurrentAdminSession(){
   const {data:{session}}=await sb.auth.getSession(); if(!session)return null;

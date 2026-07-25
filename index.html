@@ -76,7 +76,7 @@ function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").tr
   const {data:{session}}=await sb.auth.getSession();
   if(session){
     const p=await getProfile(session.user.id);
-    location.href=p?.role==="admin"?"gk-vault-7q4m9x2r-k8p3-control.html":"student.html";
+    location.href=p?.role==="admin"?"gk-portal-x9q7m2v4k8r6-auth-3p5n1c7d.html":"student.html";
   }
 })();
 
@@ -98,7 +98,7 @@ async function login(){
   }
   if(result.error)return showMsg("Login details गलत हैं।");
   const p=await getProfile(result.data.user.id);
-  location.href=p?.role==="admin"?"gk-vault-7q4m9x2r-k8p3-control.html":"student.html";
+  location.href=p?.role==="admin"?"gk-portal-x9q7m2v4k8r6-auth-3p5n1c7d.html":"student.html";
 }
 
 async function signup(){

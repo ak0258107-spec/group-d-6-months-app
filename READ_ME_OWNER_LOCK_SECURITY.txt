@@ -1,7 +1,7 @@
 OWNER LOCK ADMIN SECURITY
 
 NEW ADMIN PAGE:
-gk-vault-7q4m9x2r-k8p3-control.html
+gk-portal-x9q7m2v4k8r6-auth-3p5n1c7d.html
 
 Security layers:
 1. Installed app always opens Student Panel.
