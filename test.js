@@ -24,11 +24,11 @@ async function submitTest(auto=false){
   </div></div>`;
 
   if(!pass){
-    resultBox.innerHTML=summary+`<div class="card"><h3>दोबारा प्रयास करें</h3><p>Passing score पूरा होने से पहले सही उत्तर और व्याख्या नहीं दिखाई जाएगी।</p><p><a class="btn btn-blue" href="test.html?id=${test.id}">Retry Test</a> <a class="btn btn-light" href="student.html">Back to Dashboard</a></p></div>`;
+    resultBox.innerHTML=summary+`<div class="card"><h3>दोबारा प्रयास करें</h3><p>Passing score पूरा होने से पहले सही उत्तर और व्याख्या नहीं दिखाई जाएगी।</p><p><a class="btn btn-blue" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${test.id}">Retry Test</a> <a class="btn btn-light" href="l4x8m2r7-k9v3t5n1-z6c4p8q2.html">Back to Dashboard</a></p></div>`;
   }else{
     const review=await sb.rpc('get_attempt_review',{p_attempt_id:attempt.id});
     const reviewHtml=(review.data||[]).map((x,i)=>`<div class="item ${x.is_correct?'analysis-correct':x.is_skipped?'analysis-skip':'analysis-wrong'}"><b>Q${i+1}. ${esc(x.question_text)}</b><p>Your Answer: ${esc(JSON.stringify(x.selected_answer))}</p><p>Correct Answer: ${esc(JSON.stringify(x.correct_answer))}</p>${x.explanation?`<p><b>व्याख्या:</b> ${esc(x.explanation)}</p>`:''}</div>`).join('');
-    resultBox.innerHTML=summary+`<div class="card"><h3>Question-wise Analysis</h3><div class="list">${reviewHtml}</div>${returnMode==='pdf'?'<div class="notice notice-success"><b>✅ PDF Download Unlock हो गई है।</b><p>अब PDF Library में जाकर Download दबाएँ।</p></div>':''}<p><a class="btn btn-blue" href="${returnMode==='pdf'?'student.html?tab=pdfs':'student.html'}">${returnMode==='pdf'?'Go to PDF Library':'Back to Dashboard'}</a></p></div>`;
+    resultBox.innerHTML=summary+`<div class="card"><h3>Question-wise Analysis</h3><div class="list">${reviewHtml}</div>${returnMode==='pdf'?'<div class="notice notice-success"><b>✅ PDF Download Unlock हो गई है।</b><p>अब PDF Library में जाकर Download दबाएँ।</p></div>':''}<p><a class="btn btn-blue" href="${returnMode==='pdf'?'l4x8m2r7-k9v3t5n1-z6c4p8q2.html?tab=pdfs':'l4x8m2r7-k9v3t5n1-z6c4p8q2.html'}">${returnMode==='pdf'?'Go to PDF Library':'Back to Dashboard'}</a></p></div>`;
   }
   if(test.schedule_day_id)await sb.rpc('refresh_daily_progress',{p_user_id:user.id,p_schedule_day_id:test.schedule_day_id});
 }

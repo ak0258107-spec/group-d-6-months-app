@@ -104,19 +104,10 @@
 
   <section id="forgotMode" class="hidden">
     <div class="otp-icon">📧</div><h2>Password Reset</h2>
-    <p class="muted">Registered Email डालिए। 6 अंकों का OTP आपके Email पर भेजा जाएगा।</p>
+    <p class="muted">Registered Email डालिए। Password Reset Link आपके Email पर भेजा जाएगा।</p>
     <div class="form-group"><label>Registered Email</label><input id="forgotEmail" type="email" autocomplete="email" placeholder="your@email.com"></div>
-    <button class="btn btn-blue auth-main-btn premium-press-btn" onclick="sendResetOtp()">Send OTP</button>
+    <button class="btn btn-blue auth-main-btn premium-press-btn" onclick="sendResetLink()">Send Reset Link</button>
     <button class="auth-link-btn" onclick="showLogin()">← Back to Login</button>
-  </section>
-
-  <section id="forgotOtpMode" class="hidden">
-    <div class="otp-icon">🔢</div><h2>Email OTP Verify</h2>
-    <p class="muted">Email पर आया 6 अंकों का OTP डालिए।</p>
-    <div class="form-group"><label>OTP</label><input id="forgotOtp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 अंकों का OTP"></div>
-    <button class="btn btn-green auth-main-btn premium-press-btn" onclick="verifyResetOtp()">Verify OTP</button>
-    <button class="auth-link-btn" onclick="sendResetOtp(true)">OTP दोबारा भेजें</button>
-    <button class="auth-link-btn" onclick="showForgot()">← Email बदलें</button>
   </section>
 
   <section id="newPasswordMode" class="hidden">
@@ -163,14 +154,14 @@ async function finishWelcome(routeIfLoggedIn=true){
     const {data:{session}}=await sb.auth.getSession();
     if(session){
       const p=await getProfile(session.user.id);
-      location.href=p?.role==='admin'?'vault-gk-6m-q7v9x2p4-k8r3.html':'student.html';
+      location.href=p?.role==='admin'?'q9v3x7k2-r8m4p6t1-z5n7c2w9.html':'l4x8m2r7-k9v3t5n1-z6c4p8q2.html';
     }
   }
 }
 function enterApp(){finishWelcome(true)}
 const welcomePending=localStorage.getItem(WELCOME_KEY)!=='1';
 if(welcomePending)openWelcome();
-const authSections=["loginMode","registerMode","forgotMode","forgotOtpMode","newPasswordMode"];
+const authSections=["loginMode","registerMode","forgotMode","newPasswordMode"];
 
 function showSection(id){
   msg.innerHTML="";
@@ -182,11 +173,34 @@ function showForgot(){showSection("forgotMode")}
 function showMsg(text,type="error"){msg.innerHTML='<div class="notice notice-'+type+'">'+esc(text)+'</div>'}
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim())}
 
+let recoveryModeRequested=(new URLSearchParams(location.search).get("mode")==="recovery")
+  || location.hash.includes("type=recovery")
+  || location.search.includes("type=recovery");
+
+function openRecoveryPasswordForm(){
+  recoveryModeRequested=true;
+  document.getElementById('welcomeScreen')?.classList.add('hidden');
+  document.body.classList.remove('welcome-open');
+  showSection("newPasswordMode");
+  showMsg("Reset link verified है। अब नया Password बनाइए।","success");
+}
+
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==="PASSWORD_RECOVERY" && session){
+    openRecoveryPasswordForm();
+  }
+});
+
 (async()=>{
   const {data:{session}}=await sb.auth.getSession();
+  if(recoveryModeRequested){
+    if(session) openRecoveryPasswordForm();
+    else showMsg("Reset link invalid या expire हो चुका है। नया Reset Link मंगवाएँ।");
+    return;
+  }
   if(session && !welcomePending){
     const p=await getProfile(session.user.id);
-    location.href=p?.role==="admin"?"vault-gk-6m-q7v9x2p4-k8r3.html":"student.html";
+    location.href=p?.role==="admin"?"q9v3x7k2-r8m4p6t1-z5n7c2w9.html":"l4x8m2r7-k9v3t5n1-z6c4p8q2.html";
   }
 })();
 
@@ -208,7 +222,7 @@ async function login(){
   }
   if(result.error)return showMsg("Login details गलत हैं।");
   const p=await getProfile(result.data.user.id);
-  location.href=p?.role==="admin"?"vault-gk-6m-q7v9x2p4-k8r3.html":"student.html";
+  location.href=p?.role==="admin"?"q9v3x7k2-r8m4p6t1-z5n7c2w9.html":"l4x8m2r7-k9v3t5n1-z6c4p8q2.html";
 }
 
 async function signup(){
@@ -271,7 +285,7 @@ async function signup(){
 
     if(data?.session){
       showMsg("Registration सफल। Dashboard खुल रहा है…","success");
-      setTimeout(()=>location.href="student.html",800);
+      setTimeout(()=>location.href="l4x8m2r7-k9v3t5n1-z6c4p8q2.html",800);
     }else{
       showMsg("Registration बन गया, लेकिन Supabase में Confirm Email अभी ON है। इसे OFF करें, फिर Login करें।","error");
     }
@@ -283,44 +297,35 @@ async function signup(){
   }
 }
 
-let __recoveryEmail="";
-
-async function sendResetOtp(isResend=false){
+async function sendResetLink(){
   msg.innerHTML="";
-  const email=(isResend?__recoveryEmail:forgotEmail.value.trim().toLowerCase());
+  const email=forgotEmail.value.trim().toLowerCase();
   if(!validEmail(email))return showMsg("सही Registered Email लिखें।");
   const btn=document.querySelector('#forgotMode .btn-blue');
-  if(btn){btn.disabled=true;btn.textContent="Sending OTP...";}
+  const oldText=btn?btn.textContent:"Send Reset Link";
+  if(btn){btn.disabled=true;btn.textContent="Sending...";}
   try{
-    const {error}=await sb.auth.resetPasswordForEmail(email);
+    const redirectTo=new URL("./index.html?mode=recovery",location.href).href;
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
     if(error)throw error;
-    __recoveryEmail=email;
-    showSection("forgotOtpMode");
-    showMsg("OTP Email पर भेज दिया गया है। Inbox, Promotions और Spam check करें।","success");
+    showMsg("Password Reset Link Email पर भेज दिया गया है। Inbox, Promotions और Spam check करें।","success");
   }catch(e){
-    showMsg(e.message||"OTP भेजा नहीं जा सका।");
+    showMsg(e.message||"Reset Link भेजा नहीं जा सका।");
   }finally{
-    if(btn){btn.disabled=false;btn.textContent="Send OTP";}
+    if(btn){btn.disabled=false;btn.textContent=oldText;}
   }
-}
-
-async function verifyResetOtp(){
-  const token=String(document.getElementById('forgotOtp')?.value||'').replace(/\D/g,'');
-  if(!__recoveryEmail)return showMsg("पहले Registered Email डालकर OTP मंगवाएँ।");
-  if(token.length!==6)return showMsg("पूरा 6 अंकों का OTP लिखें।");
-  const {data,error}=await sb.auth.verifyOtp({email:__recoveryEmail,token,type:'recovery'});
-  if(error||!data?.session)return showMsg("OTP गलत है या expire हो चुका है। नया OTP मंगवाएँ।");
-  showSection("newPasswordMode");
-  showMsg("OTP verified. अब नया Password बनाइए।","success");
 }
 
 async function saveNewPassword(){
   const p1=newPassword.value,p2=newPassword2.value;
   if(p1.length<6)return showMsg("Password कम से कम 6 अक्षर का रखें।");
   if(p1!==p2)return showMsg("दोनों Password एक जैसे नहीं हैं।");
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return showMsg("Reset session expire हो चुका है। नया Reset Link मंगवाएँ।");
   const {error}=await sb.auth.updateUser({password:p1});
   if(error)return showMsg(error.message);
   await sb.auth.signOut();
+  history.replaceState(null,"",new URL("./index.html",location.href).pathname);
   showLogin();
   showMsg("Password सफलतापूर्वक बदल गया। अब Login करें।","success");
 }

@@ -23,7 +23,7 @@ function finalTest(){return tests.filter(t=>t.is_final_daily).slice(-1)[0]||null
 async function bestAttempt(testId){if(!testId)return null;const r=await sb.from("test_attempts").select("*").eq("user_id",user.id).eq("test_id",testId).eq("status","submitted").order("percentage",{ascending:false}).limit(1);return r.data?.[0]||null}
 async function renderHome(){if(!currentDay){homeBox.innerHTML='<div class="card">आज का Target उपलब्ध नहीं है।</div>';return}const ft=finalTest(),fa=await bestAttempt(ft?.id),done=currentTargets.filter(t=>targetCompletionMap.has(t.id)).length,total=currentTargets.length,passed=!ft||(fa&&fa.percentage>=ft.passing_percent);const status=done===0?'Work Complete नहीं हुआ है ❌':done<total?'आज का Target पूरा करें ⚠️':!passed?'Final Test Pass करना बाकी है 📝':'आज का Target Complete 🎉';homeBox.innerHTML=`<div class="hello">Hello, ${esc(profile?.full_name||'Student')} 👋</div><div class="muted">Day ${currentDay.day_number} • ${fmtDate(currentDay.day_date)}</div><div class="status-hero hero-premium"><div class="small">आज का संदेश</div><h2>${status}</h2><p>Class → Verification → PDF → Final Mock Test → Target Complete</p></div><div class="workflow-steps"><div class="workflow-step ${done?'done':''}"><div class="workflow-icon">▶️</div><div class="workflow-title">Class</div></div><div class="workflow-step ${done?'done':''}"><div class="workflow-icon">✅</div><div class="workflow-title">Verification</div></div><div class="workflow-step ${materials.length?'done':''}"><div class="workflow-icon">📄</div><div class="workflow-title">PDF</div></div><div class="workflow-step ${passed&&done===total?'done':''}"><div class="workflow-icon">📝</div><div class="workflow-title">Final Test</div></div></div><div class="stat-row" style="margin-top:12px"><div class="stat-mini"><div class="muted">Targets</div><div class="kpi">${done}/${total}</div></div><div class="stat-mini"><div class="muted">Streak</div><div class="kpi">${profile?.current_streak||0}</div></div></div>`}
 function targetVerifications(targetId){return verificationRows.filter(v=>String(v.target_id)===String(targetId))}
-async function renderTargets(){if(!currentDay){targetsBox.innerHTML='<div class="card">No target.</div>';return}let html=`<div class="row wrap"><div><h3>Day ${currentDay.day_number}</h3><div class="muted">${fmtDate(currentDay.day_date)}</div></div></div>`;for(const t of currentTargets){const done=targetCompletionMap.has(t.id),vs=targetVerifications(t.id);html+=`<div class="target-card ${sclass(t.subject)}"><div class="small">${esc(t.subject)}</div><div class="topic">${esc(t.topic)}</div>${t.youtube_url?`<p><a class="btn btn-red" target="_blank" href="${esc(t.youtube_url)}">▶ Watch YouTube Class</a></p>`:'<p class="small">Class link अभी add नहीं किया गया।</p>'}<div>${done?'<span class="badge badge-green">Verified & Completed ✓</span>':'<span class="badge badge-orange">Verification Pending</span>'}</div></div>`;if(!done&&vs.length){for(const v of vs){const opts=Array.isArray(v.options)?v.options:[];html+=`<div class="verify-card"><h4>Class Verification</h4>${v.show_question?`<p><b>${esc(v.question_text)}</b></p>`:'<p class="muted"><b>Question class में पूछा गया था। सही option चुनिए।</b></p>'}<div class="choice-grid" id="choices_${v.id}">${opts.map((o,i)=>`<button class="choice-option" onclick="selectVerifyOption('${v.id}',${i},this)">${String.fromCharCode(65+i)}. ${esc(o)}</button>`).join('')}</div><input type="hidden" id="vq_${v.id}"><div style="height:8px"></div><button class="btn btn-green" onclick="verifyTarget('${v.id}','${t.id}')">Submit Answer</button><div id="vres_${v.id}" class="small" style="margin-top:8px"></div></div>`}}}const ft=finalTest();if(ft)html+=`<div class="card final-test-card"><div class="row wrap"><div><b>Daily Final Mock Test</b><div class="muted">Pass: ${ft.passing_percent}% • ${ft.total_questions} Questions</div></div><a class="btn btn-purple btn-blue" href="test.html?id=${ft.id}">Start Final Test</a></div></div>`;targetsBox.innerHTML=html}
+async function renderTargets(){if(!currentDay){targetsBox.innerHTML='<div class="card">No target.</div>';return}let html=`<div class="row wrap"><div><h3>Day ${currentDay.day_number}</h3><div class="muted">${fmtDate(currentDay.day_date)}</div></div></div>`;for(const t of currentTargets){const done=targetCompletionMap.has(t.id),vs=targetVerifications(t.id);html+=`<div class="target-card ${sclass(t.subject)}"><div class="small">${esc(t.subject)}</div><div class="topic">${esc(t.topic)}</div>${t.youtube_url?`<p><a class="btn btn-red" target="_blank" href="${esc(t.youtube_url)}">▶ Watch YouTube Class</a></p>`:'<p class="small">Class link अभी add नहीं किया गया।</p>'}<div>${done?'<span class="badge badge-green">Verified & Completed ✓</span>':'<span class="badge badge-orange">Verification Pending</span>'}</div></div>`;if(!done&&vs.length){for(const v of vs){const opts=Array.isArray(v.options)?v.options:[];html+=`<div class="verify-card"><h4>Class Verification</h4>${v.show_question?`<p><b>${esc(v.question_text)}</b></p>`:'<p class="muted"><b>Question class में पूछा गया था। सही option चुनिए।</b></p>'}<div class="choice-grid" id="choices_${v.id}">${opts.map((o,i)=>`<button class="choice-option" onclick="selectVerifyOption('${v.id}',${i},this)">${String.fromCharCode(65+i)}. ${esc(o)}</button>`).join('')}</div><input type="hidden" id="vq_${v.id}"><div style="height:8px"></div><button class="btn btn-green" onclick="verifyTarget('${v.id}','${t.id}')">Submit Answer</button><div id="vres_${v.id}" class="small" style="margin-top:8px"></div></div>`}}}const ft=finalTest();if(ft)html+=`<div class="card final-test-card"><div class="row wrap"><div><b>Daily Final Mock Test</b><div class="muted">Pass: ${ft.passing_percent}% • ${ft.total_questions} Questions</div></div><a class="btn btn-purple btn-blue" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${ft.id}">Start Final Test</a></div></div>`;targetsBox.innerHTML=html}
 function selectVerifyOption(id,i,el){document.querySelectorAll(`#choices_${id} .choice-option`).forEach(x=>x.classList.remove('selected'));el.classList.add('selected');document.getElementById('vq_'+id).value=String(i)}
 async function verifyTarget(vId,targetId){
   const answer=document.getElementById('vq_'+vId)?.value;
@@ -48,7 +48,7 @@ async function verifyTarget(vId,targetId){
     box.innerHTML='<span class="badge badge-red">❌ Answer Wrong — Try Again</span>'
   }
 }
-async function loadTests(){const r=await sb.from('tests').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).eq('status','published').order('created_at',{ascending:false});testsList.innerHTML=(r.data||[]).map(t=>`<div class="item"><div class="row wrap"><div><b>${esc(t.title)}</b><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent||0}%${t.is_final_daily?' • Final Daily Test':''}</div></div><a class="btn btn-blue" href="test.html?id=${t.id}">Start Test</a></div></div>`).join('')||'<div class="card">अभी कोई Test नहीं है।</div>'}
+async function loadTests(){const r=await sb.from('tests').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).eq('status','published').order('created_at',{ascending:false});testsList.innerHTML=(r.data||[]).map(t=>`<div class="item"><div class="row wrap"><div><b>${esc(t.title)}</b><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent||0}%${t.is_final_daily?' • Final Daily Test':''}</div></div><a class="btn btn-blue" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${t.id}">Start Test</a></div></div>`).join('')||'<div class="card">अभी कोई Test नहीं है।</div>'}
 let oneLinerRows=[];async function loadOneLiners(){const r=await sb.from('one_liners').select('*').eq('status','published').order('subject').order('topic').order('created_at');oneLinerRows=r.data||[];const subjects=[...new Set(oneLinerRows.map(x=>x.subject||'General'))];oneLinerFilters.innerHTML=`<label>Subject</label><select id="olSubject" onchange="renderOneLiners()"><option value="">All Subjects</option>${subjects.map(s=>`<option>${esc(s)}</option>`).join('')}</select><label style="margin-top:8px">Topic</label><select id="olTopic" onchange="renderOneLiners()"><option value="">All Topics</option></select>`;document.getElementById('olSubject').addEventListener('change',updateTopicFilter);updateTopicFilter();renderOneLiners()}
 function updateTopicFilter(){const s=document.getElementById('olSubject')?.value||'';const topics=[...new Set(oneLinerRows.filter(x=>!s||(x.subject||'General')===s).map(x=>x.topic||'General'))];document.getElementById('olTopic').innerHTML='<option value="">All Topics</option>'+topics.map(t=>`<option>${esc(t)}</option>`).join('');renderOneLiners()}
 function renderOneLiners(){const s=document.getElementById('olSubject')?.value||'',t=document.getElementById('olTopic')?.value||'';const rows=oneLinerRows.filter(x=>(!s||(x.subject||'General')===s)&&(!t||(x.topic||'General')===t));const groups={};rows.forEach(x=>{const k=x.topic||'General';(groups[k]??=[]).push(x)});oneLinersList.innerHTML=Object.entries(groups).map(([topic,items])=>`<div class="topic-group"><div class="topic-group-title">${esc(topic)}</div>${items.map((x,i)=>`<div class="item"><span class="topic-chip">${esc(x.subject||'General')}</span><p><b>${i+1}. ${esc(x.question)}</b></p><p><span class="badge badge-green">उत्तर</span> ${esc(x.answer)}</p></div>`).join('')}</div>`).join('')||'<div class="card">कोई One-Liner नहीं मिला।</div>'}
@@ -145,7 +145,7 @@ renderTargets=async function(){
     }
   }
   const ft=finalTest();
-  if(ft)html+=`<div class="card final-test-card"><div class="row wrap"><div><b>Daily Final Mock Test</b><div class="muted">Pass: ${ft.passing_percent}% • ${ft.total_questions} Questions</div></div><a class="btn btn-blue" href="test.html?id=${ft.id}">Start Final Test</a></div></div>`;
+  if(ft)html+=`<div class="card final-test-card"><div class="row wrap"><div><b>Daily Final Mock Test</b><div class="muted">Pass: ${ft.passing_percent}% • ${ft.total_questions} Questions</div></div><a class="btn btn-blue" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${ft.id}">Start Final Test</a></div></div>`;
   targetsBox.innerHTML=html;
 };
 
@@ -203,7 +203,7 @@ async function downloadPdf(id,path,testId,mode,passPercent){
   }
   if(mode==='test_required'&&testId){
     toast(`PDF Download के लिए पहले Mock Test में ${passPercent}% score करें। Test खुल रहा है…`,'error');
-    setTimeout(()=>location.href=`test.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`,900);
+    setTimeout(()=>location.href=`m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`,900);
     return;
   }
   toast('PDF Download अभी Locked है।','error');
@@ -455,7 +455,7 @@ async function downloadPdf(id,path,testId='',mode='direct_download',passPercent=
     }
     if(mode==='test_required'&&testId){
       toast(`PDF Download के लिए पहले Mock Test में ${passPercent}% score करें। Test खुल रहा है…`,'error');
-      setTimeout(()=>location.href=`test.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`,900);
+      setTimeout(()=>location.href=`m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`,900);
       return;
     }
     toast('PDF Download अभी Locked है।','error');
@@ -476,7 +476,7 @@ async function downloadPdf(id,path,testId='',mode='direct_download',passPercent=
       showActionNotice(
         `PDF Download के लिए पहले Mock Test में ${passPercent}% score करना जरूरी है।`,
         'Mock Test शुरू करें',
-        ()=>{location.href=`test.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`},
+        ()=>{location.href=`m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`},
         'warning'
       );
       return;
@@ -865,7 +865,7 @@ renderTargets=async function(){
   const mats=currentDayMaterials();
   if(mats.length)html+=`<div class="card pdf-next-step-card"><div><b>📄 अगला चरण: PDF Verification</b><div class="muted">PDF खोलने से पहले निर्धारित questions clear करें।</div></div><button class="btn btn-blue" onclick="openPdfLibrary()">PDF Library खोलें</button></div>`;
   const ft=finalTest();
-  if(ft)html+=`<div class="card final-test-card"><div class="row wrap"><div><b>📝 Final Daily Test / Submit</b><div class="muted">${ft.total_questions} Questions • Required ${ft.passing_percent||0}%</div></div><a class="btn btn-purple btn-blue" href="test.html?id=${ft.id}">Final Submit शुरू करें</a></div></div>`;
+  if(ft)html+=`<div class="card final-test-card"><div class="row wrap"><div><b>📝 Final Daily Test / Submit</b><div class="muted">${ft.total_questions} Questions • Required ${ft.passing_percent||0}%</div></div><a class="btn btn-purple btn-blue" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${ft.id}">Final Submit शुरू करें</a></div></div>`;
   targetsBox.innerHTML=html;
 };
 
@@ -887,7 +887,7 @@ renderHome=async function(){
     <button class="home-action-card pdf-card-home" onclick="openPdfLibrary()"><div class="action-icon">PDF</div><div class="action-text"><span>PDF Notes</span><b>${mats.length} Today</b><small>Verification clear करके PDF पढ़ें</small></div></button>
     <button class="home-action-card test-card-home" onclick="openTestsLibrary()"><div class="action-icon">T</div><div class="action-text"><span>Mock Tests</span><b>Practice + Gate</b><small>Standalone और PDF download tests</small></div></button>
     <button class="home-action-card one-card-home" onclick="openOneLinerLibrary()"><div class="action-icon">1L</div><div class="action-text"><span>One-Liners</span><b>Topic-wise</b><small>तेज revision और याद करने योग्य facts</small></div></button>
-    ${finalT?`<a class="home-action-card final-submit-card" href="test.html?id=${finalT.id}"><div class="action-icon">✓</div><div class="action-text"><span>Final Submit</span><b>${finalT.passing_percent||0}% Condition</b><small>आज का final assessment पूरा करें</small></div></a>`:''}
+    ${finalT?`<a class="home-action-card final-submit-card" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${finalT.id}"><div class="action-icon">✓</div><div class="action-text"><span>Final Submit</span><b>${finalT.passing_percent||0}% Condition</b><small>आज का final assessment पूरा करें</small></div></a>`:''}
   </div>
   <div id="homeDynamicPanel" class="hidden premium-home-panel"></div>
   <div class="card today-target-summary"><h3>🎯 आज पढ़ने वाले Topics</h3><div class="target-summary-list">${currentTargets.map(t=>`<div class="target-summary-row"><span class="topic-chip">${esc(t.subject)}</span><b>${esc(t.topic)}</b><span class="badge ${t.youtube_url?'badge-green':'badge-orange'}">${t.youtube_url?'Class Ready':'Link Pending'}</span></div>`).join('')}</div></div>
@@ -899,7 +899,7 @@ loadTests=async function(){
   const rows=r.data||[];
   testsList.innerHTML=rows.map(t=>{
     const type=t.is_final_daily?'Final Daily Test':t.is_pdf_download_gate?'PDF Download Test':'Standalone Mock Test';
-    return `<div class="item premium-test-list-item"><div class="row wrap"><div><span class="badge ${t.is_final_daily?'badge-purple':t.is_pdf_download_gate?'badge-orange':'badge-blue'}">${type}</span><h3>${esc(t.title)}</h3><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent||0}%${t.time_limit_minutes?` • ${t.time_limit_minutes} min`:''}</div></div><a class="btn btn-blue" href="test.html?id=${t.id}">Start Test</a></div></div>`;
+    return `<div class="item premium-test-list-item"><div class="row wrap"><div><span class="badge ${t.is_final_daily?'badge-purple':t.is_pdf_download_gate?'badge-orange':'badge-blue'}">${type}</span><h3>${esc(t.title)}</h3><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent||0}%${t.time_limit_minutes?` • ${t.time_limit_minutes} min`:''}</div></div><a class="btn btn-blue" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${t.id}">Start Test</a></div></div>`;
   }).join('')||'<div class="card">अभी कोई Test नहीं है।</div>';
 };
 
@@ -979,7 +979,7 @@ downloadPdf=async function(id,path,testId='',mode='direct_download',passPercent=
   }else{
     try{const res=await r2ApiFetch(`/material/${encodeURIComponent(id)}/download`);if(res.ok){await openR2PdfResponse(res,title,true);return}let data={};try{data=await res.json()}catch(_){}if(data.code!=='TEST_REQUIRED')throw new Error(data.error||'PDF Download locked है।')}catch(e){if(!(mode==='test_required'&&testId)){toast(e.message||'PDF Download नहीं हो पाई।','error');return}}
   }
-  if(mode==='test_required'&&testId){showActionNotice(`PDF Download के लिए Mock Test में ${passPercent}% score करना जरूरी है।`,'Download Mock Test शुरू करें',()=>{location.href=`test.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`},'warning');return}
+  if(mode==='test_required'&&testId){showActionNotice(`PDF Download के लिए Mock Test में ${passPercent}% score करना जरूरी है।`,'Download Mock Test शुरू करें',()=>{location.href=`m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${encodeURIComponent(testId)}&return=pdf&material=${encodeURIComponent(id)}`},'warning');return}
   toast('PDF Download अभी Locked है।','error');
 };
 

@@ -1,0 +1,27 @@
+GK BY PURUSHOTAM SIR — COMPLETE APP V2
+==========================================
+
+यह PATCH नहीं, पूरा deploy-ready project ZIP है।
+
+इस version में:
+1. Password Reset OTP wording हटाकर Email Reset Link flow लगाया गया है।
+2. Reset link से लौटने पर नया password बनाने वाली screen खुलती है।
+3. Admin, Student और Test pages के predictable URLs बंद कर दिए गए हैं।
+4. पुराने admin.html, student.html, test.html और पुराने hidden admin URL अब index.html पर लौटाते हैं।
+5. नई opaque routes:
+   ADMIN  : q9v3x7k2-r8m4p6t1-z5n7c2w9.html
+   STUDENT: l4x8m2r7-k9v3t5n1-z6c4p8q2.html
+   TEST   : m7q2t9v4-x8k5r3p6-n1z7c4l8.html
+
+DEPLOYMENT
+----------
+GitHub: इस ZIP की सभी files repository root में upload/replace करें। पुराने files भी overwrite होंगी।
+Supabase SQL: इस version के लिए कोई नई SQL file चलाने की जरूरत नहीं है।
+Cloudflare Worker: इस version के लिए Worker code दोबारा deploy करने की जरूरत नहीं है।
+
+SUPABASE RESET URL CHECK
+------------------------
+Authentication > URL Configuration में आपकी GitHub Pages base site URL Redirect URLs में allowed होनी चाहिए।
+उदाहरण: https://USERNAME.github.io/REPOSITORY/**
+
+महत्त्वपूर्ण: Admin URL को सार्वजनिक रूप से share न करें। Hidden URL अकेली security नहीं है; role check + Authenticator MFA भी code में यथावत हैं।
