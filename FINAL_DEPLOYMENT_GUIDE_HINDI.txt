@@ -1,0 +1,52 @@
+GK BY PURUSHOTAM SIR – GROUP-D 6 MONTHS APP
+FINAL DEPLOYMENT GUIDE
+
+यह ZIP deployment-ready source package है। पुराने repository root की files को इस ZIP की files से replace करें।
+
+क्रम 1 — GitHub
+1. Repository की current files का backup लें।
+2. ZIP extract करें।
+3. सभी files repository root में upload/replace करें।
+4. Commit करें और GitHub Pages deployment पूर्ण होने दें।
+
+क्रम 2 — Supabase
+1. Supabase > SQL Editor खोलें।
+2. RUN_THIS_ADMIN_AUTHENTICATOR_SECURITY_ONCE.sql चलाएँ।
+3. profiles table में owner/admin account का role ठीक "admin" होना चाहिए।
+4. Student accounts का role "student" होना चाहिए।
+5. Authentication > Email में Brevo SMTP enabled रखें।
+
+क्रम 3 — Cloudflare Worker
+1. Existing Worker खोलें।
+2. CLOUDFLARE_WORKER_FINAL.js का पूरा code paste करें।
+3. Worker variables/secrets में SUPABASE_URL और SUPABASE_ANON_KEY उपलब्ध हों।
+4. Existing R2 binding वही रखें जिसे Worker code उपयोग करता है।
+5. Deploy करें।
+
+क्रम 4 — Admin MFA
+1. Hidden admin page खोलें: vault-gk-6m-q7v9x2p4-k8r3.html
+2. Admin email/password से login करें।
+3. पहली बार QR को Google Authenticator या Microsoft Authenticator से scan करें।
+4. 6-digit code verify करें।
+5. QR/secret का सुरक्षित backup रखें।
+
+क्रम 5 — Cache/PWA
+1. Site एक बार Hard Refresh करें (Ctrl+Shift+R)।
+2. पुरानी installed PWA हो तो उसे हटाकर फिर install करें।
+3. Browser site data/cache साफ करना आवश्यक हो सकता है।
+
+FINAL LIVE TEST
+- नया Student registration
+- Student login/logout
+- Forgot password reset email
+- Daily target और progress
+- PDF access/download rule
+- Test start, submit, result
+- Notifications/posters/broadcast
+- Admin role rejection for student
+- Admin MFA login
+- 20 मिनट idle admin logout
+- Worker admin routes बिना aal2 के reject
+- Mobile और desktop layout
+
+महत्वपूर्ण: Source code package local static audit में syntax और file-reference checks पास करता है। Supabase, Brevo, GitHub Pages और Cloudflare के वास्तविक account-level settings का अंतिम परीक्षण live deployment पर ही होगा।
