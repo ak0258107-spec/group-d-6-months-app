@@ -1,0 +1,14 @@
+{
+  "version": "COMPLETE_V3",
+  "brand": "GK BY PURUSHOTAM SIR",
+  "created_utc": "2026-07-26T13:23:47Z",
+  "file_count": 63,
+  "admin_login_page": "q9v3x7k2-r8m4p6t1-z5n7c2w9.html",
+  "admin_recovery_page": "r6p1w9k4-z8x2m7q5-v3n6c1t9.html",
+  "student_page": "l4x8m2r7-k9v3t5n1-z6c4p8q2.html",
+  "changes": [
+    "dedicated admin password recovery",
+    "admin role blocked from student panel",
+    "service worker cache bump"
+  ]
+}

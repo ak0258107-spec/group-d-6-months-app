@@ -1,0 +1,20 @@
+GK BY PURUSHOTAM SIR — COMPLETE V3
+
+इस version में Admin Password Recovery को Student/Common recovery flow से पूरी तरह अलग किया गया है।
+
+मुख्य बदलाव:
+1. Admin Reset Email अब unique recovery page पर खुलेगा:
+   r6p1w9k4-z8x2m7q5-v3n6c1t9.html
+2. Password update के बाद session sign-out होगा और unique Admin Login खुलेगा:
+   q9v3x7k2-r8m4p6t1-z5n7c2w9.html
+3. Admin-role account यदि Student Panel खोलता है तो उसे Admin Panel पर भेजा जाएगा।
+4. Student और Admin के लिए एक ही Gmail को दो अलग Supabase Auth accounts की तरह उपयोग नहीं किया जा सकता। Admin testing के लिए अलग student test email रखें।
+
+DEPLOY:
+- GitHub: इस ZIP की सभी files repository root में upload/replace करके Commit करें।
+- Supabase SQL: कोई SQL नहीं चलानी।
+- Supabase URL Configuration: यदि wildcard पहले से है तो कुछ नहीं; अन्यथा नई recovery URL allow करें।
+- Cloudflare: कोई बदलाव नहीं।
+
+CHECK:
+Supabase > Table Editor > profiles में Admin email वाली row का role = admin होना चाहिए।
