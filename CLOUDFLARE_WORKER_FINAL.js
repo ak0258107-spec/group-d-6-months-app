@@ -48,7 +48,7 @@ export default {
       if(readMatch && request.method==="GET"){
         const materialId=decodeURIComponent(readMatch[1]);
         const canRead=await callSupabaseRpc(env,accessToken,"can_read_material",{p_material_id:materialId});
-        if(canRead!==true)return json({success:false,code:"VERIFICATION_REQUIRED",error:"पहले Class Verification पूरा करें, तभी PDF खुलेगी।"},403,cors);
+        if(canRead!==true)return json({success:false,code:"VERIFICATION_REQUIRED",error:"पहले PDF Verification condition clear करें, तभी PDF खुलेगी।"},403,cors);
         const material=await getMaterial(env,accessToken,materialId);
         if(!material?.storage_path)return json({success:false,error:"PDF information not found"},404,cors);
         return streamR2Pdf(env,material.storage_path,material.title,false,cors);

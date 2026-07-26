@@ -1,2 +1,2 @@
-/* Full audited compatibility helper. */
-(function(){window.GD_APP_BUILD="2026.07.20-EMAIL-RESET-3D-FINAL";})();
+/* GK BY PURUSHOTAM SIR — Premium PDF Flow build marker. */
+(function(){window.GD_APP_BUILD="2026.07.26-PREMIUM-PDF-FLOW-FINAL";})();

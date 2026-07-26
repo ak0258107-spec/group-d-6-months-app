@@ -9,24 +9,71 @@
 <link rel="icon" type="image/png" href="favicon.png">
 </head><body>
 <div id="welcomeScreen" class="welcome-screen hidden" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
-  <div class="welcome-shell">
-    <div class="welcome-brand-mark">GK</div>
-    <div class="welcome-kicker">स्वागत है</div>
-    <h1 id="welcomeTitle">GK BY PURUSHOTAM SIR</h1>
-    <div class="welcome-batch-title">GROUP D 6 MONTHS TARGET BATCH</div>
-    <p class="welcome-intro">हरियाणा CET Group D की व्यवस्थित तैयारी—एक ही ऐप में दैनिक लक्ष्य, कक्षाएँ, PDF नोट्स, टेस्ट और प्रगति।</p>
-    <div class="welcome-features">
-      <div><span>✓</span><b>Daily Target</b><small>हर दिन का स्पष्ट अध्ययन लक्ष्य</small></div>
-      <div><span>✓</span><b>Free Classes</b><small>YouTube पर विषयवार कक्षाएँ</small></div>
-      <div><span>✓</span><b>PDF & Tests</b><small>नोट्स, अभ्यास और परिणाम विश्लेषण</small></div>
-      <div><span>✓</span><b>Progress Tracking</b><small>Completion, score और streak</small></div>
+  <div class="welcome-shell welcome-onboarding">
+    <div class="welcome-topbar">
+      <div class="welcome-progress" aria-label="Welcome progress">
+        <button class="welcome-dot active" data-slide="0" onclick="showWelcomeSlide(0)" aria-label="Screen 1"></button>
+        <button class="welcome-dot" data-slide="1" onclick="showWelcomeSlide(1)" aria-label="Screen 2"></button>
+        <button class="welcome-dot" data-slide="2" onclick="showWelcomeSlide(2)" aria-label="Screen 3"></button>
+      </div>
+      <button class="welcome-close-link" onclick="finishWelcome(false)">अभी शुरू करें</button>
     </div>
-    <div class="welcome-actions">
-      <a id="welcomeTelegram" class="welcome-btn telegram" target="_blank" rel="noopener noreferrer">✈ Telegram Channel</a>
-      <a id="welcomeYoutube" class="welcome-btn youtube" target="_blank" rel="noopener noreferrer">▶ YouTube Channel</a>
-      <button class="welcome-btn next" onclick="enterApp()">आगे बढ़ें →</button>
-    </div>
-    <p class="welcome-note">अध्ययन सामग्री और महत्वपूर्ण सूचना पाने के लिए Telegram व YouTube अवश्य जोड़ें।</p>
+
+    <section class="welcome-slide active" data-welcome-slide="0">
+      <img class="welcome-app-logo" src="icon-192.png" alt="GK BY PURUSHOTAM SIR App Logo">
+      <div class="welcome-kicker">आपकी सफलता का दैनिक लक्ष्य</div>
+      <h1 id="welcomeTitle">GK BY PURUSHOTAM SIR</h1>
+      <div class="welcome-batch-title">GROUP-D 6 MONTHS TARGET BATCH</div>
+      <div class="welcome-slogan">“अबकी बार, आखिरी बार — जीत फिक्स!”</div>
+      <p class="welcome-motivation">सफलता एक दिन में नहीं मिलती, लेकिन हर दिन का सही Target आपको सफलता के और करीब ले जाता है।</p>
+      <div class="welcome-primary-actions">
+        <button class="welcome-btn next" onclick="welcomeNext()">तैयारी का Plan देखें →</button>
+        <button id="welcomeInstallBtn" class="welcome-btn install hidden" onclick="installApp()">⬇ App Install करें</button>
+      </div>
+    </section>
+
+    <section class="welcome-slide" data-welcome-slide="1">
+      <div class="welcome-kicker">6 MONTHS COMPLETE PLAN</div>
+      <h2>क्रमबद्ध तैयारी, रोज़ का स्पष्ट Target</h2>
+      <div class="welcome-plan-grid">
+        <article class="welcome-plan-card">
+          <span>01</span><b>पहले 5 महीने</b><p>Group-D का पूरा syllabus विषय और topic के अनुसार पूरा कराया जाएगा।</p>
+        </article>
+        <article class="welcome-plan-card">
+          <span>02</span><b>अंतिम 1 महीना</b><p>Complete revision, one-liners, practice और exam-level mock tests।</p>
+        </article>
+      </div>
+      <div class="welcome-flow-strip">
+        <span>Daily Target</span><i>→</i><span>YouTube Class</span><i>→</i><span>PDF Verification</span><i>→</i><span>Final Submit</span>
+      </div>
+      <p class="welcome-soft-note">हमारा लक्ष्य केवल syllabus पूरा करवाना नहीं, बल्कि आपकी तैयारी को हर दिन मजबूत और track करना है।</p>
+      <div class="welcome-nav-actions">
+        <button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button>
+        <button class="welcome-btn next" onclick="welcomeNext()">सुविधाएँ देखें →</button>
+      </div>
+    </section>
+
+    <section class="welcome-slide" data-welcome-slide="2">
+      <div class="welcome-kicker">ALL-IN-ONE PREPARATION APP</div>
+      <h2>आपको ऐप में क्या मिलेगा?</h2>
+      <div class="welcome-feature-grid">
+        <article><span>▶</span><div><b>YouTube Classes</b><small>आज के Target की सीधी class links</small></div></article>
+        <article><span>PDF</span><div><b>Verified PDF Notes</b><small>Verification condition clear होने पर पढ़ें</small></div></article>
+        <article><span>✓</span><div><b>Download Mock Test</b><small>निर्धारित score के बाद PDF download</small></div></article>
+        <article><span>1L</span><div><b>One-Liner Revision</b><small>Topic-wise तेज और आसान revision</small></div></article>
+        <article><span>T</span><div><b>Separate Mock Tests</b><small>Practice और final assessment tests</small></div></article>
+        <article><span>↗</span><div><b>Progress Tracking</b><small>Daily progress, score और streak</small></div></article>
+      </div>
+      <div class="welcome-channel-row">
+        <a id="welcomeTelegram" class="welcome-channel telegram" target="_blank" rel="noopener noreferrer">✈ Telegram</a>
+        <a id="welcomeYoutube" class="welcome-channel youtube" target="_blank" rel="noopener noreferrer">▶ YouTube</a>
+      </div>
+      <div class="welcome-nav-actions final">
+        <button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button>
+        <button class="welcome-btn next" onclick="finishWelcome(true)">आज का Target शुरू करें →</button>
+      </div>
+      <p class="welcome-note">यह परिचय केवल पहली बार दिखेगा। बाद में ऐप सीधे Login या Dashboard खोलेगी।</p>
+    </section>
   </div>
 </div>
 
@@ -82,22 +129,47 @@
 </div></div>
 
 <script>
-registerSW();initInstallUI('loginInstallBtn');
-const WELCOME_KEY='gk_groupd_welcome_seen_v1';
+registerSW();
+initInstallUI('loginInstallBtn');
+initInstallUI('welcomeInstallBtn');
+const WELCOME_KEY='gk_groupd_welcome_seen_v2';
+let welcomeSlideIndex=0;
+function showWelcomeSlide(index){
+  const slides=[...document.querySelectorAll('[data-welcome-slide]')];
+  if(!slides.length)return;
+  welcomeSlideIndex=Math.max(0,Math.min(index,slides.length-1));
+  slides.forEach((slide,i)=>slide.classList.toggle('active',i===welcomeSlideIndex));
+  document.querySelectorAll('.welcome-dot').forEach((dot,i)=>dot.classList.toggle('active',i===welcomeSlideIndex));
+  document.querySelector('.welcome-shell')?.scrollTo({top:0,behavior:'smooth'});
+}
+function welcomeNext(){showWelcomeSlide(welcomeSlideIndex+1)}
+function welcomePrev(){showWelcomeSlide(welcomeSlideIndex-1)}
 function openWelcome(){
   const w=document.getElementById('welcomeScreen');
   if(!w)return;
-  document.getElementById('welcomeTelegram').href=APP_CONFIG.TELEGRAM_URL||'#';
-  document.getElementById('welcomeYoutube').href=APP_CONFIG.YOUTUBE_URL||'#';
+  const tg=document.getElementById('welcomeTelegram');
+  const yt=document.getElementById('welcomeYoutube');
+  if(tg)tg.href=APP_CONFIG.TELEGRAM_URL||'#';
+  if(yt)yt.href=APP_CONFIG.YOUTUBE_URL||'#';
+  showWelcomeSlide(0);
   w.classList.remove('hidden');
   document.body.classList.add('welcome-open');
 }
-function enterApp(){
+async function finishWelcome(routeIfLoggedIn=true){
   localStorage.setItem(WELCOME_KEY,'1');
   document.getElementById('welcomeScreen')?.classList.add('hidden');
   document.body.classList.remove('welcome-open');
+  if(routeIfLoggedIn){
+    const {data:{session}}=await sb.auth.getSession();
+    if(session){
+      const p=await getProfile(session.user.id);
+      location.href=p?.role==='admin'?'vault-gk-6m-q7v9x2p4-k8r3.html':'student.html';
+    }
+  }
 }
-if(localStorage.getItem(WELCOME_KEY)!=='1')openWelcome();
+function enterApp(){finishWelcome(true)}
+const welcomePending=localStorage.getItem(WELCOME_KEY)!=='1';
+if(welcomePending)openWelcome();
 const authSections=["loginMode","registerMode","forgotMode","forgotOtpMode","newPasswordMode"];
 
 function showSection(id){
@@ -112,7 +184,7 @@ function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").tr
 
 (async()=>{
   const {data:{session}}=await sb.auth.getSession();
-  if(session){
+  if(session && !welcomePending){
     const p=await getProfile(session.user.id);
     location.href=p?.role==="admin"?"vault-gk-6m-q7v9x2p4-k8r3.html":"student.html";
   }

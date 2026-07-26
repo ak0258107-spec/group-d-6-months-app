@@ -1,12 +1,12 @@
 {
-  "name": "GK BY PURUSHOTAM SIR",
+  "name": "GK BY PURUSHOTAM SIR — GROUP-D 6 MONTHS TARGET BATCH",
   "short_name": "GK PURUSHOTAM",
-  "description": "Group D 6 Months Target Batch",
+  "description": "Daily Target, PDF Verification, One-Liners and Mock Tests for Group-D preparation.",
   "display": "standalone",
-  "start_url": "./student.html",
+  "start_url": "./index.html?source=pwa",
   "scope": "./",
-  "background_color": "#ffffff",
-  "theme_color": "#0b2d5c",
+  "background_color": "#f8f5ee",
+  "theme_color": "#071f3d",
   "icons": [
     {
       "src": "icon-192.png",
@@ -20,5 +20,6 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "id": "./index.html"
 }

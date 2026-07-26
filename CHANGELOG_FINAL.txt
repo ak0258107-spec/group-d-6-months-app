@@ -1,0 +1,19 @@
+FINAL CHANGES — 26 JULY 2026
+
+• Branding spelling fixed/preserved: GK BY PURUSHOTAM SIR.
+• Added slogan: “अबकी बार, आखिरी बार — जीत फिक्स!”
+• Rebuilt first-time Welcome Page as 3 premium onboarding screens.
+• Added PWA Install action to Welcome Page.
+• Welcome is stored once in localStorage; PWA now starts at index.html.
+• Removed student-side class verification flow.
+• Repositioned verification exclusively before PDF view.
+• Added per-PDF verification required toggle and passing percentage.
+• Added batch PDF verification submission; no correct answers revealed on failure.
+• Preserved Cloudflare R2 upload/read/download architecture.
+• Preserved PDF download gate Mock Test.
+• Clearly separated Standalone Mock Tests, PDF Gate Tests and Final Daily Tests.
+• Preserved One-Liner module.
+• Updated student premium home, target, PDF and test labels.
+• Updated admin labels, PDF upload controls and test categories.
+• Added a single final Supabase migration file and a clean deployment guide.
+• Bumped Service Worker cache/build version.

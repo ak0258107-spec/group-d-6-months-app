@@ -1,0 +1,48 @@
+GK BY PURUSHOTAM SIR — FINAL PREMIUM PDF FLOW
+
+इस ZIP में agreed final flow लागू किया गया है:
+1. YouTube Class पर कोई verification नहीं।
+2. PDF खोलने से पहले configurable verification percentage।
+3. PDF download से पहले selected Mock Test की passing condition।
+4. One-Liner और Standalone Mock Test अलग modules।
+5. Final Daily Test/Submit अलग।
+6. PDF upload सीधे Cloudflare R2 में।
+7. Premium three-screen Welcome Page और slogan:
+   “अबकी बार, आखिरी बार — जीत फिक्स!”
+8. Welcome केवल पहली बार; बाद में Login/Dashboard।
+9. PWA Install button और index-based start URL।
+
+DEPLOYMENT ORDER (इसी क्रम में):
+A. अपनी पुरानी GitHub repository और Supabase का backup रखें।
+B. Supabase SQL Editor में RUN_THIS_FINAL_PDF_FLOW_ONCE.sql केवल एक बार चलाएँ।
+C. Cloudflare Worker में CLOUDFLARE_WORKER_FINAL.js replace करके Deploy करें।
+D. GitHub repository root में web files upload/replace करें।
+E. GitHub Pages deployment complete होने दें।
+F. मोबाइल Chrome में पुरानी app cache हटाएँ या app uninstall/reinstall करें।
+G. नीचे दिए test cases चलाएँ।
+
+IMPORTANT:
+- config.js में YouTube और Telegram links वही रखे गए हैं जो पुरानी ZIP में थे। Live करने से पहले उन्हें खोलकर verify करें।
+- Supabase publishable key public frontend key है; service-role/API secrets ZIP में नहीं हैं।
+- R2 binding name PDF_BUCKET और existing Worker secrets जैसे हैं वैसे ही रखें।
+- पुरानी SQL patch files इस clean ZIP में जानबूझकर नहीं रखी गई हैं, ताकि गलत file run न हो।
+
+MINIMUM TEST CASES:
+1. New device/browser: Welcome के 3 screens केवल पहली बार दिखें।
+2. Install App button आए और installed app index/login से खुले।
+3. Student registration/login/password reset।
+4. Class link बिना verification सीधे खुले।
+5. PDF Read दबाने पर PDF Verification आए।
+6. Passing % से कम score पर PDF न खुले।
+7. Passing % clear होने पर R2 PDF खुले।
+8. Download दबाने पर PDF Gate Mock Test खुले।
+9. Passing condition clear होने पर download हो।
+10. Standalone Mock Test अलग से दिखे।
+11. Final Test में option चुने बिना Next न चले।
+12. One-Liners subject/topic filter चलें।
+13. Admin R2 PDF upload और delete।
+14. Admin MFA, hidden URL और 20-minute timeout।
+
+FULL PACKAGE NOTE:
+इस FULL ZIP में पुरानी README और SQL patch files backup/reference के लिए रखी गई हैं।
+Existing Supabase project पर पुरानी SQL files दोबारा न चलाएँ। इस version के लिए पहले backup लें और केवल ऊपर दिए final deployment order का पालन करें।

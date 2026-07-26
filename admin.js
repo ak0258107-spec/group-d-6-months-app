@@ -904,4 +904,143 @@ async function loadPosters(){
   host.innerHTML=cards.join('');
 }
 
+
+
+/* ==================================================================
+   FINAL PRODUCT FLOW — PDF verification (not class verification)
+   ================================================================== */
+const __legacyDeleteTargetVerifications=deleteTargetVerifications;
+deleteTargetVerifications=async function(targetId,dayId){
+  if(!(await adminConfirmDelete('क्या आप इस Topic के सभी PDF Verification Questions delete करना चाहते हैं?')))return;
+  const rr=await sb.rpc('admin_delete_target_verifications',{p_target_id:targetId});
+  if(rr.error){toast('PDF Verification delete नहीं हुआ: '+rr.error.message,'error');return}
+  toast('PDF Verification Questions delete हो गए।','success');
+  await Promise.all([loadDaySetup(),loadVerificationManager()]);
+};
+
+loadDaySetup=async function(){
+  const dayId=setupDay.value||days[0]?.id;if(!dayId)return;
+  const [t,v]=await Promise.all([
+    sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),
+    sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true).order('created_at')
+  ]);
+  allTargets=t.data||[];
+  const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));
+  setupTargets.innerHTML=allTargets.map((x,idx)=>`<details class="target-setup-3d" ${idx===0?'open':''}>
+    <summary><div><span class="topic-chip">${esc(x.subject)}</span><b>${esc(x.topic)}</b></div><span class="badge badge-blue">Target ${x.target_order}</span></summary>
+    <div class="target-setup-body">
+      <label>YouTube Class Link — यहाँ कोई verification नहीं होगा</label>
+      <div class="setup-inline"><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><button class="btn btn-red" onclick="saveYoutube('${x.id}')">Save Class Link</button></div>
+      <div class="verification-builder-3d pdf-verification-builder">
+        <div class="row wrap" style="justify-content:space-between;align-items:center">
+          <div><h4>PDF Verification Questions</h4><div class="small muted">ये questions केवल PDF खोलते समय आएँगे। Class link खोलने पर कोई verification नहीं होगा।</div></div>
+          <div class="row wrap"><span class="badge badge-purple">Existing: ${(vmap[x.id]||[]).length}</span>${(vmap[x.id]||[]).length?`<button class="btn btn-red btn-mini" onclick="deleteTargetVerifications('${x.id}','${dayId}')">🗑 Delete PDF Verification</button>`:''}</div>
+        </div>
+        <label>Question Visibility</label>
+        <select id="show_${x.id}"><option value="false">Hide Question — Student को केवल Options दिखें</option><option value="true">Show Question — Question + Options दोनों दिखें</option></select>
+        <label>PDF Verification Question Data</label>
+        <textarea class="verification-raw-box" id="vqraw_${x.id}" placeholder="प्रश्न 1. ........
+(A) ....
+(B) ....
+(C) ....
+(D) ....
+उत्तर: (A)
+व्याख्या: ....
+
+------
+
+प्रश्न 2. ........"></textarea>
+        <div class="format-tip"><b>Format:</b> 1, 2, 3 या जितने चाहें प्रश्न paste करें। PDF upload करते समय passing percentage अलग से तय होगी।</div>
+        <button class="btn btn-green" onclick="saveVerificationBatch('${x.id}','${dayId}')">Parse & Save PDF Verification</button>
+      </div>
+    </div>
+  </details>`).join('')||'<div class="item">इस Day में पहले Daily Targets जोड़ें।</div>';
+};
+
+saveVerificationBatch=async function(targetId,dayId){
+  const raw=document.getElementById('vqraw_'+targetId)?.value||'';
+  const parsed=parseRawQuestions(raw);
+  if(!parsed.length){toast('Valid PDF verification question नहीं मिला। Mock Test वाला format paste करें।','error');return}
+  const items=parsed.map(q=>({question_text:q.question_text||'PDF Verification',options:q.options,correct_answer:q.correct_answer,explanation:q.explanation||null}));
+  const rr=await sb.rpc('admin_replace_pdf_verifications',{
+    p_target_id:targetId,p_schedule_day_id:dayId,
+    p_show_question:document.getElementById('show_'+targetId)?.value==='true',p_items:items
+  });
+  if(rr.error){toast('PDF Verification save नहीं हुआ: '+rr.error.message,'error');return}
+  toast(parsed.length+' PDF Verification Questions save हो गए।','success');
+  document.getElementById('vqraw_'+targetId).value='';
+  await Promise.all([loadDaySetup(),loadVerificationManager()]);
+};
+
+loadVerificationManager=async function(){
+  const host=document.getElementById('verificationManagerList');if(!host)return;
+  host.innerHTML='<div class="item">PDF Verification questions load हो रहे हैं...</div>';
+  const selectedDay=document.getElementById('verificationManagerDay')?.value||'';
+  let q=sb.from('verification_questions').select('id,target_id,schedule_day_id,question_text,options,show_question,is_active,sort_order,created_at').order('created_at',{ascending:false});
+  if(selectedDay)q=q.eq('schedule_day_id',selectedDay);
+  const [vr,tr,dr]=await Promise.all([q,sb.from('daily_targets').select('id,subject,topic,schedule_day_id,target_order'),sb.from('schedule_days').select('id,day_number,day_date')]);
+  if(vr.error){host.innerHTML='<div class="item text-error">'+esc(vr.error.message)+'</div>';return}
+  const targets={};(tr.data||[]).forEach(x=>targets[x.id]=x);const daysMap={};(dr.data||[]).forEach(x=>daysMap[x.id]=x);
+  const rows=vr.data||[];if(!rows.length){host.innerHTML='<div class="item">कोई PDF Verification Question मौजूद नहीं है।</div>';return}
+  host.innerHTML=rows.map(v=>{
+    const target=targets[v.target_id]||null,day=daysMap[v.schedule_day_id]||daysMap[target?.schedule_day_id]||null,opts=Array.isArray(v.options)?v.options:[];
+    return `<div class="verification-manager-item"><div class="verification-manager-meta"><span class="badge badge-blue">${day?`Day ${day.day_number}`:'Day नहीं मिला'}</span><span class="badge badge-purple">${target?esc(target.subject):'PDF Verification'}</span><span class="badge ${v.is_active===false?'badge-red':'badge-green'}">${v.is_active===false?'Inactive':'Active'}</span></div><div class="verification-manager-topic">${target?esc(target.topic):'Legacy Question'}</div><div class="verification-manager-question">${esc(v.question_text||'Hidden PDF Verification')}</div><div class="small muted">${v.show_question===false?'Question Hidden — केवल options दिखेंगे':'Question Visible'}</div>${opts.length?`<div class="verification-manager-options">${opts.map((o,i)=>`<div><b>${String.fromCharCode(65+i)}.</b> ${esc(String(o))}</div>`).join('')}</div>`:''}<div class="verification-manager-actions">${v.target_id?`<button class="btn btn-orange btn-mini" onclick="deleteTargetVerifications('${v.target_id}','${v.schedule_day_id||''}')">🗑 इस Topic के सभी Questions</button>`:''}<button class="btn btn-red btn-mini" onclick="deleteSingleVerificationQuestion('${v.id}')">🗑 केवल यह Question</button></div></div>`;
+  }).join('');
+};
+
+const __publishRawTestFinal=publishRawTest;
+publishRawTest=async function(){
+  if(isFinalDaily.checked&&isPdfGate.checked){toast('एक Test को Final Daily और PDF Download Gate दोनों न बनाएँ। अलग-अलग tests बनाइए।','error');return}
+  return __publishRawTestFinal();
+};
+
+loadTests=async function(){
+  const r=await sb.from('tests').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('created_at',{ascending:false});
+  publishedTests=r.data||[];
+  const host=document.getElementById('adminTests');
+  if(host)host.innerHTML=publishedTests.map(t=>{
+    const type=t.is_final_daily?'Final Daily Test':t.is_pdf_download_gate?'PDF Download Gate':'Standalone Mock Test';
+    return `<div class="item admin-delete-group"><div class="row wrap"><div><b>${esc(t.title||'Untitled Test')}</b><div class="muted">${type} • ${t.total_questions||0} Questions • Pass ${t.passing_percent||0}%</div></div><div class="row wrap"><button class="btn btn-light btn-mini" onclick="loadTestQuestionsAdmin('${t.id}');document.getElementById('testQuestions_${t.id}').classList.toggle('hidden')">Manage Questions</button><button class="btn btn-red btn-mini" onclick="deleteTest('${t.id}')">Delete Test</button></div></div><div id="testQuestions_${t.id}" class="hidden admin-delete-inner"></div></div>`;
+  }).join('')||'<div class="item">अभी कोई Test नहीं है।</div>';
+  if(typeof pdfTest!=='undefined'&&pdfTest){
+    const gateTests=publishedTests.filter(t=>t.is_pdf_download_gate);
+    pdfTest.innerHTML='<option value="">No Test</option>'+gateTests.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('');
+  }
+};
+
+uploadPdf=async function(){
+  const f=pdfFile.files[0];
+  if(!f){toast('PDF चुनें','error');return}
+  if(f.type&&f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}
+  if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
+  const access=pdfAccess.value;
+  if(access==='test_required'&&!pdfTest.value){toast('Download के लिए PDF Gate Mock Test चुनना जरूरी है।','error');return}
+  const verifyRequired=document.getElementById('pdfVerificationRequired')?.value!=='false';
+  const verifyPass=Math.max(0,Math.min(100,Number(document.getElementById('pdfVerifyPass')?.value||30)));
+  const btn=document.querySelector('#pdfsTab button[onclick="uploadPdf()"]')||document.querySelector('button[onclick="uploadPdf()"]');
+  const oldText=btn?.textContent||'Upload PDF';if(btn){btn.disabled=true;btn.textContent='Uploading securely to R2...';}
+  let uploadedKey=null;
+  try{
+    const uploadRes=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(f.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f});
+    if(!uploadRes.ok)throw new Error(await r2ErrorMessage(uploadRes,'R2 upload failed'));
+    uploadedKey=(await uploadRes.json()).key;if(!uploadedKey)throw new Error('R2 file key नहीं मिला।');
+    const ins=await sb.from('study_materials').insert({
+      schedule_day_id:pdfDay.value,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:uploadedKey,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',access_mode:access,
+      download_test_id:access==='test_required'?(pdfTest.value||null):null,download_pass_percent:+pdfPass.value||80,
+      requires_pdf_verification:verifyRequired,pdf_verification_pass_percent:verifyPass,
+      requires_class_verification:false,uploaded_by:adminUser.id,published_at:new Date().toISOString()
+    }).select().single();
+    if(ins.error){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(uploadedKey)}`,{method:'DELETE'})}catch(_){}throw new Error(ins.error.message)}
+    await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);
+    pdfTitle.value='';pdfFile.value='';toast('PDF Cloudflare R2 में upload हो गई।','success');await loadMaterials();
+  }catch(e){console.error(e);toast(e.message||'PDF upload नहीं हो पाई।','error')}
+  finally{if(btn){btn.disabled=false;btn.textContent=oldText;}}
+};
+
+loadMaterials=async function(){
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date)').order('created_at',{ascending:false});
+  const rows=r.data||[],host=document.getElementById('materialsList');if(!host)return;
+  host.innerHTML=rows.map(m=>`<div class="item admin-delete-group"><div class="row wrap" style="justify-content:space-between;align-items:center"><div><b>📄 ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${esc(m.access_mode||'read_only')}</div><div class="small">${m.requires_pdf_verification===false?'PDF Verification: नहीं':`PDF Verification: ${Number(m.pdf_verification_pass_percent||30)}%`} • ${m.access_mode==='test_required'?`Download Test: ${Number(m.download_pass_percent||80)}%`:'Download Gate: नहीं'} • ${isR2PdfPath(m.storage_path)?'☁ R2':'Legacy'}</div></div><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>🗑 Delete PDF</button></div></div>`).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
+};
+
 init();
