@@ -23,7 +23,7 @@ D. Browser में पुरानी PWA/cache हटाने के लि�
 WELCOME LINKS
 config.js में ये values हैं:
 TELEGRAM_URL: https://t.me/gkbypurushotamsir
-YOUTUBE_URL: https://www.youtube.com/@gkbypurushotamsir
+YOUTUBE_URL: https://youtube.com/@gkbypurushotamsir007?si=_0OqQKcPhURoTLIE
 यदि वास्तविक YouTube handle अलग है तो केवल YOUTUBE_URL बदलें।
 
 IMPORTANT MFA RECOVERY

@@ -12,7 +12,7 @@ const MAX_TOPICS = 5;
 const PER_QUESTION_SECONDS = 25;
 const QUESTION_LIMIT_OPTIONS = [10, 20, 30, 40, 50, 75, 100];
 
-const YOUTUBE_CHANNEL_LINK = "https://youtube.com/@gkbypurushotamsir007?si=3wWoRTBsoisrBzzQ";
+const YOUTUBE_CHANNEL_LINK = "https://youtube.com/@gkbypurushotamsir007?si=_0OqQKcPhURoTLIE";
 const TELEGRAM_CHANNEL_LINK = "https://t.me/gkbypurushotamsir";
 
 let questionCounts = {};

@@ -30,3 +30,10 @@ V12.3 HOME BRANDING UPDATE:
 - New pastel “हमसे जुड़ें” card added on signed-in Home page.
 - Card is placed after quick-action cards and immediately before the student greeting.
 - Existing databases, Workers, CBT and PDF systems unchanged.
+
+
+V12.4 OFFICIAL CHANNEL LOGO/LINK FIX:
+- Signed-in regular Home tab placement retained; first-time onboarding remains unchanged.
+- YouTube link updated to the user-supplied official channel URL.
+- YouTube and Telegram buttons now show clear logo SVGs; plane/play text symbols removed.
+- Existing Target, PDF, CBT, Turso, Supabase and Cloudflare systems unchanged.

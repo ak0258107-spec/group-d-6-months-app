@@ -20,3 +20,5 @@ GK BY PURUSHOTAM SIR — COMPLETE V12.1 CORRECTED
 
 
 V12.3 के लिए: केवल GitHub में सभी 98 files upload/replace करके Commit करें। Cloudflare, Turso, Supabase और R2 में कोई बदलाव नहीं करना है।
+
+V12.4 के लिए: केवल GitHub में सभी 98 files upload/replace करके Commit करें। नियमित Login के बाद Home tab में YouTube और Telegram buttons हर बार दिखेंगे। सही YouTube link और दोनों स्पष्ट logos लगाए गए हैं। Cloudflare, Turso, Supabase और R2 में कोई बदलाव नहीं करना है।

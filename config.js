@@ -10,6 +10,6 @@ window.APP_CONFIG = Object.freeze({
   BATCH_START: "2026-08-03",
   BATCH_END: "2027-02-28",
   TELEGRAM_URL: "https://t.me/gkbypurushotamsir",
-  YOUTUBE_URL: "https://www.youtube.com/@gkbypurushotamsir",
+  YOUTUBE_URL: "https://youtube.com/@gkbypurushotamsir007?si=_0OqQKcPhURoTLIE",
   ADMIN_SESSION_IDLE_MINUTES: 20
 });

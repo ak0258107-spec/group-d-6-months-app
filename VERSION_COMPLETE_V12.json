@@ -1,13 +1,12 @@
 {
-  "version": "12.3.0",
+  "version": "12.4.0",
   "type": "complete-project",
   "files_expected": 98,
   "changes": [
-    "official YouTube and Telegram links moved out of onboarding",
-    "official channel branding card placed after Home quick-action cards and before student greeting",
-    "pastel channel buttons with high-contrast readable text",
-    "top navigation, bottom install button and dynamic active-question topics retained",
-    "Target Batch Supabase and Mock Test Turso separation retained",
-    "10 MCQ layout support retained"
+    "signed-in regular Home tab keeps official channel card visible on every Home visit",
+    "YouTube button updated to the supplied official channel URL",
+    "YouTube and Telegram buttons now use clear inline official-style logos instead of play/plane text symbols",
+    "first-time registration onboarding remains free of channel buttons",
+    "all Target Batch, CBT, Turso, Supabase, PDF and Worker behaviour retained unchanged"
   ]
 }
