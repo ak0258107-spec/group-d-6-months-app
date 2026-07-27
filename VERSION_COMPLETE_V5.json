@@ -1,0 +1,17 @@
+{
+  "version": "COMPLETE_V5",
+  "date": "2026-07-26",
+  "changes": [
+    "Explicit implicit auth flow for client-only GitHub Pages PWA",
+    "Recovery pages support token_hash, implicit hash tokens, and auth code",
+    "Admin/student role checks retained",
+    "Supabase reset email template provided as copy-paste HTML",
+    "Service worker cache bumped"
+  ],
+  "deploy": {
+    "github": "all files",
+    "supabase_sql": "none",
+    "supabase_email_template": "manual one-time paste",
+    "cloudflare": "none"
+  }
+}

@@ -159,7 +159,7 @@ async function sendAdminRecoveryLink(){
   const email=document.getElementById('adminForgotEmail')?.value.trim().toLowerCase()||'';
   if(!isAdminLoginEmail(email))return adminGateMessage('Registered Admin Email लिखें।');
   try{
-    const redirectTo=new URL('r6p1w9k4-z8x2m7q5-v3n6c1t9.html?mode=recovery',location.href).href;
+    const redirectTo=new URL('r6p1w9k4-z8x2m7q5-v3n6c1t9.html',location.href).href;
     const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
     if(error)throw error;
     adminGateMessage('Password Reset Link Admin Email पर भेज दिया गया है। Reset के बाद Authenticator सुरक्षा फिर भी लागू रहेगी।','success');

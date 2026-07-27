@@ -1,0 +1,35 @@
+GK BY PURUSHOTAM SIR — COMPLETE V5
+
+आपको केवल 2 जगह काम करना है:
+
+1) GITHUB
+- इस ZIP को Extract करें।
+- ZIP के अंदर की सभी files GitHub repository के root में Upload/Replace करें।
+- Commit changes करें।
+
+2) SUPABASE — यह एक बार करना जरूरी है
+- Supabase खोलें।
+- बाईं तरफ Authentication पर क्लिक करें।
+- Email Templates पर क्लिक करें।
+- Reset Password template खोलें।
+- Body/Message box में जो पुराना code है, उसे पूरा हटाएँ।
+- इसी ZIP की file COPY_THIS_IN_SUPABASE_RESET_PASSWORD_TEMPLATE.txt खोलें।
+- उसका पूरा code Copy करके Body/Message box में Paste करें।
+- Save पर क्लिक करें।
+
+Redirect URL भी जाँचें:
+Authentication → URL Configuration → Redirect URLs
+यह URL होना चाहिए:
+https://ak0258107-spec.github.io/group-d-6-months-app/**
+
+3) CLOUDFLARE
+- इस V5 update के लिए Cloudflare में कुछ नहीं करना।
+- कोई SQL नहीं चलानी।
+
+TEST
+- पुराने reset email का link इस्तेमाल न करें।
+- Admin panel से नया Reset Link भेजें।
+- नए email का Reset Password button खोलें।
+- नया password भरें।
+
+नोट: Supabase Email Template, GitHub ZIP के अंदर से अपने-आप नहीं बदल सकती। इसलिए ऊपर वाला एक manual Paste अनिवार्य है।

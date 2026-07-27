@@ -194,8 +194,10 @@ sb.auth.onAuthStateChange((event,session)=>{
 (async()=>{
   const {data:{session}}=await sb.auth.getSession();
   if(recoveryModeRequested){
-    if(session) openRecoveryPasswordForm();
-    else showMsg("Reset link invalid या expire हो चुका है। नया Reset Link मंगवाएँ।");
+    document.getElementById('welcomeScreen')?.classList.add('hidden');
+    document.body.classList.remove('welcome-open');
+    showForgot();
+    showMsg("यह पुराना Reset Link format है। नया Reset Link मंगवाएँ; V4 में अलग secure recovery page खुलेगा।");
     return;
   }
   if(session && !welcomePending){
@@ -305,7 +307,7 @@ async function sendResetLink(){
   const oldText=btn?btn.textContent:"Send Reset Link";
   if(btn){btn.disabled=true;btn.textContent="Sending...";}
   try{
-    const redirectTo=new URL("./index.html?mode=recovery",location.href).href;
+    const redirectTo=new URL("./s4n8v2k7-r1p6x9m3-c5t8q4z2.html",location.href).href;
     const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
     if(error)throw error;
     showMsg("Password Reset Link Email पर भेज दिया गया है। Inbox, Promotions और Spam check करें।","success");

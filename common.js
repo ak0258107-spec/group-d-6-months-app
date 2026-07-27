@@ -1,4 +1,15 @@
-const sb = window.supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_PUBLISHABLE_KEY);
+const sb = window.supabase.createClient(
+  APP_CONFIG.SUPABASE_URL,
+  APP_CONFIG.SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth:{
+      flowType:'implicit',
+      detectSessionInUrl:true,
+      persistSession:true,
+      autoRefreshToken:true
+    }
+  }
+);
 
 async function requireAuth() {
   const { data: { session } } = await sb.auth.getSession();

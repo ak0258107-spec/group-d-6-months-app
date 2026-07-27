@@ -1,0 +1,24 @@
+GK BY PURUSHOTAM SIR — COMPLETE V4
+
+समस्या का कारण:
+Reset request installed PWA में शुरू हुई और Email link दूसरे browser/context में खुला। पुराने session/PKCE flow में browser का verifier/session साथ नहीं मिला, इसलिए “Auth session missing” आया। V4 token_hash को recovery page पर verify करता है; पुराने browser session पर निर्भर नहीं रहता।
+
+करना क्या है:
+1. GitHub: इस ZIP की सभी files repository root में upload/replace करके Commit करें।
+2. Supabase → Authentication → URL Configuration:
+   Site URL: https://ak0258107-spec.github.io/group-d-6-months-app/
+   Redirect URL: https://ak0258107-spec.github.io/group-d-6-months-app/**
+3. Supabase → Authentication → Email Templates → Reset Password:
+   SUPABASE_RESET_PASSWORD_TEMPLATE_V4.txt में दिया हुआ link/template save करें।
+4. Supabase SQL: कुछ नहीं चलाना।
+5. Cloudflare Worker/R2: कुछ नहीं बदलना।
+6. पुराना Reset Email इस्तेमाल न करें। V4 deploy और template save होने के बाद नया Reset Link भेजें।
+
+Admin Login:
+https://ak0258107-spec.github.io/group-d-6-months-app/q9v3x7k2-r8m4p6t1-z5n7c2w9.html
+
+Admin Recovery Page (Email अपने-आप खोलेगा):
+https://ak0258107-spec.github.io/group-d-6-months-app/r6p1w9k4-z8x2m7q5-v3n6c1t9.html
+
+Student Recovery Page (Email अपने-आप खोलेगा):
+https://ak0258107-spec.github.io/group-d-6-months-app/s4n8v2k7-r1p6x9m3-c5t8q4z2.html
