@@ -1,0 +1,5 @@
+{
+  "version": "COMPLETE_V9",
+  "fix": "Admin MFA gate uses natural document scrolling instead of a fixed overlay; critical CSS is inline and cache-busted.",
+  "deploy": {"github": true, "supabase": false, "cloudflare": false}
+}

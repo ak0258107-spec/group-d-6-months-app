@@ -1,7 +1,17 @@
-<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Panel | GK BY PURUSHOTAM SIR</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="common.js"></script><link rel="manifest" href="manifest.json">
+<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Panel | GK BY PURUSHOTAM SIR</title><link rel="stylesheet" href="styles.css?v=9.0.0"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=9.0.0"></script><script src="common.js?v=9.0.0"></script><link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 <meta name="theme-color" content="#9f0000">
+<style id="adminGateCriticalV9">
+html{min-height:100%;overflow-y:auto!important}
+body.admin-security-pending{min-height:100dvh!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important}
+body.admin-security-pending .admin-shell{display:none!important}
+body.admin-authorized .admin-shell{display:grid!important}
+body.admin-security-pending .admin-gate-overlay{position:relative!important;inset:auto!important;width:100%!important;min-height:100dvh!important;height:auto!important;display:block!important;overflow:visible!important;padding:16px 12px 56px!important}
+body.admin-security-pending .admin-gate-card{width:min(460px,calc(100vw - 24px))!important;max-width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;margin:0 auto!important;padding:20px!important}
+body.admin-security-pending .admin-mfa-qr img,body.admin-security-pending .admin-mfa-qr svg{width:min(180px,48vw)!important;height:auto!important}
+@media(max-height:680px){body.admin-security-pending .admin-gate-overlay{padding-top:8px!important;padding-bottom:40px!important}body.admin-security-pending .admin-gate-card{padding:14px!important}body.admin-security-pending .admin-mfa-qr img,body.admin-security-pending .admin-mfa-qr svg{width:min(132px,38vw)!important}}
+</style>
 </head><body class="admin-security-pending">
 
 <div id="adminGateOverlay" class="admin-gate-overlay">
@@ -166,5 +176,5 @@
     </div>
   </div>
 </section>
-</main></div><script src="admin.js"></script><script src="final-fix.js"></script>
+</main></div><script src="admin.js?v=9.0.0"></script><script src="final-fix.js"></script>
 </body></html>

@@ -1,0 +1,12 @@
+GK BY PURUSHOTAM SIR — COMPLETE V9
+
+1. ZIP extract करें।
+2. सभी files GitHub repository के root में upload/replace करें।
+3. Commit changes करें और GitHub Pages deployment पूरा होने दें।
+4. Admin link को बंद करके दोबारा खोलें। styles.css?v=9.0.0 होने के कारण पुराना CSS cache उपयोग नहीं होगा।
+
+Supabase: कोई बदलाव नहीं।
+Cloudflare/R2: कोई बदलाव नहीं।
+SQL: कुछ नहीं चलाना।
+
+V9 fix: Admin security/MFA screen अब fixed overlay नहीं है। यह normal page content है, इसलिए browser/PWA की अपनी vertical scrolling हमेशा उपलब्ध रहेगी।
