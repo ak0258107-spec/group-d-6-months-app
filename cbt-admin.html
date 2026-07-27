@@ -1,0 +1,2137 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haryana GK Admin Panel - GK BY PURUSHOTAM SIR</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js?v=11.0.0"></script>
+    <script src="common.js?v=11.0.0"></script>
+    <script src="cbt-topics-data.js?v=11.0.0"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #111827;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: url("cbt-logo.webp");
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: min(52vw, 420px) auto;
+            opacity: 0.08;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrap {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 18px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .top-box,
+        .panel {
+            background: rgba(255,255,255,0.96);
+            border: 2px solid #111827;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 6px 18px rgba(15,23,42,0.12);
+        }
+
+        .top-box { text-align: center; }
+
+        .top-flex {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .top-flex img {
+            width: 62px;
+            height: 62px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            padding: 4px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 900;
+        }
+
+        h2 {
+            margin: 6px 0 0;
+            color: #7f1d1d;
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        h3 {
+            margin: 0 0 12px;
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .help {
+            background: #fffbeb;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.6;
+        }
+
+        .subject-box {
+            background: #dcfce7;
+            color: #14532d;
+            border: 2px solid #16a34a;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-weight: 900;
+            margin-bottom: 6px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border: 2px solid #111827;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            background: #fff;
+            outline: none;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
+        }
+
+        textarea {
+            min-height: 430px;
+            resize: vertical;
+            line-height: 1.5;
+            font-family: Arial, sans-serif;
+        }
+
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .grid3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 11px 18px;
+            font-size: 16px;
+            font-weight: 900;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .blue { background: #2563eb; }
+        .green { background: #15803d; }
+        .orange { background: #c2410c; }
+        .yellow { background: #b7791f; }
+        .gray { background: #374151; }
+        .red { background: #dc2626; }
+        .purple { background: #7c3aed; }
+        .darkred { background: #991b1b; }
+
+        .login-box {
+            max-width: 520px;
+            margin: 35px auto;
+        }
+
+        .hidden { display: none !important; }
+
+        .topic-toolbar {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: end;
+            margin-top: 12px;
+        }
+
+        .topic-count-pill {
+            display: inline-block;
+            background: #111827;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .topic-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            max-height: 380px;
+            overflow: auto;
+            padding: 10px;
+            border: 2px solid #111827;
+            border-radius: 12px;
+            background: #f8fafc;
+            margin-top: 10px;
+        }
+
+        .topic-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            border: 2px solid #e5e7eb;
+            background: #fff;
+            border-radius: 10px;
+            padding: 9px;
+            font-weight: 900;
+            line-height: 1.35;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .topic-card:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .topic-card input {
+            width: auto;
+            margin-top: 3px;
+            transform: scale(1.15);
+        }
+
+        .topic-card.selected {
+            border-color: #15803d;
+            background: #dcfce7;
+            color: #14532d;
+        }
+
+        .topic-name-wrap {
+            flex: 1;
+        }
+
+        .q-count {
+            display: inline-block;
+            margin-top: 5px;
+            background: #111827;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .q-count.zero {
+            background: #6b7280;
+        }
+
+        .q-count.good {
+            background: #15803d;
+        }
+
+        .chips {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            background: #dbeafe;
+            color: #1e3a8a;
+            border: 2px solid #2563eb;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-weight: 900;
+            font-size: 13px;
+        }
+
+        .danger-chip {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border-color: #dc2626;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 800;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .ok {
+            background: #dcfce7;
+            color: #14532d;
+            border: 2px solid #16a34a;
+        }
+
+        .err {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border: 2px solid #dc2626;
+        }
+
+        .info {
+            background: #dbeafe;
+            color: #1e3a8a;
+            border: 2px solid #2563eb;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .summary-card {
+            background: #f9fafb;
+            border: 2px solid #d1d5db;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            font-weight: 900;
+        }
+
+        .summary-card span {
+            display: block;
+            font-size: 26px;
+            color: #111827;
+            margin-top: 5px;
+        }
+
+        .count-board {
+            margin-top: 12px;
+            max-height: 420px;
+            overflow: auto;
+            border: 2px solid #111827;
+            border-radius: 12px;
+            background: #f8fafc;
+            padding: 10px;
+        }
+
+        .count-row {
+            display: grid;
+            grid-template-columns: 70px 1fr 90px;
+            gap: 8px;
+            align-items: center;
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 8px;
+            margin-bottom: 7px;
+            font-weight: 900;
+        }
+
+        .count-row.zero {
+            opacity: 0.72;
+        }
+
+        .count-number {
+            background: #111827;
+            color: #fff;
+            border-radius: 999px;
+            padding: 6px 8px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .count-total {
+            background: #dcfce7;
+            color: #14532d;
+            border: 2px solid #16a34a;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 18px;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .error-list {
+            margin-top: 10px;
+            max-height: 260px;
+            overflow: auto;
+            background: #fff7f7;
+            border: 2px solid #dc2626;
+            border-radius: 10px;
+            padding: 10px;
+            font-weight: 800;
+            color: #7f1d1d;
+        }
+
+        .preview-box {
+            margin-top: 12px;
+            max-height: 420px;
+            overflow: auto;
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .preview-item {
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-left: 6px solid #16a34a;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 1.45;
+            font-weight: 700;
+        }
+
+        @media (max-width: 850px) {
+            .grid2, .grid3 { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+            .topic-grid { grid-template-columns: 1fr; }
+            .topic-toolbar { grid-template-columns: 1fr; }
+            .count-row { grid-template-columns: 1fr; }
+            h1 { font-size: 24px; }
+            h2 { font-size: 18px; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="top-box">
+            <div class="top-flex">
+                <img src="cbt-logo.webp" alt="Logo" onerror="this.style.display='none'">
+                <div>
+                    <h1>GK BY PURUSHOTAM SIR</h1>
+                    <h2>ALL SUBJECTS CBT QUESTION BANK ADMIN</h2>
+                </div>
+            </div><div style="margin-left:auto"><a href="q9v3x7k2-r8m4p6t1-z5n7c2w9.html" style="color:#fff;font-weight:900">← Main Admin</a></div>
+        </div>
+
+        <div id="loginPanel" class="panel login-box">
+            <h3>Admin Security Check</h3>
+            <div id="loginStatus" class="status info">Existing Supabase Admin session verify हो रही है...</div>
+            <input id="adminPasswordInput" type="hidden">
+        </div>
+
+        <div id="adminPanel" class="hidden">
+            <div class="panel">
+                <h3>Live Admin Message</h3>
+                <div id="topActionStatus" class="status info">Admin panel ready होने पर यहाँ upload/delete/count message दिखेंगे।</div>
+            </div>
+
+            <div class="panel">
+                <h3>Admin Security</h3>
+                <div class="help">
+                    Admin panel unlocked है। Upload, Delete, Count और Sync requests admin password token के साथ जाएंगी।
+                </div>
+                <div class="btn-row">
+                    <button type="button" class="red" onclick="logoutAdmin()">Logout / Lock Admin</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Subject और Topic Setup</h3>
+                <div class="grid2">
+                    <div><label>Active Subject</label><select id="adminSubjectSelect" onchange="changeAdminSubject(this.value)"></select></div>
+                    <div><label>नया Subject Name</label><input id="newSubjectName" placeholder="जैसे History"></div>
+                    <div><label>Subject Key</label><input id="newSubjectKey" placeholder="जैसे indian_history"></div>
+                    <div><label>Topics (हर लाइन में एक)</label><textarea id="newTopicsBox" style="min-height:110px" placeholder="प्राचीन इतिहास
+मध्यकालीन इतिहास
+आधुनिक इतिहास"></textarea></div>
+                </div>
+                <div class="btn-row"><button type="button" class="green" onclick="saveSubjectTopics()">Save / Sync Subject Topics</button><button type="button" class="blue" onclick="loadTopics()">Refresh Catalog</button></div>
+                <div class="help">Mock Test database अलग Turso database रहेगा। यहाँ बनाए गए Subjects/Topics Target Batch Supabase में नहीं जाएंगे।</div>
+            </div>
+
+            <div class="panel">
+                <h3>Database Topic Sync</h3>
+                <div class="subject-box">Selected Subject: <span id="selectedSubjectLabel">Loading...</span></div>
+                <div class="help">
+                    Admin panel में हमेशा <b>topics-data.js</b> वाली selected Subject की topic list ही दिखाई जाएगी।
+                </div>
+                <div class="btn-row">
+                    <button type="button" class="orange" id="syncBtn" onclick="syncTopicsToDatabase()">Sync Selected Subject Topics</button>
+                    <button type="button" class="blue" onclick="loadTopics()">Refresh Final Topics</button>
+                    <button type="button" class="purple" onclick="loadQuestionCounts(false)">Refresh Question Counts</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Question Count Board</h3>
+                <div class="grid3">
+                    <div class="count-total">
+                        Total Questions
+                        <br>
+                        <span id="totalQuestionCount">0</span>
+                    </div>
+                    <div class="count-total">
+                        Topics With Questions
+                        <br>
+                        <span id="topicsWithQuestionCount">0</span>
+                    </div>
+                    <div class="count-total">
+                        Empty Topics
+                        <br>
+                        <span id="emptyTopicCount">0</span>
+                    </div>
+                </div>
+
+                <div class="help" style="margin-top:12px;">
+                    नीचे हर topic के सामने उसके database में पड़े questions की संख्या दिखेगी।
+                    Upload या Delete के बाद count अपने-आप refresh होगा।
+                </div>
+
+                <div id="questionCountBoard" class="count-board">
+                    Counts loading...
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Danger Zone - Delete Questions</h3>
+                <div class="help">
+                    <b>Delete Selected Topic Questions</b> से सिर्फ selected topics के questions delete होंगे।<br>
+                    <b>Delete All Questions / Fresh Start</b> से पूरे database के सारे questions delete होंगे।<br>
+                    दोनों में Admin Password और confirmation word मांगा जाएगा। Topics delete नहीं होंगे।
+                </div>
+
+                <div id="deleteSelectedTopicBox" class="chips"></div>
+
+                <div class="btn-row">
+                    <button type="button" class="red" onclick="deleteEmptyOptionQuestionsOnly()">
+                        🧹 Empty Option / One-Liner हटाएँ
+                    </button>
+
+                    <button type="button" class="red" onclick="deleteSelectedTopicQuestions()">
+                        Delete Selected Topic Questions
+                    </button>
+
+                    <button type="button" class="darkred" onclick="deleteAllQuestionsFreshStart()">
+                        ⚠ Delete All Questions / Fresh Start
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Question Upload System</h3>
+                <div class="subject-box">Subject: <span id="uploadSubjectLabel">Loading...</span></div>
+
+                <div class="grid2">
+                    <div>
+                        <label>Difficulty Select करें</label>
+                        <select id="difficultySelect">
+                            <option value="normal" selected>Normal</option>
+                            <option value="easy">Easy</option>
+                            <option value="tough">Tough</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Selected Topic Limit</label>
+                        <div class="topic-count-pill" id="topicCountPill">0/5 Topics Selected</div>
+                    </div>
+                </div>
+
+                <div class="topic-toolbar">
+                    <div>
+                        <label>Topic Search करें</label>
+                        <input id="topicSearchInput" type="text" placeholder="Topic search करें... जैसे गठन, कृषि, कथन">
+                    </div>
+
+                    <div class="btn-row" style="margin-top:0;">
+                        <button type="button" class="gray" onclick="clearSelectedTopics()">Clear Topics</button>
+                    </div>
+                </div>
+
+                <div id="topicGrid" class="topic-grid">Topics loading...</div>
+                <div id="selectedTopicBox" class="chips"></div>
+
+                <div class="btn-row">
+                    <button type="button" class="yellow" onclick="insertSampleFormat()">Sample Format डालें</button>
+                    <button type="button" class="gray" onclick="clearBox()">Clear Box</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Questions Paste Box</h3>
+                <div class="help">
+                    Normal MCQ, क/ख/ग/घ, कथन-निष्कर्ष, कथन-1/कथन-2, Assertion-Reason,
+                    मिलान, सही कूट, कालानुक्रम, रिक्त स्थान, Odd One Out — सभी format चलेंगे।
+                    <br>
+                    Answer format: <b>उत्तर: A</b>, <b>उत्तर: (C) झज्जर — हिसार</b>,
+                    <b>सही उत्तर विकल्प (A)</b>, <b>Ans. (B)</b>, <b>Correct Answer: (D)</b>
+                </div>
+
+                <br>
+
+                <textarea id="questionsBox" placeholder="यहाँ selected Subject/Topic के questions paste करें..."></textarea>
+
+                <div class="btn-row">
+                    <button type="button" class="blue" onclick="validateQuestions()">Validate Questions</button>
+                    <button type="button" class="purple" onclick="showPreview()">Preview Parsed Questions</button>
+                    <button type="button" class="green" id="uploadBtn" onclick="uploadQuestions()" disabled>Upload to Database</button>
+                </div>
+
+                <div class="summary-grid">
+                    <div class="summary-card">Found <span id="foundCount">0</span></div>
+                    <div class="summary-card">Valid <span id="validCount">0</span></div>
+                    <div class="summary-card">Inserted <span id="insertedCount">0</span></div>
+                    <div class="summary-card">Duplicate <span id="duplicateCount">0</span></div>
+                    <div class="summary-card">Errors <span id="errorCount">0</span></div>
+                    <div class="summary-card">Dummy <span id="dummyCount">0</span></div>
+                </div>
+
+                <div id="statusBox" class="status info">Ready</div>
+                <div id="errorList" class="error-list hidden"></div>
+                <div id="previewBox" class="preview-box hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = String((window.APP_CONFIG && window.APP_CONFIG.MOCK_TEST_API_URL) || "https://exam-arena-api-live.ak0258107.workers.dev/api").replace(/\/+$/, "");
+        const ADMIN_STORAGE_KEY = "EXAM_ARENA_ADMIN_TOKEN";
+        let FIXED_SUBJECT_KEY = "haryana_gk";
+        let FIXED_SUBJECT_NAME = "Haryana GK";
+        let adminCatalogSubjects = [];
+        let currentAdminUser = null;
+        let currentAdminProfile = null;
+        let currentAdminAccessToken = "";
+        const MAX_TOPIC_SELECT = 5;
+        const FIRST_BATCH_SIZE = 20;
+
+        const ANSWER_PREFIX_PATTERN = "(?:सही\\s*उत्तर\\s*विकल्प|उत्तर\\s*विकल्प|सही\\s*उत्तर|उत्तर|Correct\\s*Answer|Answer|Ans|Correct|जवाब|सही\\s*जवाब)";
+        const EXPLANATION_PREFIX_PATTERN = "(?:व्याख्या|Explanation|Explain|Exp|Solution|समाधान|स्पष्टीकरण)";
+
+        let allTopics = [];
+        let lastValidation = null;
+        let isUploading = false;
+        let questionCountMap = {};
+        let totalQuestionsInDb = 0;
+
+        const loginPanel = document.getElementById("loginPanel");
+        const adminPanel = document.getElementById("adminPanel");
+        const adminPasswordInput = document.getElementById("adminPasswordInput");
+        const loginStatus = document.getElementById("loginStatus");
+        const difficultySelect = document.getElementById("difficultySelect");
+        const questionsBox = document.getElementById("questionsBox");
+        const uploadBtn = document.getElementById("uploadBtn");
+        const topicGrid = document.getElementById("topicGrid");
+        const topicSearchInput = document.getElementById("topicSearchInput");
+        const topicCountPill = document.getElementById("topicCountPill");
+        const selectedTopicBox = document.getElementById("selectedTopicBox");
+        const deleteSelectedTopicBox = document.getElementById("deleteSelectedTopicBox");
+        const topActionStatus = document.getElementById("topActionStatus");
+
+        window.__selectedTopicKeys = [];
+
+        function clean(value) {
+            return String(value == null ? "" : value)
+                .replace(/\r/g, "")
+                .replace(/\u00A0/g, " ")
+                .replace(/\u200B/g, "")
+                .replace(/[“”]/g, '"')
+                .replace(/[‘’]/g, "'")
+                .replace(/[–—]/g, "-")
+                .trim();
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function getAdminToken() { return currentAdminAccessToken || ""; }
+
+        function adminHeaders() { return { "Content-Type":"application/json", "Authorization":`Bearer ${getAdminToken()}` }; }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function normalizeForCompare(value) {
+            return clean(value)
+                .toLowerCase()
+                .replace(/[()\[\]{}:：\-–—.,।?]/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+        }
+
+        function scrollToTopStatus() {
+            if (topActionStatus) {
+                topActionStatus.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        }
+
+        function setLoginStatus(message, type) {
+            loginStatus.className = "status " + type;
+            loginStatus.textContent = message;
+        }
+
+        function setStatus(message, type = "info", important = false) {
+            const box = document.getElementById("statusBox");
+            if (box) {
+                box.className = "status " + type;
+                box.textContent = message;
+            }
+
+            if (topActionStatus) {
+                topActionStatus.className = "status " + type;
+                topActionStatus.textContent = message;
+            }
+
+            if (important) {
+                scrollToTopStatus();
+            }
+        }
+
+        function setStats(data) {
+            document.getElementById("foundCount").textContent = data.found || 0;
+            document.getElementById("validCount").textContent = data.valid || 0;
+            document.getElementById("insertedCount").textContent = data.inserted || 0;
+            document.getElementById("duplicateCount").textContent = data.duplicate || 0;
+            document.getElementById("errorCount").textContent = data.errors || 0;
+            document.getElementById("dummyCount").textContent = data.dummy || 0;
+        }
+
+        function showErrors(errors) {
+            const box = document.getElementById("errorList");
+
+            if (!errors || errors.length === 0) {
+                box.classList.add("hidden");
+                box.innerHTML = "";
+                return;
+            }
+
+            box.classList.remove("hidden");
+            box.innerHTML = errors.map(err => `<div>• ${escapeHtml(err)}</div>`).join("");
+        }
+
+        function hidePreview() {
+            const box = document.getElementById("previewBox");
+            box.classList.add("hidden");
+            box.innerHTML = "";
+        }
+
+        function unlockAdmin() { initAdminLock(); }
+
+        async function logoutAdmin() { await sb.auth.signOut(); location.href="index.html"; }
+
+        async function showAdminPanel() { loginPanel.classList.add("hidden"); adminPanel.classList.remove("hidden"); await loadTopics(); await loadQuestionCounts(true); setStatus("CBT Admin Panel Ready ✅", "ok"); }
+
+        async function initAdminLock() {
+            try {
+                currentAdminUser = await requireAuth(); if (!currentAdminUser) return;
+                currentAdminProfile = await getProfile(currentAdminUser.id);
+                if (!currentAdminProfile || String(currentAdminProfile.role || "").toLowerCase() !== "admin") { location.href="l4x8m2r7-k9v3t5n1-z6c4p8q2.html"; return; }
+                const {data:{session}}=await sb.auth.getSession(); currentAdminAccessToken=session?.access_token||"";
+                if(!currentAdminAccessToken) throw new Error("Admin session token नहीं मिला।");
+                setLoginStatus("Admin verified ✅", "ok"); await showAdminPanel();
+            } catch(error) { setLoginStatus("Admin verification failed: "+(error.message||"Unknown error"),"err"); }
+        }
+
+        function verifyAdminPasswordForDanger(actionText) { return confirm(`${actionText} जारी रखना है? Existing Admin login verified है।`); }
+
+        function getLocalTopics() {
+            const subject=adminCatalogSubjects.find((item)=>item.subject_key===FIXED_SUBJECT_KEY);
+            const source=subject && Array.isArray(subject.topics)?subject.topics:[];
+            const seen=new Set();
+            return source.map((topic,index)=>({subject_key:FIXED_SUBJECT_KEY,topic_key:clean(topic.topic_key||topic.key||topic.name),topic_name:clean(topic.topic_name||topic.name||topic.key),order:Number(topic.display_order||index+1)})).filter((topic)=>{if(!topic.topic_key||!topic.topic_name||seen.has(topic.topic_key))return false;seen.add(topic.topic_key);return true;});
+        }
+
+        async function changeAdminSubject(subjectKey) {
+            const subject=adminCatalogSubjects.find((item)=>item.subject_key===subjectKey); if(!subject)return;
+            FIXED_SUBJECT_KEY=subject.subject_key;FIXED_SUBJECT_NAME=subject.subject_name;window.__selectedTopicKeys=[];questionCountMap={};
+            await loadTopics();await loadQuestionCounts(true);
+        }
+
+        function makeAdminKey(value){return clean(value).toLowerCase().replace(/[^a-z0-9\u0900-\u097f]+/g,"_").replace(/^_+|_+$/g,"")||"subject";}
+
+        async function saveSubjectTopics(){
+            const name=clean(document.getElementById("newSubjectName").value)||FIXED_SUBJECT_NAME;
+            const key=clean(document.getElementById("newSubjectKey").value)||FIXED_SUBJECT_KEY||makeAdminKey(name);
+            const raw=clean(document.getElementById("newTopicsBox").value);
+            const existing=adminCatalogSubjects.find((s)=>s.subject_key===key);
+            const topics=raw?raw.split(/\n+/).map(clean).filter(Boolean).map((topic,index)=>({key:makeAdminKey(topic),name:topic,order:index+1})):(existing&&existing.topics||[]).map((t,index)=>({key:t.topic_key||t.key,name:t.topic_name||t.name,order:index+1}));
+            if(!name||!key){setStatus("Subject Name और Key जरूरी हैं।","err",true);return;}
+            try{
+                setStatus("Subject/Topics sync हो रहे हैं...","info",true);
+                const response=await fetch(`${API_BASE_URL}/admin/sync-topics`,{method:"POST",headers:adminHeaders(),body:JSON.stringify({subjects:[{key,name,order:(existing&&existing.display_order)||adminCatalogSubjects.length+1,topics}]})});
+                const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)throw new Error(data.error||data.message||"Sync failed");
+                FIXED_SUBJECT_KEY=key;FIXED_SUBJECT_NAME=name;document.getElementById("newSubjectName").value="";document.getElementById("newSubjectKey").value="";document.getElementById("newTopicsBox").value="";
+                await loadTopics();await loadQuestionCounts(true);setStatus(`Subject/Topics Sync Complete ✅\nInserted: ${data.topics_inserted||0}\nUpdated: ${data.topics_updated||0}`,"ok",true);
+            }catch(error){setStatus("Sync error: "+error.message,"err",true);}
+        }
+
+        function getTopicQuestionCount(topicKey) {
+            return Number(questionCountMap[topicKey] || 0);
+        }
+
+        async function loadTopics() {
+            try {
+                const response=await fetch(`${API_BASE_URL}/catalog?t=${Date.now()}`,{headers:adminHeaders()});
+                const data=await response.json().catch(()=>({}));
+                if(!response.ok||!data.success) throw new Error(data.error||"Catalog load नहीं हुआ।");
+                adminCatalogSubjects=(data.subjects||[]).map((s)=>({subject_key:clean(s.subject_key||s.key),subject_name:clean(s.subject_name||s.name),display_order:Number(s.display_order||0),topics:Array.isArray(s.topics)?s.topics:[]}));
+                if(!adminCatalogSubjects.length) throw new Error("कोई Subject नहीं मिला। पहले Subject/Topics save करें।");
+                if(!adminCatalogSubjects.some((s)=>s.subject_key===FIXED_SUBJECT_KEY)){FIXED_SUBJECT_KEY=adminCatalogSubjects[0].subject_key;FIXED_SUBJECT_NAME=adminCatalogSubjects[0].subject_name;}
+                const select=document.getElementById("adminSubjectSelect");
+                if(select){select.innerHTML=adminCatalogSubjects.map((s)=>`<option value="${escapeHtml(s.subject_key)}" ${s.subject_key===FIXED_SUBJECT_KEY?"selected":""}>${escapeHtml(s.subject_name)}</option>`).join("");}
+                const active=adminCatalogSubjects.find((s)=>s.subject_key===FIXED_SUBJECT_KEY); FIXED_SUBJECT_NAME=active?active.subject_name:FIXED_SUBJECT_NAME;
+                const label=document.getElementById("selectedSubjectLabel"); if(label)label.textContent=FIXED_SUBJECT_NAME;
+                const uploadLabel=document.getElementById("uploadSubjectLabel"); if(uploadLabel)uploadLabel.textContent=FIXED_SUBJECT_NAME;
+                allTopics=getLocalTopics();
+                const finalKeys=new Set(allTopics.map((topic)=>topic.topic_key)); window.__selectedTopicKeys=(window.__selectedTopicKeys||[]).filter((key)=>finalKeys.has(key));
+                renderTopics();updateSelectedTopicUI();renderQuestionCountBoard();setStatus(`${FIXED_SUBJECT_NAME} topics loaded ✅ Total: ${allTopics.length}`,"ok");
+            }catch(error){allTopics=[];topicGrid.innerHTML=`<div class="help">${escapeHtml(error.message||"Topics load नहीं हुए।")}</div>`;setStatus(error.message||"Topics load नहीं हुए।","err");}
+        }
+
+        async function loadQuestionCounts(silent = false) {
+            try {
+                if(!silent)setStatus("Question counts refresh हो रहे हैं...","info");
+                const response=await fetch(`${API_BASE_URL}/admin/summary?subject_key=${encodeURIComponent(FIXED_SUBJECT_KEY)}`,{method:"GET",headers:adminHeaders()});
+                const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)throw new Error(data.message||data.error||"Question counts load नहीं हुए।");
+                questionCountMap={};totalQuestionsInDb=Number(data.total_questions||0);(Array.isArray(data.by_topic)?data.by_topic:[]).forEach((row)=>{const key=clean(row.topic_key||"");if(key)questionCountMap[key]=Number(row.count||0);});
+                renderTopics();updateSelectedTopicUI();renderQuestionCountBoard();if(!silent)setStatus(`Question Counts Refreshed ✅\n${FIXED_SUBJECT_NAME}: ${totalQuestionsInDb}`,"ok",true);
+            }catch(error){setStatus("Count refresh error: "+error.message,"err",true);}
+        }
+
+        function renderQuestionCountBoard() {
+            const board = document.getElementById("questionCountBoard");
+            const totalEl = document.getElementById("totalQuestionCount");
+            const withEl = document.getElementById("topicsWithQuestionCount");
+            const emptyEl = document.getElementById("emptyTopicCount");
+
+            if (!board) return;
+
+            let topicsWithQuestions = 0;
+            let emptyTopics = 0;
+
+            const rows = allTopics.map((topic, index) => {
+                const count = getTopicQuestionCount(topic.topic_key);
+
+                if (count > 0) topicsWithQuestions++;
+                else emptyTopics++;
+
+                return `
+                    <div class="count-row ${count === 0 ? "zero" : ""}">
+                        <div class="count-number">${index + 1}</div>
+                        <div>${escapeHtml(topic.topic_name)}</div>
+                        <div class="q-count ${count === 0 ? "zero" : "good"}">${count} Q</div>
+                    </div>
+                `;
+            }).join("");
+
+            board.innerHTML = rows || "Topics नहीं मिले।";
+
+            if (totalEl) totalEl.textContent = totalQuestionsInDb;
+            if (withEl) withEl.textContent = topicsWithQuestions;
+            if (emptyEl) emptyEl.textContent = emptyTopics;
+        }
+
+        async function syncTopicsToDatabase() {
+            const localTopics=getLocalTopics();
+            if(!localTopics.length){setStatus("Selected Subject में topics नहीं हैं। ऊपर Topic Setup से जोड़ें।","err",true);return;}
+            try{
+                const response=await fetch(`${API_BASE_URL}/admin/sync-topics`,{method:"POST",headers:adminHeaders(),body:JSON.stringify({subjects:[{key:FIXED_SUBJECT_KEY,name:FIXED_SUBJECT_NAME,order:1,topics:localTopics.map((topic)=>({key:topic.topic_key,name:topic.topic_name,order:topic.order}))}]})});
+                const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)throw new Error(data.message||data.error||"Topic sync failed");
+                setStatus(`${FIXED_SUBJECT_NAME} Topics Sync Complete ✅\nTopics: ${localTopics.length}`,"ok",true);await loadTopics();await loadQuestionCounts(true);
+            }catch(error){setStatus("Sync error: "+error.message,"err",true);}
+        }
+
+
+        async function deleteEmptyOptionQuestionsOnly() {
+            const selectedTopics = getSelectedTopicsFull();
+
+            if (!selectedTopics.length) {
+                setStatus("पहले जिस topic से खाली option / One-Liner हटाने हैं, उसे select करें।", "err", true);
+                return;
+            }
+
+            const topicNames = selectedTopics.map((topic, index) => {
+                const count = getTopicQuestionCount(topic.topic_key);
+                return `${index + 1}. ${topic.topic_name} (${count} Q)`;
+            }).join("\n");
+
+            const confirmText = prompt(
+                `Safe Clean चलेगा। सिर्फ selected topics से वही questions हटेंगे जिनमें option A/B/C/D खाली हैं या One-Liner type गलती से test topic में चला गया है।\n\nसही MCQ questions safe रहेंगे।\n\nSelected topics:\n${topicNames}\n\nConfirm करने के लिए CLEAN लिखें:`
+            );
+
+            if (clean(confirmText).toUpperCase() !== "CLEAN") {
+                setStatus("Confirmation match नहीं हुई। Empty option clean cancel।", "info", true);
+                return;
+            }
+
+            if (!verifyAdminPasswordForDanger("Delete Empty Option / One-Liner Questions Only")) return;
+
+            try {
+                setStatus("Empty option / One-Liner type questions हट रहे हैं... कृपया wait करें।", "info", true);
+
+                const response = await fetch(`${API_BASE_URL}/admin/delete-empty-option-questions`, {
+                    method: "POST",
+                    headers: adminHeaders(),
+                    body: JSON.stringify({
+                        subject_key: FIXED_SUBJECT_KEY,
+                        topic_keys: selectedTopics.map(topic => topic.topic_key)
+                    })
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.success) {
+                    setStatus(data.message || data.error || "Empty option clean failed. Worker code deploy check करें।", "err", true);
+                    return;
+                }
+
+                lastValidation = null;
+                uploadBtn.disabled = true;
+
+                await loadQuestionCounts(true);
+
+                setStatus(
+                    `Safe Clean Complete ✅\nDeleted Empty/One-Liner Questions: ${data.deleted_questions || 0}\nTopics affected: ${selectedTopics.length}\n\n${topicNames}\n\nसही MCQ questions safe हैं। अब test में खाली option नहीं दिखने चाहिए।`,
+                    "ok",
+                    true
+                );
+
+            } catch (error) {
+                setStatus("Empty option clean error: " + error.message, "err", true);
+            }
+        }
+
+        async function deleteSelectedTopicQuestions() {
+            const selectedTopics = getSelectedTopicsFull();
+
+            if (!selectedTopics.length) {
+                setStatus("पहले जिस topic के questions delete करने हैं, उसे select करें।", "err", true);
+                return;
+            }
+
+            const topicNames = selectedTopics.map((topic, index) => {
+                const count = getTopicQuestionCount(topic.topic_key);
+                return `${index + 1}. ${topic.topic_name} (${count} Q)`;
+            }).join("\n");
+
+            const confirmText = prompt(
+                `Selected topics के questions delete होंगे:\n\n${topicNames}\n\nConfirm करने के लिए SELECTED लिखें:`
+            );
+
+            if (clean(confirmText).toUpperCase() !== "SELECTED") {
+                setStatus("Confirmation match नहीं हुई। Selected topic delete cancel।", "info", true);
+                return;
+            }
+
+            if (!verifyAdminPasswordForDanger("Delete Selected Topic Questions")) return;
+
+            try {
+                setStatus("Selected topics के questions delete हो रहे हैं... कृपया wait करें।", "info", true);
+
+                const response = await fetch(`${API_BASE_URL}/admin/delete-topic-questions`, {
+                    method: "POST",
+                    headers: adminHeaders(),
+                    body: JSON.stringify({
+                        subject_key: FIXED_SUBJECT_KEY,
+                        topic_keys: selectedTopics.map(topic => topic.topic_key)
+                    })
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.success) {
+                    setStatus(data.message || data.error || "Selected topic delete failed.", "err", true);
+                    return;
+                }
+
+                lastValidation = null;
+                uploadBtn.disabled = true;
+
+                await loadQuestionCounts(true);
+
+                setStatus(
+                    `Selected Topic Questions Deleted ✅\nDeleted Questions: ${data.deleted_questions || 0}\nTopics affected: ${selectedTopics.length}\n\n${topicNames}\n\nअब count board में updated count दिख रहा है। Topics safe हैं।`,
+                    "ok",
+                    true
+                );
+
+            } catch (error) {
+                setStatus("Selected topic delete error: " + error.message, "err", true);
+            }
+        }
+
+        async function deleteAllQuestionsFreshStart() {
+            const confirmText = prompt(
+                "Final Safety Check:\n\nसारे uploaded questions delete हो जाएंगे।\nTopics delete नहीं होंगे।\n\nConfirm करने के लिए DELETE लिखें:"
+            );
+
+            if (clean(confirmText).toUpperCase() !== "DELETE") {
+                setStatus("Final confirmation match नहीं हुई। Delete all cancel।", "info", true);
+                return;
+            }
+
+            if (!verifyAdminPasswordForDanger("Delete All Questions / Fresh Start")) return;
+
+            try {
+                setStatus("Deleting all questions... कृपया wait करें।", "info", true);
+
+                const response = await fetch(`${API_BASE_URL}/admin/delete-all`, {
+                    method: "POST",
+                    headers: adminHeaders()
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.success) {
+                    setStatus(data.message || data.error || "Delete failed. Worker endpoint check करना पड़ेगा।", "err", true);
+                    return;
+                }
+
+                lastValidation = null;
+                uploadBtn.disabled = true;
+
+                setStats({
+                    found: 0,
+                    valid: 0,
+                    inserted: 0,
+                    duplicate: 0,
+                    errors: 0,
+                    dummy: 0
+                });
+
+                showErrors([]);
+                hidePreview();
+
+                await loadQuestionCounts(true);
+
+                setStatus(
+                    `Fresh Start Complete ✅\nDeleted Questions: ${data.deleted_questions || 0}\nTopics safe हैं।\nCount board refresh हो गया है।\nअब आप questions शुरू से upload कर सकते हैं।`,
+                    "ok",
+                    true
+                );
+
+            } catch (error) {
+                setStatus("Delete error: " + error.message, "err", true);
+            }
+        }
+
+        function renderTopics() {
+            const search = normalizeForCompare(topicSearchInput.value || "");
+
+            const filtered = allTopics.filter(topic => {
+                if (!search) return true;
+                return normalizeForCompare(topic.topic_name).includes(search) ||
+                       normalizeForCompare(topic.topic_key).includes(search);
+            });
+
+            if (!filtered.length) {
+                topicGrid.innerHTML = `<div class="help">No topic found.</div>`;
+                return;
+            }
+
+            topicGrid.innerHTML = filtered.map(topic => {
+                const realIndex = allTopics.findIndex(t => t.topic_key === topic.topic_key);
+                const checked = (window.__selectedTopicKeys || []).includes(topic.topic_key);
+                const count = getTopicQuestionCount(topic.topic_key);
+
+                return `
+                    <label class="topic-card ${checked ? "selected" : ""}">
+                        <input
+                            type="checkbox"
+                            class="topic-checkbox"
+                            value="${escapeHtml(topic.topic_key)}"
+                            onchange="handleTopicChange(this)"
+                            ${checked ? "checked" : ""}
+                        >
+                        <span class="topic-name-wrap">
+                            ${realIndex + 1}. ${escapeHtml(topic.topic_name)}
+                            <br>
+                            <span class="q-count ${count === 0 ? "zero" : "good"}">${count} Q</span>
+                        </span>
+                    </label>
+                `;
+            }).join("");
+        }
+
+        function handleTopicChange(input) {
+            let selectedKeys = window.__selectedTopicKeys || [];
+
+            if (input.checked) {
+                if (!selectedKeys.includes(input.value)) selectedKeys.push(input.value);
+
+                if (selectedKeys.length > MAX_TOPIC_SELECT) {
+                    input.checked = false;
+                    selectedKeys = selectedKeys.filter(key => key !== input.value);
+                    setStatus(`Maximum ${MAX_TOPIC_SELECT} topics ही select कर सकते हैं।`, "err");
+                }
+            } else {
+                selectedKeys = selectedKeys.filter(key => key !== input.value);
+            }
+
+            window.__selectedTopicKeys = selectedKeys;
+
+            document.querySelectorAll(".topic-checkbox").forEach(box => {
+                const isChecked = selectedKeys.includes(box.value);
+                box.checked = isChecked;
+                const card = box.closest(".topic-card");
+                if (card) card.classList.toggle("selected", isChecked);
+            });
+
+            updateSelectedTopicUI();
+            refreshUploadButton();
+        }
+
+        function clearSelectedTopics() {
+            window.__selectedTopicKeys = [];
+
+            document.querySelectorAll(".topic-checkbox").forEach(input => {
+                input.checked = false;
+                const card = input.closest(".topic-card");
+                if (card) card.classList.remove("selected");
+            });
+
+            updateSelectedTopicUI();
+            refreshUploadButton();
+            setStatus("Selected topics clear हो गए।", "info");
+        }
+
+        function updateSelectedTopicUI() {
+            const selectedKeys = window.__selectedTopicKeys || [];
+            const selectedTopics = selectedKeys
+                .map(key => allTopics.find(topic => topic.topic_key === key))
+                .filter(Boolean);
+
+            topicCountPill.textContent = `${selectedTopics.length}/${MAX_TOPIC_SELECT} Topics Selected`;
+
+            if (!selectedTopics.length) {
+                selectedTopicBox.innerHTML = `<span class="chip">कोई topic selected नहीं है</span>`;
+                deleteSelectedTopicBox.innerHTML = `<span class="chip danger-chip">Delete के लिए कोई topic selected नहीं है</span>`;
+                return;
+            }
+
+            const chipsHtml = selectedTopics.map(topic => {
+                const index = allTopics.findIndex(t => t.topic_key === topic.topic_key) + 1;
+                const count = getTopicQuestionCount(topic.topic_key);
+                return `<span class="chip">${index}. ${escapeHtml(topic.topic_name)} — ${count} Q</span>`;
+            }).join("");
+
+            selectedTopicBox.innerHTML = chipsHtml;
+
+            deleteSelectedTopicBox.innerHTML = selectedTopics.map(topic => {
+                const index = allTopics.findIndex(t => t.topic_key === topic.topic_key) + 1;
+                const count = getTopicQuestionCount(topic.topic_key);
+                return `<span class="chip danger-chip">${index}. ${escapeHtml(topic.topic_name)} — ${count} Q</span>`;
+            }).join("");
+        }
+
+        function getSelectedTopicsFull() {
+            const selectedKeys = window.__selectedTopicKeys || [];
+
+            return selectedKeys
+                .map(key => allTopics.find(topic => topic.topic_key === key))
+                .filter(Boolean)
+                .slice(0, MAX_TOPIC_SELECT);
+        }
+
+        function ensureTopicSelected() {
+            const selectedTopics = getSelectedTopicsFull();
+
+            if (!selectedTopics.length) {
+                setStatus("पहले कम से कम 1 topic select करें।", "err");
+                return false;
+            }
+
+            return true;
+        }
+
+        function insertSampleFormat() {
+            questionsBox.value =
+`प्रश्न 1. हरियाणा राज्य का गठन कब हुआ था?
+
+(A) 1 नवम्बर 1966
+(B) 1 नवम्बर 1967
+(C) 15 अगस्त 1947
+(D) 26 जनवरी 1950
+
+उत्तर: (A) 1 नवम्बर 1966
+
+व्याख्या: हरियाणा राज्य का गठन 1 नवम्बर 1966 को हुआ था।
+
+---
+
+प्रश्न 2. निम्न में से कौन-सा युग्म गलत है?
+
+(A) सोनीपत — रोहतक
+(B) फरीदाबाद — गुरुग्राम
+(C) झज्जर — हिसार
+(D) यमुनानगर — अम्बाला
+
+उत्तर: (C) झज्जर — हिसार
+
+व्याख्या: झज्जर का गठन रोहतक से हुआ था, हिसार से नहीं।
+
+---
+
+प्रश्न 3.
+
+कथन (A): हिसार जिले का सबसे अधिक बार विभाजन हुआ है।
+कारण (R): हिसार गठन के समय क्षेत्रफल की दृष्टि से सबसे बड़ा जिला था।
+
+(A) A और R दोनों सही हैं तथा R, A की सही व्याख्या है।
+(B) A और R दोनों सही हैं, लेकिन R, A की सही व्याख्या नहीं है।
+(C) A सही है, R गलत है।
+(D) A गलत है, R सही है।
+
+उत्तर: (B)
+
+व्याख्या: दोनों कथन सही हैं, लेकिन R, A की सही व्याख्या नहीं है।`;
+
+            lastValidation = null;
+            setStats({ found: 0, valid: 0, inserted: 0, duplicate: 0, errors: 0, dummy: 0 });
+            showErrors([]);
+            hidePreview();
+            refreshUploadButton();
+            setStatus("Sample format डाल दिया गया है। पहले Validate करें।", "info");
+        }
+
+        function clearBox() {
+            questionsBox.value = "";
+            lastValidation = null;
+            uploadBtn.disabled = true;
+            setStats({ found: 0, valid: 0, inserted: 0, duplicate: 0, errors: 0, dummy: 0 });
+            showErrors([]);
+            hidePreview();
+            setStatus("Box clear हो गया।", "info");
+        }
+
+        function isProtectedStatementLine(line) {
+            const text = clean(line);
+
+            if (/^(कथन|अभिकथन|कारण|Assertion|Reason|निष्कर्ष)\s*[\-\(]?\s*[A-Za-z0-9०-९]*\s*[\)\:]?/i.test(text)) {
+                return true;
+            }
+
+            if (/^कथन\s*-\s*\d+/i.test(text)) return true;
+            if (/^कथन\s*\d+/i.test(text)) return true;
+            if (/^कथन-\d+/i.test(text)) return true;
+
+            return false;
+        }
+
+        function cleanParserText(value) {
+            let text = String(value || "")
+                .replace(/\r/g, "")
+                .replace(/\u00A0/g, " ")
+                .replace(/<br\s*\/?>/gi, "\n")
+                .replace(/<\/p>/gi, "\n")
+                .replace(/<[^>]*>/g, "")
+                .replace(/\*\*/g, "")
+                .replace(/[“”]/g, '"')
+                .replace(/[‘’]/g, "'")
+                .replace(/[–—]/g, "-")
+                .replace(/\u200B/g, "")
+                .trim();
+
+            const answerLineRe = new RegExp(
+                "^\\s*" + ANSWER_PREFIX_PATTERN + "\\s*(?:[:：\\-\\.\\=]|है|is|विकल्प|option)?\\s*",
+                "i"
+            );
+
+            const explanationLineRe = new RegExp(
+                "^\\s*" + EXPLANATION_PREFIX_PATTERN + "\\s*[:：\\-\\.]",
+                "i"
+            );
+
+            const finalLines = [];
+
+            text.split("\n").forEach((rawLine) => {
+                let line = clean(rawLine);
+                if (!line) return;
+
+                if (/^#{1,6}\s*\d+\s*[\.\)]?\s*/.test(line)) {
+                    return;
+                }
+
+                if (/^-{2,}$/.test(line) || /^={2,}$/.test(line)) {
+                    finalLines.push(line);
+                    return;
+                }
+
+                if (answerLineRe.test(line) || explanationLineRe.test(line)) {
+                    finalLines.push(line);
+                    return;
+                }
+
+                if (isProtectedStatementLine(line)) {
+                    finalLines.push(line);
+                    return;
+                }
+
+                const answerMidRe = new RegExp(
+                    "\\s+(" + ANSWER_PREFIX_PATTERN + "\\s*(?:[:：\\-\\.\\=]|है|is|विकल्प|option)?\\s*(?:\\(?\\s*[A-Da-dकखगघ]\\s*\\)?))",
+                    "gi"
+                );
+
+                const explanationMidRe = new RegExp(
+                    "\\s+(" + EXPLANATION_PREFIX_PATTERN + "\\s*[:：\\-\\.])",
+                    "gi"
+                );
+
+                line = line
+                    .replace(answerMidRe, "\n$1")
+                    .replace(explanationMidRe, "\n$1");
+
+                line.split("\n").forEach((partRaw) => {
+                    let part = clean(partRaw);
+                    if (!part) return;
+
+                    if (answerLineRe.test(part) || explanationLineRe.test(part)) {
+                        finalLines.push(part);
+                        return;
+                    }
+
+                    if (isProtectedStatementLine(part)) {
+                        finalLines.push(part);
+                        return;
+                    }
+
+                    part = part.replace(
+                        /\s+(?=(?:\(\s*[A-Da-d]\s*\)|[A-Da-d]\s*[\.\):：\-]|\(\s*[कखगघ]\s*\)|[कखगघ]\s*[\.\):：\-])\s*)/g,
+                        "\n"
+                    );
+
+                    part.split("\n").forEach((piece) => {
+                        piece = clean(piece);
+                        if (piece) finalLines.push(piece);
+                    });
+                });
+            });
+
+            return finalLines.join("\n").trim();
+        }
+
+        function isAnswerLine(line) {
+            const text = clean(line);
+            const re = new RegExp(
+                "^\\s*" + ANSWER_PREFIX_PATTERN + "\\s*(?:[:：\\-\\.\\=]|है|is|विकल्प|option|\\(|\\[|[A-Da-dकखगघ])?",
+                "i"
+            );
+            return re.test(text);
+        }
+
+        function isExplanationLine(line) {
+            const text = clean(line);
+            const re = new RegExp(
+                "^\\s*" + EXPLANATION_PREFIX_PATTERN + "\\s*[:：\\-\\.]",
+                "i"
+            );
+            return re.test(text);
+        }
+
+        function isQuestionStartLine(line, currentLines, currentHasAnswer) {
+            const text = clean(line);
+
+            if (/^(प्रश्न|Question|Que|Q)\s*[\d०-९]*\s*[\.\):：\-]?\s*/i.test(text)) {
+                return currentLines.length === 0 || currentHasAnswer;
+            }
+
+            if (/^\d+\s*[\.\)]\s+/.test(text)) {
+                return currentLines.length === 0 || currentHasAnswer;
+            }
+
+            if (/^[०-९]+\s*[\.\)]\s+/.test(text)) {
+                return currentLines.length === 0 || currentHasAnswer;
+            }
+
+            return false;
+        }
+
+        function cleanQuestionStart(line) {
+            return String(line || "")
+                .replace(/^(प्रश्न|Question|Que|Q)\s*[\d०-९]*\s*[\.\):：\-]?\s*/i, "")
+                .replace(/^\s*(?:\d+|[०-९]+)\s*[\.\)]\s*/, "")
+                .trim();
+        }
+
+        function getOptionMatch(line) {
+            const text = clean(line);
+
+            if (isProtectedStatementLine(text)) {
+                return null;
+            }
+
+            let match = text.match(/^\(\s*([A-Da-d])\s*\)\s*(.+)$/);
+
+            if (!match) {
+                match = text.match(/^([A-Da-d])\s*[\.\):：\-]\s*(.+)$/);
+            }
+
+            if (match) {
+                return {
+                    key: match[1].toUpperCase(),
+                    text: clean(match[2])
+                };
+            }
+
+            match = text.match(/^\(\s*([कखगघ])\s*\)\s*(.+)$/);
+
+            if (!match) {
+                match = text.match(/^([कखगघ])\s*[\.\):：\-]\s*(.+)$/);
+            }
+
+            if (match) {
+                const map = { "क": "A", "ख": "B", "ग": "C", "घ": "D" };
+
+                return {
+                    key: map[match[1]],
+                    text: clean(match[2])
+                };
+            }
+
+            return null;
+        }
+
+        function optionKeyToIndex(key) {
+            if (key === "A") return 0;
+            if (key === "B") return 1;
+            if (key === "C") return 2;
+            if (key === "D") return 3;
+            return -1;
+        }
+
+        function parseAnswerIndexStrict(value) {
+            const text = clean(value)
+                .replace(/[–—]/g, "-")
+                .trim();
+
+            let match = text.match(/^\s*(?:विकल्प|option)?\s*[\(\[]?\s*([A-Da-d])\s*[\)\]\.]?/i);
+
+            if (match) {
+                return optionKeyToIndex(match[1].toUpperCase());
+            }
+
+            match = text.match(/^\s*(?:विकल्प|option)?\s*[\(\[]?\s*([कखगघ])\s*[\)\]\.]?/);
+
+            if (match) {
+                const map = { "क": 0, "ख": 1, "ग": 2, "घ": 3 };
+                return map[match[1]];
+            }
+
+            match = text.match(/(?:उत्तर|Answer|Ans|Correct Answer|सही उत्तर|सही उत्तर विकल्प)\s*[:：\-\.\=]?\s*[\(\[]?\s*([A-Da-d])\s*[\)\]\.]?/i);
+
+            if (match) {
+                return optionKeyToIndex(match[1].toUpperCase());
+            }
+
+            match = text.match(/(?:उत्तर|सही उत्तर|सही उत्तर विकल्प)\s*[:：\-\.\=]?\s*[\(\[]?\s*([कखगघ])\s*[\)\]\.]?/);
+
+            if (match) {
+                const map = { "क": 0, "ख": 1, "ग": 2, "घ": 3 };
+                return map[match[1]];
+            }
+
+            return -1;
+        }
+
+        function removeAnswerPrefix(value) {
+            return clean(value)
+                .replace(/^\s*(?:विकल्प|option)\s*/i, "")
+                .replace(/^\(?\s*[A-Da-dकखगघ]\s*\)?\s*[\.\):：\-]?\s*/, "")
+                .trim();
+        }
+
+        function resolveAnswerIndexFromText(answerRaw, options) {
+            let index = parseAnswerIndexStrict(answerRaw);
+
+            if (index >= 0 && index <= 3) {
+                return index;
+            }
+
+            const answerText = normalizeForCompare(removeAnswerPrefix(answerRaw));
+
+            if (!answerText) {
+                return -1;
+            }
+
+            for (let i = 0; i < 4; i++) {
+                const optionText = normalizeForCompare(options[i]);
+
+                if (!optionText) continue;
+                if (answerText === optionText) return i;
+                if (optionText.includes(answerText)) return i;
+                if (answerText.includes(optionText)) return i;
+            }
+
+            return -1;
+        }
+
+        function getAnswerFromLine(line) {
+            let value = String(line || "");
+
+            const re = new RegExp(
+                "^\\s*" + ANSWER_PREFIX_PATTERN + "\\s*(?:[:：\\-\\.\\=]|है|is)?\\s*",
+                "i"
+            );
+
+            value = value
+                .replace(re, "")
+                .replace(/^\s*(?:विकल्प|option)\s*/i, "")
+                .replace(/^\s*(?:है|is)\s*/i, "")
+                .trim();
+
+            return { raw: value, index: -1 };
+        }
+
+        function splitInlineOneLiner(line) {
+            const text = cleanQuestionStart(clean(line));
+
+            const match = text.match(/^(.+?)\s*(?:—|-|–|:)?\s*(?:उत्तर|Answer|Ans|जवाब)\s*[:：\-]\s*(.+)$/i);
+
+            if (!match) return null;
+
+            return {
+                question: clean(match[1]),
+                answer: clean(match[2])
+            };
+        }
+
+        function isOneLinerParsedQuestion(q) {
+            return clean(q && (q.question_type || q.type)).toLowerCase() === "one_liner";
+        }
+
+        function splitIntoQuestionBlocks(rawText) {
+            const lines = cleanParserText(rawText)
+                .split("\n")
+                .map(clean)
+                .filter(Boolean);
+
+            const blocks = [];
+            let current = [];
+            let currentHasAnswer = false;
+
+            function pushBlock() {
+                const cleanBlock = current.map(clean).filter(Boolean);
+
+                if (cleanBlock.length) {
+                    blocks.push(cleanBlock);
+                }
+
+                current = [];
+                currentHasAnswer = false;
+            }
+
+            lines.forEach(line => {
+                const text = clean(line);
+
+                if (!text) return;
+
+                // Heading lines like "## 150 One-Liner प्रश्न-उत्तर" are only labels,
+                // not questions. They were causing 150 one-liners to merge into a few blocks.
+                if (/^#{1,6}\s*/.test(text)) {
+                    pushBlock();
+                    return;
+                }
+
+                if (/^-{2,}$/.test(text) || /^={2,}$/.test(text)) {
+                    pushBlock();
+                    return;
+                }
+
+                // IMPORTANT FIX:
+                // Inline one-liners such as
+                // 1. प्रश्न? — उत्तर: जवाब
+                // must be counted line-by-line. Earlier they were merging together,
+                // so 150 one-liners could show only 12 found/valid.
+                if (splitInlineOneLiner(text)) {
+                    pushBlock();
+                    blocks.push([text]);
+                    current = [];
+                    currentHasAnswer = false;
+                    return;
+                }
+
+                if (isQuestionStartLine(text, current, currentHasAnswer) && current.length > 0 && currentHasAnswer) {
+                    pushBlock();
+                }
+
+                current.push(text);
+
+                if (isAnswerLine(text)) {
+                    currentHasAnswer = true;
+                }
+            });
+
+            pushBlock();
+            return blocks;
+        }
+
+        function parseOneQuestionBlock(lines, number) {
+            const questionLines = [];
+            const options = ["", "", "", ""];
+            const errors = [];
+            let answerRaw = "";
+            let answerIndex = -1;
+            let explanationLines = [];
+            let mode = "question";
+            let oneLinerDetected = false;
+
+            lines.forEach(line => {
+                const text = clean(line);
+
+                if (!text) return;
+
+                const inlineOneLiner = splitInlineOneLiner(text);
+                if (inlineOneLiner && !options.some(Boolean)) {
+                    questionLines.length = 0;
+                    questionLines.push(inlineOneLiner.question);
+                    answerRaw = inlineOneLiner.answer;
+                    oneLinerDetected = true;
+                    mode = "answer";
+                    return;
+                }
+
+                if (isAnswerLine(text)) {
+                    const ans = getAnswerFromLine(text);
+                    answerRaw = ans.raw;
+                    answerIndex = resolveAnswerIndexFromText(answerRaw, options);
+                    mode = "answer";
+                    return;
+                }
+
+                if (isExplanationLine(text)) {
+                    const expText = text.replace(
+                        new RegExp("^\\s*" + EXPLANATION_PREFIX_PATTERN + "\\s*[:：\\-\\.]\\s*", "i"),
+                        ""
+                    ).trim();
+
+                    if (expText) {
+                        explanationLines.push(expText);
+                    }
+
+                    mode = "explanation";
+                    return;
+                }
+
+                const option = getOptionMatch(text);
+
+                if (option) {
+                    const index = optionKeyToIndex(option.key);
+
+                    if (index >= 0) {
+                        options[index] = option.text;
+                        mode = "options";
+                        return;
+                    }
+                }
+
+                if (mode === "explanation") {
+                    explanationLines.push(text);
+                    return;
+                }
+
+                if (mode === "answer") {
+                    if (oneLinerDetected) {
+                        explanationLines.push(text);
+                    } else if (!answerRaw) {
+                        answerRaw = text;
+                        answerIndex = resolveAnswerIndexFromText(answerRaw, options);
+                    } else {
+                        explanationLines.push(text);
+                    }
+
+                    return;
+                }
+
+                const cleanedStart = questionLines.length === 0 ? cleanQuestionStart(text) : text;
+
+                if (cleanedStart) {
+                    questionLines.push(cleanedStart);
+                }
+            });
+
+            const question = clean(questionLines.join("\n"));
+            const explanation = clean(explanationLines.join(" "));
+            const hasOptions = options.some(Boolean);
+
+            if (!hasOptions && answerRaw) {
+                if (!question) errors.push(`Question ${number}: One-Liner प्रश्न missing है।`);
+                if (!answerRaw) errors.push(`Question ${number}: One-Liner उत्तर missing है।`);
+
+                return {
+                    ok: errors.length === 0,
+                    errors,
+                    question: {
+                        question_type: "one_liner",
+                        question,
+                        options: [],
+                        option_a: "",
+                        option_b: "",
+                        option_c: "",
+                        option_d: "",
+                        answer_index: -1,
+                        answer: clean(answerRaw),
+                        answer_text: clean(answerRaw),
+                        explanation
+                    }
+                };
+            }
+
+            if (answerIndex < 0) {
+                answerIndex = resolveAnswerIndexFromText(answerRaw, options);
+            }
+
+            if (!question) errors.push(`Question ${number}: प्रश्न missing है।`);
+            if (!options[0]) errors.push(`Question ${number}: Option A missing है।`);
+            if (!options[1]) errors.push(`Question ${number}: Option B missing है।`);
+            if (!options[2]) errors.push(`Question ${number}: Option C missing है।`);
+            if (!options[3]) errors.push(`Question ${number}: Option D missing है।`);
+
+            if (![0, 1, 2, 3].includes(Number(answerIndex))) {
+                errors.push(`Question ${number}: सही उत्तर A/B/C/D या option text से match नहीं हो रहा।`);
+            }
+
+            return {
+                ok: errors.length === 0,
+                errors,
+                question: {
+                    question_type: "mcq",
+                    question,
+                    options,
+                    option_a: options[0],
+                    option_b: options[1],
+                    option_c: options[2],
+                    option_d: options[3],
+                    answer_index: answerIndex,
+                    answer: answerLetter(answerIndex),
+                    answer_text: answerLetter(answerIndex),
+                    explanation
+                }
+            };
+        }
+
+        function answerLetter(index) {
+            if (Number(index) === 0) return "A";
+            if (Number(index) === 1) return "B";
+            if (Number(index) === 2) return "C";
+            if (Number(index) === 3) return "D";
+            return "";
+        }
+
+        function isDummyQuestion(q) {
+            const text = normalizeForCompare([
+                q.question,
+                q.option_a,
+                q.option_b,
+                q.option_c,
+                q.option_d,
+                q.answer_text,
+                q.explanation
+            ].join(" "));
+
+            return text.includes("sample question") ||
+                   text.includes("dummy question") ||
+                   text.includes("पहला विकल्प") ||
+                   text.includes("दूसरा विकल्प") ||
+                   text.includes("तीसरा विकल्प") ||
+                   text.includes("चौथा विकल्प");
+        }
+
+        function parseQuestionsFromBox() {
+            const rawText = questionsBox.value;
+            const blocks = splitIntoQuestionBlocks(rawText);
+            const validQuestions = [];
+            const errors = [];
+            const seen = new Set();
+            let duplicate = 0;
+            let dummy = 0;
+
+            blocks.forEach((block, index) => {
+                const parsed = parseOneQuestionBlock(block, index + 1);
+
+                if (!parsed.ok) {
+                    errors.push(...parsed.errors);
+                    return;
+                }
+
+                const duplicateKey = normalizeForCompare(
+                    parsed.question.question + " " + (parsed.question.options || []).join(" ") + " " + (parsed.question.answer_text || "")
+                );
+
+                if (seen.has(duplicateKey)) {
+                    duplicate++;
+                    return;
+                }
+
+                seen.add(duplicateKey);
+
+                if (isDummyQuestion(parsed.question)) {
+                    dummy++;
+                    return;
+                }
+
+                validQuestions.push(parsed.question);
+            });
+
+            return {
+                found: blocks.length,
+                valid: validQuestions.length,
+                questions: validQuestions,
+                duplicate,
+                dummy,
+                errors
+            };
+        }
+
+        function refreshUploadButton() {
+            const selectedTopics = getSelectedTopicsFull();
+            uploadBtn.disabled = !(lastValidation && lastValidation.valid > 0 && selectedTopics.length > 0) || isUploading;
+        }
+
+        function validateQuestions() {
+            hidePreview();
+            showErrors([]);
+            uploadBtn.disabled = true;
+
+            if (!ensureTopicSelected()) {
+                return false;
+            }
+
+            const rawText = clean(questionsBox.value);
+
+            if (!rawText) {
+                lastValidation = null;
+                setStats({ found: 0, valid: 0, inserted: 0, duplicate: 0, errors: 1, dummy: 0 });
+                showErrors(["Questions Paste Box खाली है।"]);
+                setStatus("Questions paste करें, फिर Validate करें।", "err");
+                return false;
+            }
+
+            const parsed = parseQuestionsFromBox();
+            lastValidation = parsed;
+
+            setStats({
+                found: parsed.found,
+                valid: parsed.valid,
+                inserted: 0,
+                duplicate: parsed.duplicate,
+                errors: parsed.errors.length,
+                dummy: parsed.dummy
+            });
+
+            showErrors(parsed.errors);
+            refreshUploadButton();
+
+            if (parsed.valid > 0) {
+                setStatus(
+                    `Validation Complete ✅\nFound: ${parsed.found}\nValid: ${parsed.valid}\nSelected Topics: ${getSelectedTopicsFull().length}\nErrors: ${parsed.errors.length}`,
+                    parsed.errors.length ? "info" : "ok"
+                );
+
+                return true;
+            }
+
+            setStatus("कोई valid question नहीं मिला। Format check करें।", "err");
+            return false;
+        }
+
+        function showPreview() {
+            if (!lastValidation || lastValidation.valid === 0) {
+                validateQuestions();
+            }
+
+            if (!lastValidation || lastValidation.valid === 0) {
+                return;
+            }
+
+            const selectedTopics = getSelectedTopicsFull();
+            const previewBox = document.getElementById("previewBox");
+
+            previewBox.classList.remove("hidden");
+            previewBox.innerHTML = `
+                <div class="preview-item">
+                    <strong>Selected Topics:</strong><br>
+                    ${selectedTopics.map((topic, i) => `${i + 1}. ${escapeHtml(topic.topic_name)}`).join("<br>")}
+                    <br><br>
+                    <strong>Total valid questions:</strong> ${lastValidation.valid}
+                </div>
+            ` + lastValidation.questions.map((q, index) => {
+                if (isOneLinerParsedQuestion(q)) {
+                    return `
+                        <div class="preview-item">
+                            <strong>One-Liner ${index + 1}.</strong> ${escapeHtml(q.question).replaceAll("\n", "<br>")}<br>
+                            <strong>उत्तर:</strong> ${escapeHtml(q.answer_text || q.answer || "")}<br>
+                            <strong>Explanation:</strong> ${escapeHtml(q.explanation || "व्याख्या खाली है")}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="preview-item">
+                        <strong>Q${index + 1}.</strong> ${escapeHtml(q.question).replaceAll("\n", "<br>")}<br>
+                        <strong>A.</strong> ${escapeHtml(q.option_a)}<br>
+                        <strong>B.</strong> ${escapeHtml(q.option_b)}<br>
+                        <strong>C.</strong> ${escapeHtml(q.option_c)}<br>
+                        <strong>D.</strong> ${escapeHtml(q.option_d)}<br>
+                        <strong>Answer:</strong> ${escapeHtml(answerLetter(q.answer_index))}<br>
+                        <strong>Explanation:</strong> ${escapeHtml(q.explanation || "व्याख्या खाली है")}
+                    </div>
+                `;
+            }).join("");
+
+            setStatus(`Preview Ready ✅\nValid Questions: ${lastValidation.valid}`, "ok");
+        }
+
+        function oneLineForServer(value) {
+            return clean(value).replace(/\s*\n+\s*/g, " ");
+        }
+
+        function buildServerUploadText(questions) {
+            return questions.map(q => {
+                if (isOneLinerParsedQuestion(q)) {
+                    return [
+                        `Type: one_liner`,
+                        `Q: ${oneLineForServer(q.question)}`,
+                        `Answer: ${oneLineForServer(q.answer_text || q.answer || "")}`,
+                        `Explanation: ${oneLineForServer(q.explanation || "")}`
+                    ].join("\n");
+                }
+
+                return [
+                    `Type: mcq`,
+                    `Q: ${oneLineForServer(q.question)}`,
+                    `A: ${oneLineForServer(q.option_a)}`,
+                    `B: ${oneLineForServer(q.option_b)}`,
+                    `C: ${oneLineForServer(q.option_c)}`,
+                    `D: ${oneLineForServer(q.option_d)}`,
+                    `Answer: ${answerLetter(q.answer_index)}`,
+                    `Explanation: ${oneLineForServer(q.explanation || "")}`
+                ].join("\n");
+            }).join("\n---\n");
+        }
+
+        function isSubrequestLimitError(data, status) {
+            const text = normalizeForCompare([
+                status,
+                data && data.message,
+                data && data.error,
+                Array.isArray(data && data.errors) ? data.errors.join(" ") : ""
+            ].join(" "));
+
+            return text.includes("too many subrequests") ||
+                   text.includes("subrequests") ||
+                   text.includes("worker invocation") ||
+                   text.includes("1101") ||
+                   text.includes("1102");
+        }
+
+        async function uploadBatchToTopic(topic, batch, difficulty) {
+            const response=await fetch(`${API_BASE_URL}/admin/upload-questions`,{method:"POST",headers:adminHeaders(),body:JSON.stringify({subject_key:FIXED_SUBJECT_KEY,subject_name:FIXED_SUBJECT_NAME,topic_key:topic.topic_key,topic_name:topic.topic_name,difficulty,raw_text:buildServerUploadText(batch)})});
+            const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)return{success:false,status:response.status,data};return{success:true,data};
+        }
+
+        async function uploadBatchSmart(topic, batch, difficulty, progressText) {
+            const result = await uploadBatchToTopic(topic, batch, difficulty);
+
+            if (result.success) {
+                return {
+                    inserted: Number(result.data.inserted || 0),
+                    duplicate: Number(result.data.duplicate || 0),
+                    dummy: Number(result.data.dummy || 0),
+                    errors: Array.isArray(result.data.errors) ? result.data.errors : []
+                };
+            }
+
+            if (batch.length > 1 && isSubrequestLimitError(result.data, result.status)) {
+                const mid = Math.ceil(batch.length / 2);
+                const first = batch.slice(0, mid);
+                const second = batch.slice(mid);
+
+                setStatus(`${progressText}\nWorker limit आया, batch छोटा करके retry कर रहा हूँ...`, "info");
+
+                const a = await uploadBatchSmart(topic, first, difficulty, progressText);
+                await sleep(350);
+                const b = await uploadBatchSmart(topic, second, difficulty, progressText);
+
+                return {
+                    inserted: a.inserted + b.inserted,
+                    duplicate: a.duplicate + b.duplicate,
+                    dummy: a.dummy + b.dummy,
+                    errors: [...a.errors, ...b.errors]
+                };
+            }
+
+            return {
+                inserted: 0,
+                duplicate: 0,
+                dummy: 0,
+                errors: [result.data.message || result.data.error || `Upload failed: ${result.status}`]
+            };
+        }
+
+        async function uploadQuestions() {
+            if (isUploading) return;
+
+            if (!lastValidation || lastValidation.valid === 0) {
+                const ok = validateQuestions();
+                if (!ok) return;
+            }
+
+            if (!ensureTopicSelected()) return;
+
+            const selectedTopics = getSelectedTopicsFull();
+            const difficulty = difficultySelect.value || "normal";
+            const questions = lastValidation.questions;
+
+            let totalInserted = 0;
+            let totalDuplicate = 0;
+            let totalDummy = 0;
+            let allErrors = [];
+            let completedBatches = 0;
+
+            const totalBatchesPerTopic = Math.ceil(questions.length / FIRST_BATCH_SIZE);
+            const totalBatchCount = totalBatchesPerTopic * selectedTopics.length;
+            const totalEntries = questions.length * selectedTopics.length;
+
+            try {
+                isUploading = true;
+                refreshUploadButton();
+                uploadBtn.textContent = "Uploading...";
+
+                setStatus(
+                    `Upload शुरू हो रहा है...\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nTotal Entries: ${totalEntries}\nInitial Batch Size: ${FIRST_BATCH_SIZE}`,
+                    "info",
+                    true
+                );
+
+                for (let t = 0; t < selectedTopics.length; t++) {
+                    const topic = selectedTopics[t];
+
+                    for (let i = 0; i < questions.length; i += FIRST_BATCH_SIZE) {
+                        const batch = questions.slice(i, i + FIRST_BATCH_SIZE);
+                        completedBatches++;
+
+                        const progressText =
+                            `Uploading...\nTopic ${t + 1}/${selectedTopics.length}: ${topic.topic_name}\nBatch ${completedBatches}/${totalBatchCount}\nQuestions ${i + 1}-${Math.min(i + FIRST_BATCH_SIZE, questions.length)} of ${questions.length}`;
+
+                        setStatus(progressText, "info");
+
+                        const result = await uploadBatchSmart(topic, batch, difficulty, progressText);
+
+                        totalInserted += result.inserted;
+                        totalDuplicate += result.duplicate;
+                        totalDummy += result.dummy;
+
+                        if (result.errors && result.errors.length) {
+                            allErrors = allErrors.concat(result.errors.map(e => `${topic.topic_name}: ${e}`));
+                        }
+
+                        setStats({
+                            found: questions.length,
+                            valid: questions.length,
+                            inserted: totalInserted,
+                            duplicate: totalDuplicate,
+                            errors: allErrors.length,
+                            dummy: totalDummy
+                        });
+
+                        showErrors(allErrors);
+                        await sleep(450);
+                    }
+                }
+
+                await loadQuestionCounts(true);
+
+                setStatus(
+                    `Upload Complete ✅\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nInserted: ${totalInserted}\nDuplicate: ${totalDuplicate}\nDummy skipped: ${totalDummy}\nErrors: ${allErrors.length}\n\nQuestion count board refresh हो गया है।`,
+                    totalInserted > 0 ? "ok" : "err",
+                    true
+                );
+
+            } catch (error) {
+                setStatus("Upload error: " + error.message, "err", true);
+            } finally {
+                isUploading = false;
+                uploadBtn.textContent = "Upload to Database";
+                refreshUploadButton();
+            }
+        }
+
+        topicSearchInput.addEventListener("input", renderTopics);
+
+        questionsBox.addEventListener("input", function () {
+            lastValidation = null;
+            refreshUploadButton();
+        });
+
+        difficultySelect.addEventListener("change", function () {
+            lastValidation = null;
+            refreshUploadButton();
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            initAdminLock();
+
+            if (adminPasswordInput) {
+                adminPasswordInput.addEventListener("keydown", function (event) {
+                    if (event.key === "Enter") unlockAdmin();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

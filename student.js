@@ -992,4 +992,17 @@ loadPdfs=async function(){
   if(currentDay)await renderHome();
 };
 
+
+/* ===== V11 SEPARATE CBT MOCK TEST MODULE ===== */
+const __loadTargetBatchTests = loadTests;
+loadTests = async function(){
+  let targetHtml='';
+  try{
+    const r=await sb.from('tests').select('*').eq('status','published').order('created_at',{ascending:false});
+    const rows=r.data||[];
+    targetHtml=rows.length?`<div class="card"><h3>Target Batch के PDF/Final Tests</h3><p class="muted">ये tests केवल PDF download gate या Daily Final Submit के लिए हैं।</p>${rows.map(t=>`<div class="item"><div class="row wrap"><div><b>${esc(t.title||t.name||"Test")}</b><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent}%</div></div><a class="btn btn-blue" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${t.id}">Open Target Test</a></div></div>`).join('')}</div>`:'';
+  }catch(_){ }
+  testsList.innerHTML=`<div class="card cbt-launch-card"><div class="row wrap"><div><h2>🖥 CBT Mock Test</h2><p class="muted">सभी Subjects और Topics का वास्तविक CBT-style practice test। इसका question database Target Batch से पूरी तरह अलग है।</p></div><a class="btn btn-purple" href="cbt-mock-test.html">START CBT MOCK TEST</a></div></div>${targetHtml}`;
+};
+
 init();

@@ -1,0 +1,30 @@
+GK BY PURUSHOTAM SIR — V11 CBT MOCK TEST DEPLOYMENT
+
+पहले GitHub पर पूरी V11 ZIP की सभी files upload/replace करके Commit करें।
+
+फिर Turso में:
+1. अपने Exam Arena वाले Turso database को खोलें।
+2. RUN_THIS_TURSO_CBT_SETUP.sql चलाएँ।
+3. पुराने Haryana GK questions बचाने हों तो OPTIONAL_MIGRATE_OLD_EXAM_ARENA_QUESTIONS.sql भी चलाएँ।
+4. नया Turso database token बनाएँ। पुराना exposed token revoke करें।
+
+फिर Cloudflare में:
+1. exam-arena-api-live Worker खोलें।
+2. CLOUDFLARE_MOCK_TEST_WORKER.js का पूरा code replace/deploy करें।
+3. Settings > Variables and Secrets में ये डालें:
+   TURSO_DATABASE_URL = आपका libsql://... Turso URL
+   TURSO_AUTH_TOKEN = नया Turso token
+   SUPABASE_URL = https://gjxhjvdspedjsmdxlfgz.supabase.co
+   SUPABASE_PUBLISHABLE_KEY = config.js वाली sb_publishable key
+   APP_ORIGIN = https://ak0258107-spec.github.io
+4. Worker deploy करें।
+
+Target Batch का Supabase database, PDF Worker, R2 bucket, Login, MFA और existing URLs नहीं बदलने हैं।
+
+Student flow:
+Student App > Test > START CBT MOCK TEST
+नाम और मोबाइल दोबारा नहीं पूछा जाएगा।
+
+Admin flow:
+Main Admin > CBT Question Bank
+Existing Supabase Admin session से अपने-आप verify होगा।

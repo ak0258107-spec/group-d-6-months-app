@@ -1,0 +1,30 @@
+GK BY PURUSHOTAM SIR — COMPLETE V11 CBT SCOPE & AUDIT
+
+इस V11 में केवल तय किए गए बदलाव किए गए हैं:
+1. भेजी गई Exam Arena Mock Test ZIP का CBT format Target Batch App में अलग module के रूप में जोड़ा गया।
+2. Mock Test से Student Name और Mobile Number input हटाए गए। Existing Supabase login/profile से विद्यार्थी की पहचान ली जाती है।
+3. Haryana GK-only selection को All Subjects > Topics system में बदला गया।
+4. Target Batch का existing Supabase database अलग और सुरक्षित रखा गया।
+5. CBT Mock Test के questions/results के लिए अलग Turso schema/API जोड़ा गया।
+6. PDF Verification और Target/PDF Tests को CBT Mock Test में merge नहीं किया गया।
+7. Existing Login, Registration, MFA, PDF Worker, R2 और Target Batch URLs नहीं बदले गए।
+
+मुख्य नई files:
+- cbt-mock-test.html / .js / .css
+- cbt-admin.html
+- CLOUDFLARE_MOCK_TEST_WORKER.js
+- RUN_THIS_TURSO_CBT_SETUP.sql
+- OPTIONAL_MIGRATE_OLD_EXAM_ARENA_QUESTIONS.sql
+- 00_DO_ONLY_THESE_STEPS_V11_HINDI.txt
+
+Validation completed before packaging:
+- JavaScript syntax checks passed.
+- Inline JavaScript syntax checks passed.
+- HTML duplicate-ID check passed.
+- Local HTML asset-reference check passed.
+- Service Worker cached-file reference check passed.
+- Worker mocked API flow test passed for catalog, count, questions and attempt save.
+- No turso_token.txt included.
+- No Student Name/Mobile input included in CBT launch form.
+
+Live Turso/Cloudflare/GitHub deployment test must be done after the owner adds the new secrets and deploys the Worker.

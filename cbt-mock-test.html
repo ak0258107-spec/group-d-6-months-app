@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>GK BY PURUSHOTAM SIR – All Subjects CBT Mock Test</title>
+
+    <meta name="description" content="सभी Subjects और Topics पर CBT style Mock Test, 1 से 5 topic selection, 10 से 100 questions और detailed analysis.">
+
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#0b4bd6">
+
+    <link rel="canonical" href="https://gk-by-purushotam-sir.ak0258107.workers.dev/">
+
+    <!-- WhatsApp / Telegram / Facebook Preview -->
+    <meta property="og:locale" content="hi_IN">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="GK BY PURUSHOTAM SIR">
+    <meta property="og:title" content="GK BY PURUSHOTAM SIR – All Subjects CBT Mock Test">
+    <meta property="og:description" content="सभी Subjects और Topics पर वास्तविक CBT style Mock Test, 1 से 5 topics, 10 से 100 questions और detailed analysis.">
+    <meta property="og:url" content="https://gk-by-purushotam-sir.ak0258107.workers.dev/">
+    <meta property="og:image" content="https://gk-by-purushotam-sir.ak0258107.workers.dev/cbt-preview-banner.png">
+    <meta property="og:image:secure_url" content="https://gk-by-purushotam-sir.ak0258107.workers.dev/cbt-preview-banner.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="GK BY PURUSHOTAM SIR All Subjects CBT Mock Test">
+
+    <!-- Twitter / X Preview -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="GK BY PURUSHOTAM SIR – All Subjects CBT Mock Test">
+    <meta name="twitter:description" content="All Subjects topic-wise CBT practice test with detailed analysis.">
+    <meta name="twitter:image" content="https://gk-by-purushotam-sir.ak0258107.workers.dev/cbt-preview-banner.png">
+
+    <link rel="icon" href="cbt-logo.webp" type="image/webp">
+
+    <link rel="stylesheet" href="cbt-mock-test.css?v=11.0.0">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js?v=11.0.0"></script>
+    <script src="common.js?v=11.0.0"></script>
+    <script src="cbt-topics-data.js?v=11.0.0"></script>
+</head>
+
+<body>
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="brand-box">
+                <img src="cbt-logo.webp" alt="GK BY PURUSHOTAM SIR Logo" class="brand-logo" onerror="this.style.display='none'">
+                <div class="brand-text">
+                    <div class="brand-title">GK BY PURUSHOTAM SIR</div>
+                    <div class="brand-subtitle">ALL SUBJECTS CBT EXAM ARENA</div>
+                </div>
+            </div><a href="l4x8m2r7-k9v3t5n1-z6c4p8q2.html" style="color:#fff;font-weight:900;text-decoration:none">← Student App</a>
+        </header>
+
+        <main class="app-main">
+
+            <!-- SETUP SCREEN -->
+            <section id="setupScreen" class="screen active">
+                <div class="setup-card">
+                    <h1 class="main-heading">ALL SUBJECTS CBT EXAM ARENA</h1>
+                    <p class="main-subheading">CBT Style Practice Test</p>
+
+                    <div class="fixed-subject-box cbt-student-box">
+                        विद्यार्थी: <strong id="cbtStudentName">Loading...</strong>
+                        <span id="cbtStudentId" style="display:block;margin-top:4px;font-size:13px"></span>
+                    </div>
+                    <div id="rollInfo" class="roll-info"></div>
+
+                    <div class="selection-box">
+                        <div class="selection-head">
+                            <div>
+                                <h2>Subject और Topic Selection</h2>
+                                <p>Maximum 5 topics select कर सकते हैं।</p>
+                            </div>
+
+                            <button type="button" id="addTopicBtn" class="small-btn">+ Add Topic</button>
+                        </div>
+
+                        <div id="selectedTopicsArea" class="selected-units-area">
+                            <!-- app यहाँ Subject और Topic units बनाएगा -->
+                        </div>
+
+                        <div class="selection-note">
+                            1 से 5 topics select करें और 10 से 100 questions तक test लगाएँ।
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="difficultySelect">Difficulty</label>
+                            <select id="difficultySelect">
+                                <option value="normal" selected>Normal</option>
+                                <option value="easy">Easy</option>
+                                <option value="tough">Tough</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="negativeMarkingSelect">Negative Marking</label>
+                            <select id="negativeMarkingSelect">
+                                <option value="no" selected>No Negative Marking</option>
+                                <option value="yes">Yes - Wrong पर -0.25</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="limitSelect">Question Limit</label>
+                            <select id="limitSelect">
+                                <option value="10">10 Questions</option>
+                                <option value="20">20 Questions</option>
+                                <option value="30">30 Questions</option>
+                                <option value="40">40 Questions</option>
+                                <option value="50">50 Questions</option>
+                                <option value="75">75 Questions</option>
+                                <option value="100">100 Questions</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="button" id="startTestBtn" class="start-btn">START TEST</button>
+
+                    <div class="channel-box">
+                        <div class="channel-title">Free Study Channels</div>
+                        <div class="channel-buttons">
+                            <a href="https://youtube.com/@gkbypurushotamsir007?si=3wWoRTBsoisrBzzQ" target="_blank" rel="noopener" class="youtube-btn">Subscribe YouTube</a>
+                            <a href="https://t.me/gkbypurushotamsir" target="_blank" rel="noopener" class="telegram-btn">Join Telegram</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- QUIZ SCREEN -->
+            <section id="quizScreen" class="screen hidden">
+                <div class="quiz-card">
+                    <div class="quiz-topbar">
+                        <div id="quizQuestionNumber" class="quiz-pill">Q. 1/10</div>
+                        <div id="quizSubjectTopic" class="quiz-pill">Subject / Topic</div>
+                        <div id="quizTotalTimer" class="quiz-pill timer-pill">00:00</div>
+                    </div>
+
+                    <div class="progress-wrap">
+                        <div id="quizProgressFill" class="progress-fill"></div>
+                    </div>
+
+                    <div id="questionArea" class="question-area">
+                        <!-- app.js question render करेगा -->
+                    </div>
+
+                    <div class="quiz-actions-top">
+                        <button type="button" id="prevBtn" class="quiz-btn gray-btn">PREVIOUS</button>
+                        <button type="button" id="skipBtn" class="quiz-btn orange-btn">SKIP</button>
+                        <button type="button" id="nextBtn" class="quiz-btn blue-btn">NEXT</button>
+                    </div>
+
+                    <div class="quiz-actions-bottom">
+                        <button type="button" id="statusBtn" class="quiz-btn purple-btn">STATUS</button>
+                        <button type="button" id="finishBtn" class="quiz-btn green-btn">FINISH TEST</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RESULT SCREEN -->
+            <section id="resultScreen" class="screen hidden">
+                <div id="resultArea" class="result-area">
+                    <!-- app.js result render करेगा -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- QUESTION STATUS MODAL -->
+    <div id="statusModal" class="modal hidden">
+        <div class="modal-card status-modal-card">
+            <div class="modal-head">
+                <h2>Question Status</h2>
+                <button type="button" id="closeStatusModalBtn" class="modal-close">×</button>
+            </div>
+
+            <div class="status-legend">
+                <span><b class="legend-box blue-box"></b> Answered</span>
+                <span><b class="legend-box white-box"></b> Not Answered / Skipped</span>
+                <span><b class="legend-box yellow-border-box"></b> Current</span>
+            </div>
+
+            <div id="questionStatusGrid" class="question-status-grid">
+                <!-- app.js boxes बनाएगा -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SUBMIT CONFIRM MODAL -->
+    <div id="submitModal" class="modal hidden">
+        <div class="modal-card submit-modal-card">
+            <div class="modal-head">
+                <h2>Submit Test</h2>
+                <button type="button" id="closeSubmitModalBtn" class="modal-close">×</button>
+            </div>
+
+            <div id="submitSummaryArea" class="submit-summary-area">
+                <!-- app.js submit summary render करेगा -->
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" id="backToTestBtn" class="modal-btn gray-btn">BACK TO TEST</button>
+                <button type="button" id="submitFinalBtn" class="modal-btn green-btn">SUBMIT FINAL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CELEBRATION LAYER -->
+    <div id="celebrationLayer" class="celebration-layer hidden"></div>
+
+    <script src="cbt-mock-test.js?v=11.0.0"></script>
+</body>
+</html>

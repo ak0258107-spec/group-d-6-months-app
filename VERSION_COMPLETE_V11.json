@@ -1,0 +1,12 @@
+{
+  "version": "11.0.0",
+  "project": "GK BY PURUSHOTAM SIR GROUP D 6 MONTHS TARGET BATCH",
+  "changes": [
+    "Separate CBT Mock Test module based on supplied Exam Arena format",
+    "Student name/mobile fields removed; Supabase profile used",
+    "All Subjects and Topics selection added",
+    "Target Batch remains on Supabase; Mock Test uses separate Turso database",
+    "CBT Admin Question Bank added",
+    "PDF verification and Target/PDF tests remain separate"
+  ]
+}
