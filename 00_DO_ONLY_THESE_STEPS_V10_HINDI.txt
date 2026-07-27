@@ -1,0 +1,27 @@
+GK BY PURUSHOTAM SIR — COMPLETE V10
+
+इस ZIP में पूरा project है, patch नहीं।
+
+क्या बदला:
+1. मुख्य लिंक खोलते ही अब Login/Registration दिखेगा।
+2. तैयारी का Plan/Features registration से पहले नहीं दिखेंगे।
+3. Student Registration या first login के बाद 4-step onboarding खुलेगी।
+4. अंतिम screen पर Rules & Regulations और agreement checkbox होगा।
+5. Checkbox लगाए बिना “ऐप शुरू करें” button चालू नहीं होगा।
+6. Onboarding पूरी होने के बाद उसी account/device पर दोबारा नहीं दिखेगी।
+7. Duplicate Email/Mobile पर {} की जगह साफ Hindi warning दिखाई जाएगी।
+8. Direct Student Panel खोलने पर onboarding अधूरी हो तो पहले onboarding पर भेजा जाएगा।
+
+Deployment:
+- GitHub: ZIP extract करके सभी files repository root में upload/replace और Commit करें।
+- Supabase: कुछ नहीं करना।
+- Cloudflare Worker/R2: कुछ नहीं करना।
+- SQL: कुछ नहीं चलाना।
+- Admin panel/MFA/security: कोई बदलाव नहीं किया गया।
+
+Testing:
+- नए Email/Mobile से registration करें।
+- Registration के बाद onboarding screens देखें।
+- Rules checkbox के बिना Start App disabled होना चाहिए।
+- Checkbox के बाद Student Panel खुलना चाहिए।
+- Logout/Login के बाद onboarding दोबारा नहीं दिखनी चाहिए।

@@ -2,33 +2,33 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#071f3d"><link rel="manifest" href="manifest.webmanifest">
 <title>GK BY PURUSHOTAM SIR | GROUP D 6 MONTHS TARGET BATCH</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=10.0.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script><script src="common.js"></script>
+<script src="config.js?v=10.0.0"></script><script src="common.js?v=10.0.0"></script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 </head><body>
 <div id="welcomeScreen" class="welcome-screen hidden" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
-  <div class="welcome-shell welcome-onboarding">
+  <div class="welcome-shell welcome-onboarding post-register-onboarding">
     <div class="welcome-topbar">
-      <div class="welcome-progress" aria-label="Welcome progress">
+      <div class="welcome-progress" aria-label="Onboarding progress">
         <button class="welcome-dot active" data-slide="0" onclick="showWelcomeSlide(0)" aria-label="Screen 1"></button>
         <button class="welcome-dot" data-slide="1" onclick="showWelcomeSlide(1)" aria-label="Screen 2"></button>
         <button class="welcome-dot" data-slide="2" onclick="showWelcomeSlide(2)" aria-label="Screen 3"></button>
+        <button class="welcome-dot" data-slide="3" onclick="showWelcomeSlide(3)" aria-label="Screen 4"></button>
       </div>
-      <button class="welcome-close-link" onclick="finishWelcome(false)">अभी शुरू करें</button>
+      <span class="onboarding-secure-label">✓ Registration के बाद</span>
     </div>
 
     <section class="welcome-slide active" data-welcome-slide="0">
       <img class="welcome-app-logo" src="icon-192.png" alt="GK BY PURUSHOTAM SIR App Logo">
-      <div class="welcome-kicker">आपकी सफलता का दैनिक लक्ष्य</div>
-      <h1 id="welcomeTitle">GK BY PURUSHOTAM SIR</h1>
-      <div class="welcome-batch-title">GROUP-D 6 MONTHS TARGET BATCH</div>
+      <div class="welcome-kicker">STUDENT ACCOUNT READY</div>
+      <h1 id="welcomeTitle">स्वागत है, <span id="onboardingStudentName">Student</span>!</h1>
+      <div class="welcome-batch-title">GK BY PURUSHOTAM SIR • GROUP-D 6 MONTHS TARGET BATCH</div>
       <div class="welcome-slogan">“अबकी बार, आखिरी बार — जीत फिक्स!”</div>
-      <p class="welcome-motivation">सफलता एक दिन में नहीं मिलती, लेकिन हर दिन का सही Target आपको सफलता के और करीब ले जाता है।</p>
+      <p class="welcome-motivation">आपका Registration पूरा हो चुका है। अब आगे बढ़ने से पहले तैयारी का तरीका, ऐप की सुविधाएँ और जरूरी नियम पढ़ लें।</p>
       <div class="welcome-primary-actions">
         <button class="welcome-btn next" onclick="welcomeNext()">तैयारी का Plan देखें →</button>
-        <button id="welcomeInstallBtn" class="welcome-btn install hidden" onclick="installApp()">⬇ App Install करें</button>
       </div>
     </section>
 
@@ -37,16 +37,16 @@
       <h2>क्रमबद्ध तैयारी, रोज़ का स्पष्ट Target</h2>
       <div class="welcome-plan-grid">
         <article class="welcome-plan-card">
-          <span>01</span><b>पहले 5 महीने</b><p>Group-D का पूरा syllabus विषय और topic के अनुसार पूरा कराया जाएगा।</p>
+          <span>01</span><b>पहले 5 महीने</b><p>Group-D का पूरा syllabus विषय और topic के अनुसार Daily Target से पूरा कराया जाएगा।</p>
         </article>
         <article class="welcome-plan-card">
-          <span>02</span><b>अंतिम 1 महीना</b><p>Complete revision, one-liners, practice और exam-level mock tests।</p>
+          <span>02</span><b>अंतिम 1 महीना</b><p>Complete revision, one-liners, practice और exam-level mock tests करवाए जाएँगे।</p>
         </article>
       </div>
       <div class="welcome-flow-strip">
         <span>Daily Target</span><i>→</i><span>YouTube Class</span><i>→</i><span>PDF Verification</span><i>→</i><span>Final Submit</span>
       </div>
-      <p class="welcome-soft-note">हमारा लक्ष्य केवल syllabus पूरा करवाना नहीं, बल्कि आपकी तैयारी को हर दिन मजबूत और track करना है।</p>
+      <p class="welcome-soft-note">Class पर कोई verification नहीं होगा। PDF पढ़ने से पहले verification और PDF download से पहले निर्धारित Mock Test condition रहेगी।</p>
       <div class="welcome-nav-actions">
         <button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button>
         <button class="welcome-btn next" onclick="welcomeNext()">सुविधाएँ देखें →</button>
@@ -58,21 +58,41 @@
       <h2>आपको ऐप में क्या मिलेगा?</h2>
       <div class="welcome-feature-grid">
         <article><span>▶</span><div><b>YouTube Classes</b><small>आज के Target की सीधी class links</small></div></article>
-        <article><span>PDF</span><div><b>Verified PDF Notes</b><small>Verification condition clear होने पर पढ़ें</small></div></article>
-        <article><span>✓</span><div><b>Download Mock Test</b><small>निर्धारित score के बाद PDF download</small></div></article>
+        <article><span>PDF</span><div><b>Verified PDF Notes</b><small>निर्धारित verification score के बाद PDF पढ़ें</small></div></article>
+        <article><span>✓</span><div><b>Download Mock Test</b><small>Condition clear होने के बाद ही PDF download</small></div></article>
         <article><span>1L</span><div><b>One-Liner Revision</b><small>Topic-wise तेज और आसान revision</small></div></article>
         <article><span>T</span><div><b>Separate Mock Tests</b><small>Practice और final assessment tests</small></div></article>
-        <article><span>↗</span><div><b>Progress Tracking</b><small>Daily progress, score और streak</small></div></article>
+        <article><span>↗</span><div><b>Progress Tracking</b><small>Daily progress, score और preparation status</small></div></article>
       </div>
       <div class="welcome-channel-row">
         <a id="welcomeTelegram" class="welcome-channel telegram" target="_blank" rel="noopener noreferrer">✈ Telegram</a>
         <a id="welcomeYoutube" class="welcome-channel youtube" target="_blank" rel="noopener noreferrer">▶ YouTube</a>
       </div>
+      <div class="welcome-nav-actions">
+        <button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button>
+        <button class="welcome-btn next" onclick="welcomeNext()">नियम पढ़ें →</button>
+      </div>
+    </section>
+
+    <section class="welcome-slide onboarding-rules-slide" data-welcome-slide="3">
+      <div class="welcome-kicker">RULES & RESPONSIBILITY</div>
+      <h2>ऐप शुरू करने से पहले जरूरी नियम</h2>
+      <div class="onboarding-rules">
+        <div><span>1</span><p>हर दिन का Target समय पर पूरा करें और Class, PDF तथा Test को निर्धारित क्रम में करें।</p></div>
+        <div><span>2</span><p>Login ID, Password, PDF link या ऐप का protected content किसी दूसरे व्यक्ति के साथ share न करें।</p></div>
+        <div><span>3</span><p>PDF खोलने के लिए verification तथा download के लिए निर्धारित Mock Test condition पूरी करनी होगी।</p></div>
+        <div><span>4</span><p>Mock Test में हर question का option चुनना आवश्यक हो सकता है; बिना उत्तर दिए Next उपलब्ध नहीं होगा।</p></div>
+        <div><span>5</span><p>तकनीकी समस्या होने पर सही screenshot के साथ Admin से संपर्क करें; गलत जानकारी या misuse से बचें।</p></div>
+      </div>
+      <label class="onboarding-agreement">
+        <input id="onboardingAgree" type="checkbox" onchange="updateAgreementState()">
+        <span>मैंने सभी नियम और निर्देश पढ़ लिए हैं और मैं उनका पालन करने के लिए सहमत हूँ।</span>
+      </label>
       <div class="welcome-nav-actions final">
         <button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button>
-        <button class="welcome-btn next" onclick="finishWelcome(true)">आज का Target शुरू करें →</button>
+        <button id="startStudentAppBtn" class="welcome-btn next" onclick="completeStudentOnboarding()" disabled>ऐप शुरू करें →</button>
       </div>
-      <p class="welcome-note">यह परिचय केवल पहली बार दिखेगा। बाद में ऐप सीधे Login या Dashboard खोलेगी।</p>
+      <p class="welcome-note">यह onboarding इस account पर इस device में केवल पहली बार दिखाई जाएगी।</p>
     </section>
   </div>
 </div>
@@ -87,7 +107,6 @@
     <div class="form-group"><label>Email या पुराना Mobile Number</label><input id="loginId" autocomplete="username" placeholder="Email या 10 अंकों का मोबाइल नंबर"></div>
     <div class="form-group"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="अपना Password"></div>
     <button class="btn btn-blue auth-main-btn premium-press-btn" onclick="login()">Login</button>
-    <button class="auth-link-btn" onclick="openWelcome()">ऐप की सुविधाएँ और चैनल देखें</button>
     <button class="auth-link-btn" onclick="showForgot()">Password भूल गए? Email से Reset करें</button>
     <button class="btn btn-light auth-main-btn premium-press-btn" onclick="showRegister()">New Student Registration</button><button id="loginInstallBtn" class="btn btn-purple auth-main-btn premium-press-btn hidden" onclick="installApp()">⬇ Install App</button>
   </section>
@@ -122,9 +141,17 @@
 <script>
 registerSW();
 initInstallUI('loginInstallBtn');
-initInstallUI('welcomeInstallBtn');
-const WELCOME_KEY='gk_groupd_welcome_seen_v2';
+
+const ONBOARDING_KEY_PREFIX='gk_groupd_student_onboarding_v10_';
 let welcomeSlideIndex=0;
+let onboardingUserId=null;
+
+function onboardingStorageKey(userId){
+  return ONBOARDING_KEY_PREFIX+String(userId||'');
+}
+function hasCompletedOnboarding(userId){
+  return !!userId && localStorage.getItem(onboardingStorageKey(userId))==='1';
+}
 function showWelcomeSlide(index){
   const slides=[...document.querySelectorAll('[data-welcome-slide]')];
   if(!slides.length)return;
@@ -135,32 +162,60 @@ function showWelcomeSlide(index){
 }
 function welcomeNext(){showWelcomeSlide(welcomeSlideIndex+1)}
 function welcomePrev(){showWelcomeSlide(welcomeSlideIndex-1)}
-function openWelcome(){
-  const w=document.getElementById('welcomeScreen');
-  if(!w)return;
+function updateAgreementState(){
+  const agree=document.getElementById('onboardingAgree');
+  const btn=document.getElementById('startStudentAppBtn');
+  if(btn)btn.disabled=!agree?.checked;
+}
+function openStudentOnboarding(authUser,profileData=null){
+  if(!authUser)return;
+  onboardingUserId=authUser.id;
+  const name=profileData?.full_name||authUser.user_metadata?.full_name||authUser.email?.split('@')[0]||'Student';
+  const nameEl=document.getElementById('onboardingStudentName');
+  if(nameEl)nameEl.textContent=name;
   const tg=document.getElementById('welcomeTelegram');
   const yt=document.getElementById('welcomeYoutube');
   if(tg)tg.href=APP_CONFIG.TELEGRAM_URL||'#';
   if(yt)yt.href=APP_CONFIG.YOUTUBE_URL||'#';
+  const agree=document.getElementById('onboardingAgree');
+  if(agree)agree.checked=false;
+  updateAgreementState();
   showWelcomeSlide(0);
-  w.classList.remove('hidden');
+  document.getElementById('welcomeScreen')?.classList.remove('hidden');
   document.body.classList.add('welcome-open');
 }
-async function finishWelcome(routeIfLoggedIn=true){
-  localStorage.setItem(WELCOME_KEY,'1');
-  document.getElementById('welcomeScreen')?.classList.add('hidden');
-  document.body.classList.remove('welcome-open');
-  if(routeIfLoggedIn){
-    const {data:{session}}=await sb.auth.getSession();
-    if(session){
-      const p=await getProfile(session.user.id);
-      location.href=p?.role==='admin'?'q9v3x7k2-r8m4p6t1-z5n7c2w9.html':'l4x8m2r7-k9v3t5n1-z6c4p8q2.html';
-    }
+async function completeStudentOnboarding(){
+  const agree=document.getElementById('onboardingAgree');
+  if(!agree?.checked){
+    showWelcomeSlide(3);
+    return;
   }
+  const {data:{session}}=await sb.auth.getSession();
+  const uid=onboardingUserId||session?.user?.id;
+  if(!uid){
+    document.getElementById('welcomeScreen')?.classList.add('hidden');
+    document.body.classList.remove('welcome-open');
+    showLogin();
+    showMsg('Session समाप्त हो गया है। कृपया दोबारा Login करें।');
+    return;
+  }
+  localStorage.setItem(onboardingStorageKey(uid),'1');
+  location.href='l4x8m2r7-k9v3t5n1-z6c4p8q2.html';
 }
-function enterApp(){finishWelcome(true)}
-const welcomePending=localStorage.getItem(WELCOME_KEY)!=='1';
-if(welcomePending)openWelcome();
+async function routeAuthenticatedUser(authUser){
+  if(!authUser)return;
+  const p=await getProfile(authUser.id);
+  if(String(p?.role||'student').toLowerCase()==='admin'){
+    location.href='q9v3x7k2-r8m4p6t1-z5n7c2w9.html';
+    return;
+  }
+  if(!hasCompletedOnboarding(authUser.id)){
+    openStudentOnboarding(authUser,p);
+    return;
+  }
+  location.href='l4x8m2r7-k9v3t5n1-z6c4p8q2.html';
+}
+
 const authSections=["loginMode","registerMode","forgotMode","newPasswordMode"];
 
 function showSection(id){
@@ -200,9 +255,8 @@ sb.auth.onAuthStateChange((event,session)=>{
     showMsg("यह पुराना Reset Link format है। नया Reset Link मंगवाएँ; V4 में अलग secure recovery page खुलेगा।");
     return;
   }
-  if(session && !welcomePending){
-    const p=await getProfile(session.user.id);
-    location.href=p?.role==="admin"?"q9v3x7k2-r8m4p6t1-z5n7c2w9.html":"l4x8m2r7-k9v3t5n1-z6c4p8q2.html";
+  if(session){
+    await routeAuthenticatedUser(session.user);
   }
 })();
 
@@ -223,8 +277,7 @@ async function login(){
     result=await sb.auth.signInWithPassword({email:phoneToAuthEmail(phone),password});
   }
   if(result.error)return showMsg("Login details गलत हैं।");
-  const p=await getProfile(result.data.user.id);
-  location.href=p?.role==="admin"?"q9v3x7k2-r8m4p6t1-z5n7c2w9.html":"l4x8m2r7-k9v3t5n1-z6c4p8q2.html";
+  await routeAuthenticatedUser(result.data.user);
 }
 
 async function signup(){
@@ -276,7 +329,9 @@ async function signup(){
       }
       if(m.includes("password")) return showMsg("Password स्वीकार नहीं हुआ। कम से कम 6 अक्षर का मजबूत Password रखें।");
       if(m.includes("email")) return showMsg("Email ID स्वीकार नहीं हुई। कृपया सही Email लिखें।");
-      return showMsg("Registration नहीं हो पाया: "+error.message);
+      const detail=error.message||error.details||error.hint||"";
+      if(!detail||detail==="[object Object]")return showMsg("Registration नहीं हो पाया। यह Email या Mobile Number पहले से registered हो सकता है। Login या Forgot Password का उपयोग करें।");
+      return showMsg("Registration नहीं हो पाया: "+detail);
     }
 
     if(data?.user && Array.isArray(data.user.identities) && data.user.identities.length===0){
@@ -284,14 +339,16 @@ async function signup(){
     }
 
     if(data?.session){
-      showMsg("Registration सफल। Dashboard खुल रहा है…","success");
-      setTimeout(()=>location.href="l4x8m2r7-k9v3t5n1-z6c4p8q2.html",800);
+      showMsg("Registration सफल। जरूरी जानकारी खुल रही है…","success");
+      setTimeout(()=>openStudentOnboarding(data.user,null),450);
     }else{
       showMsg("Registration बन गया, लेकिन Supabase में Confirm Email अभी ON है। इसे OFF करें, फिर Login करें।","error");
     }
   }catch(err){
     console.error(err);
-    showMsg("Registration के दौरान समस्या आई। Internet connection check करके दोबारा प्रयास करें।");
+    const detail=err?.message||err?.details||err?.hint||"";
+    if(!detail||detail==="[object Object]")showMsg("Registration नहीं हो पाया। Email या Mobile पहले से registered हो सकता है। Login या Forgot Password का उपयोग करें।");
+    else showMsg("Registration के दौरान समस्या आई: "+detail);
   }finally{
     if(btn){btn.disabled=false;btn.textContent=oldText;}
   }

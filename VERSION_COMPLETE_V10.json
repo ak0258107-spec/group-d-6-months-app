@@ -1,0 +1,19 @@
+{
+  "version": "10.0.0",
+  "name": "COMPLETE V10 - Registration First Onboarding",
+  "date": "2026-07-27",
+  "scope": [
+    "Student public entry and registration flow",
+    "Post-registration onboarding with rules agreement",
+    "Duplicate registration user-friendly messages",
+    "Student direct-page onboarding guard",
+    "Service worker cache refresh"
+  ],
+  "unchanged": [
+    "Admin authentication, MFA and unique admin URL",
+    "Supabase SQL/database structure",
+    "Cloudflare Worker and R2 settings",
+    "Password reset template and redirect URLs",
+    "PDF/test/one-liner backend logic"
+  ]
+}
