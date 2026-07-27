@@ -40,7 +40,7 @@ async function verifyAdminRole(){
   if(userError||!user)throw userError||new Error('Admin account verify नहीं हुआ।');
   const {data:profile,error:profileError}=await adminRecoverySb
     .from('profiles')
-    .select('role,email')
+    .select('role')
     .eq('id',user.id)
     .maybeSingle();
   if(profileError)throw profileError;

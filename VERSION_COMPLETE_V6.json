@@ -1,0 +1,10 @@
+{
+  "version": "COMPLETE_V6",
+  "date": "2026-07-27",
+  "fixes": [
+    "Admin recovery no longer queries missing profiles.email column",
+    "Student recovery no longer queries missing profiles.email column",
+    "Registration no longer requires profiles.email; Supabase Auth handles email uniqueness",
+    "PWA cache bumped to V6"
+  ]
+}

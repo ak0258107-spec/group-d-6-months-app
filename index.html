@@ -246,20 +246,18 @@ async function signup(){
   if(btn){btn.disabled=true;btn.textContent="Registering...";}
 
   try{
-    let existing=null;
-    try{
-      const filters=[`email.eq.${email}`];
-      if(phone)filters.push(`phone.eq.${phone}`);
-      const q=await sb.from('profiles').select('id,email,phone').or(filters.join(',')).limit(1);
-      if(!q.error && q.data && q.data.length) existing=q.data[0];
-    }catch(_){}
+    // profiles table में email column आवश्यक नहीं है। Email uniqueness Supabase Auth खुद संभालता है।
+    // यहाँ केवल optional Mobile Number duplicate check किया जाता है।
+    let existingPhone=null;
+    if(phone){
+      try{
+        const q=await sb.from('profiles').select('id,phone').eq('phone',phone).limit(1);
+        if(!q.error && q.data && q.data.length) existingPhone=q.data[0];
+      }catch(_){}
+    }
 
-    if(existing){
-      return showMsg(
-        existing.email===email
-          ?"इस Email ID से पहले ही Registration हो चुका है। कृपया Login करें या Forgot Password का उपयोग करें।"
-          :"इस Mobile Number से पहले ही Registration हो चुका है। कृपया Login करें।"
-      );
+    if(existingPhone){
+      return showMsg("इस Mobile Number से पहले ही Registration हो चुका है। कृपया Login करें।");
     }
 
     const {data,error}=await sb.auth.signUp({

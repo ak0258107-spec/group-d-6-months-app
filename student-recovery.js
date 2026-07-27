@@ -40,7 +40,7 @@ async function verifyStudentRole(){
   if(userError||!user)throw userError||new Error('Student account verify नहीं हुआ।');
   const {data:profile,error:profileError}=await studentRecoverySb
     .from('profiles')
-    .select('role,email')
+    .select('role')
     .eq('id',user.id)
     .maybeSingle();
   if(profileError)throw profileError;

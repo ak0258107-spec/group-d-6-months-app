@@ -1,0 +1,22 @@
+GK BY PURUSHOTAM SIR - COMPLETE V6
+
+यह FULL PROJECT ZIP है, patch नहीं।
+
+समस्या: Secure Admin Recovery में "column profiles.email does not exist" आ रहा था।
+कारण: profiles table में email column नहीं है, लेकिन recovery code role,email पढ़ रहा था।
+V6 में code केवल role पढ़ता है। Student recovery और registration में भी यही compatibility fix लगाया गया है।
+
+करना केवल यह है:
+1. इस ZIP को Extract करें।
+2. GitHub repository के root में सभी files Upload/Replace करें।
+3. Commit changes करें।
+4. GitHub Pages deployment पूरा होने दें।
+5. Browser/PWA cache clear करें या app reinstall करें।
+6. Admin Panel से नया Reset Link भेजें। पुराने email link का उपयोग न करें।
+
+Supabase:
+- कोई SQL नहीं चलानी।
+- Reset Password Email Template और Redirect URLs जो पहले save किए हैं, वैसे ही रहने दें।
+
+Cloudflare/R2:
+- कुछ नहीं करना।
