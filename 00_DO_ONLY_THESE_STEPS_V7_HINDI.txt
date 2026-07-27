@@ -1,0 +1,28 @@
+GK BY PURUSHOTAM SIR - COMPLETE V7
+
+यह पूरा project ZIP है, patch नहीं।
+
+समस्या का कारण:
+पुराना अधूरा Authenticator factor उसी friendly name से Supabase में रह गया था।
+
+V7 में fix:
+1. पुराने unverified factor को हटाने की कोशिश होती है।
+2. हर नए setup का नाम unique होता है, इसलिए conflict नहीं आता।
+3. नया QR बनेगा।
+4. Verify होने के बाद पुराने अधूरे factors साफ किए जाते हैं।
+
+DEPLOY:
+- GitHub: सभी files root में upload/replace करके commit करें।
+- Supabase SQL: कुछ नहीं।
+- Supabase settings: कुछ नहीं।
+- Cloudflare/R2: कुछ नहीं।
+
+TEST:
+1. GitHub Pages deploy पूरा होने दें।
+2. site data/cache clear करें।
+3. Unique Admin link खोलें।
+4. Admin email/password login करें।
+5. नया QR आए तो अपने निजी Authenticator App से scan करें।
+6. 6-digit code भरकर Verify करें।
+
+पुराने/साझा किए हुए QR का उपयोग न करें।

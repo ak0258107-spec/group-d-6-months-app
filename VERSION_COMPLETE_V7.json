@@ -1,0 +1,11 @@
+{
+  "version": "COMPLETE_V7",
+  "date": "2026-07-27",
+  "fixes": [
+    "Authenticator friendly-name conflict fixed",
+    "Stale unverified MFA factors are removed when possible",
+    "Every fresh TOTP enrollment uses a unique friendly name",
+    "Old unfinished factors are cleaned after successful activation",
+    "PWA cache bumped for the MFA fix"
+  ]
+}

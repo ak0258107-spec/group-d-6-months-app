@@ -62,18 +62,37 @@ async function startMfaChallenge(factorId){
   showAdminMfaChallengeStep();
   adminGateMessage('Authenticator App का वर्तमान code लिखें।','success');
 }
+function freshAdminFactorName(){
+  const stamp=new Date().toISOString().replace(/\D/g,'').slice(0,14);
+  const rand=(globalThis.crypto?.randomUUID?.()||Math.random().toString(36).slice(2)).replace(/-/g,'').slice(0,8);
+  return `GK BY PURUSHOTAM SIR OWNER ${stamp}-${rand}`;
+}
+async function removeUnverifiedAdminFactors(factors=[]){
+  for(const factor of factors.filter(item=>String(item?.status||'').toLowerCase()!=='verified')){
+    try{await sb.auth.mfa.unenroll({factorId:factor.id})}catch(error){console.warn('Old unverified MFA factor could not be removed yet',factor.id,error)}
+  }
+}
+async function enrollFreshAdminTotp(){
+  let lastError=null;
+  for(let attempt=0;attempt<2;attempt++){
+    const friendlyName=freshAdminFactorName();
+    const result=await sb.auth.mfa.enroll({factorType:'totp',friendlyName});
+    if(!result.error&&result.data)return result.data;
+    lastError=result.error;
+    const message=String(result.error?.message||'').toLowerCase();
+    if(!message.includes('friendly name')&&!message.includes('already exists')&&!message.includes('factor'))break;
+  }
+  throw lastError||new Error('Authenticator setup शुरू नहीं हो सका।');
+}
 async function prepareAdminMfa(){
   const factors=await listTotpFactors();
-  const verified=factors.find(f=>f.status==='verified');
+  const verified=factors.find(f=>String(f?.status||'').toLowerCase()==='verified');
   if(verified)return startMfaChallenge(verified.id);
 
-  // पुराने अधूरे enrollment हटाकर नया साफ enrollment बनाएं।
-  for(const f of factors.filter(x=>x.status!=='verified')){
-    try{await sb.auth.mfa.unenroll({factorId:f.id})}catch(_){ }
-  }
-  const friendlyName='GK BY PURUSHOTAM SIR OWNER';
-  const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName});
-  if(error)throw error;
+  // पुराने अधूरे factors हटाने की कोशिश करें। यदि Supabase उन्हें तुरंत न हटाए,
+  // तब भी हर नए enrollment के लिए unique friendly name होने से setup रुकता नहीं है।
+  await removeUnverifiedAdminFactors(factors);
+  const data=await enrollFreshAdminTotp();
   __adminEnrollFactorId=data.id;
   const qr=data.totp?.qr_code||'';
   const secret=data.totp?.secret||'';
@@ -89,7 +108,7 @@ async function prepareAdminMfa(){
   if(challenge.error)throw challenge.error;
   __adminEnrollChallengeId=challenge.data.id;
   showAdminMfaEnrollStep();
-  adminGateMessage('QR scan करके 6-अंकों का code डालें। यह setup केवल पहली बार होगा।','success');
+  adminGateMessage('नया QR बनाया गया है। इसे अपने निजी Authenticator App से scan करके 6-अंकों का code डालें।','success');
 }
 
 async function submitAdminAccountLogin(){
@@ -123,6 +142,11 @@ async function verifyAdminMfaEnrollment(){
   try{
     const {data,error}=await sb.auth.mfa.verify({factorId:__adminEnrollFactorId,challengeId:__adminEnrollChallengeId,code});
     if(error||!data)throw new Error('Code गलत है या समय समाप्त हो गया। नया code देखकर दोबारा प्रयास करें।');
+    // सफल activation के बाद पुराने अधूरे factors साफ करें।
+    try{
+      const factors=await listTotpFactors();
+      await removeUnverifiedAdminFactors(factors.filter(f=>f.id!==__adminEnrollFactorId));
+    }catch(cleanupError){console.warn('MFA cleanup skipped',cleanupError)}
     await authorizeAdminPanel();
   }catch(e){adminGateMessage(e.message||'MFA activate नहीं हुआ।')}
   finally{if(btn){btn.disabled=false;btn.textContent='Verify & Activate MFA'}}
