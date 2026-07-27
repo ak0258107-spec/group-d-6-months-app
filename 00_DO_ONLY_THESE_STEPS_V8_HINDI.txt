@@ -1,0 +1,15 @@
+GK BY PURUSHOTAM SIR — COMPLETE V8
+
+इस संस्करण में Admin Authenticator/MFA स्क्रीन की ऊँचाई और scroll की समस्या ठीक की गई है।
+अब QR, code field, Verify button और नीचे के सभी विकल्प vertical scroll से दिखाई देंगे।
+छोटी laptop/mobile screen पर QR और spacing अपने-आप छोटी होगी।
+
+केवल यह करें:
+1. पूरी V8 ZIP extract करें।
+2. अंदर की सभी files GitHub repository के root में upload/replace करें।
+3. Commit changes करें और GitHub Pages deployment पूरा होने दें।
+4. Browser में hard refresh करें या app/site cache clear करके Admin link खोलें।
+
+Supabase: कोई बदलाव नहीं।
+Cloudflare Worker/R2: कोई बदलाव नहीं।
+SQL: कोई बदलाव नहीं।

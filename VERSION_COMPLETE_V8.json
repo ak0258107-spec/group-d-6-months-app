@@ -1,0 +1,10 @@
+{
+  "version": "V8",
+  "project": "GK BY PURUSHOTAM SIR GROUP-D APP",
+  "change": "Admin MFA setup viewport and vertical scroll fix",
+  "deployment": {
+    "github": "Upload/replace all files in repository root",
+    "supabase": "No change required",
+    "cloudflare": "No change required"
+  }
+}

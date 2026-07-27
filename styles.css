@@ -747,3 +747,92 @@ body.welcome-open{overflow:hidden}
 .welcome-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;text-align:left}.welcome-feature-grid article{display:flex;gap:12px;align-items:center;padding:14px;border-radius:17px;background:rgba(255,255,255,.095);border:1px solid rgba(255,255,255,.14)}.welcome-feature-grid article>span{flex:0 0 42px;height:42px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,#f7cb5d,#dc961d);color:#102844;font-weight:1000}.welcome-feature-grid b,.welcome-feature-grid small{display:block}.welcome-feature-grid small{margin-top:3px;color:#d4e4f2;line-height:1.35}.welcome-channel-row{display:flex;gap:10px;justify-content:center;margin-top:17px}.welcome-channel{padding:10px 16px;border-radius:999px;color:#fff;text-decoration:none;font-weight:900}.welcome-channel.telegram{background:#1689c8}.welcome-channel.youtube{background:#d71931}
 .final-home-hero{background:linear-gradient(135deg,#071f3d,#0d4d86 72%,#1e69a6);border:1px solid rgba(255,255,255,.1)}.home-slogan{margin-top:7px;color:#ffd166;font-weight:1000}.daily-flow-ribbon{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:14px 0;padding:13px;border-radius:18px;background:#fff;border:1px solid #dbe6f1;box-shadow:0 8px 25px rgba(9,39,70,.07)}.daily-flow-ribbon span{font-weight:900;color:#173652}.daily-flow-ribbon i{font-style:normal;color:#c38a15}.final-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home-action-card.final-submit-card{grid-column:1/-1;background:linear-gradient(135deg,#0b7454,#13a675);color:#fff;text-decoration:none}.final-submit-card .action-text span,.final-submit-card .action-text small{color:#d9fff0}.pdf-next-step-card{display:flex;align-items:center;justify-content:space-between;gap:14px;background:linear-gradient(135deg,#f7fbff,#eef6ff);border-left:5px solid #176ac4}.premium-test-list-item h3{margin:8px 0 5px}.premium-pdf-card{border:1px solid #d9e4ef;background:linear-gradient(145deg,#fff,#f8fbfe)}.pdf-card-copy{min-width:min(520px,100%);flex:1}.pdf-title-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.pdf-step-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.pdf-step-list span{padding:7px 10px;border-radius:999px;background:#edf4fb;color:#294965;font-size:12px;font-weight:800}.pdf-card-actions{align-items:center}.premium-pdf-verification-modal{background:linear-gradient(145deg,#fff,#f7fbff)}.pdf-verification-summary{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.pdf-verification-summary span{padding:8px 11px;border-radius:999px;background:#eaf2fb;color:#184a78;font-size:12px;font-weight:900}.pdf-verification-submit{width:100%;min-height:52px;margin-top:15px}.pdf-verification-result{margin-top:15px}.pdf-verification-builder{border-color:#b8d4ef;background:linear-gradient(145deg,#f9fcff,#eef6ff)}
 @media(max-width:680px){.welcome-onboarding{min-height:calc(100dvh - 16px);padding:66px 15px 20px;border-radius:25px}.welcome-topbar{top:18px;left:17px;right:17px}.welcome-plan-grid,.welcome-feature-grid{grid-template-columns:1fr}.welcome-primary-actions,.welcome-nav-actions{flex-direction:column}.welcome-btn{width:100%}.welcome-channel-row{flex-wrap:wrap}.final-action-grid{grid-template-columns:1fr}.home-action-card.final-submit-card{grid-column:auto}.pdf-next-step-card{align-items:stretch;flex-direction:column}.pdf-card-actions{width:100%}.pdf-card-actions .btn{flex:1}.daily-flow-ribbon{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}.daily-flow-ribbon span{white-space:nowrap}}
+
+/* ===== V8 ADMIN MFA VIEWPORT + SCROLL FIX =====
+   The MFA card may be taller than a laptop/mobile viewport. The overlay now
+   owns vertical scrolling, the card starts below the browser chrome, and the
+   QR / spacing shrink on short screens so every field and action remains reachable.
+*/
+body.admin-security-pending{
+  overflow:hidden!important;
+}
+.admin-gate-overlay{
+  align-items:flex-start!important;
+  justify-content:center!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  padding:
+    max(14px,env(safe-area-inset-top))
+    max(12px,env(safe-area-inset-right))
+    max(24px,env(safe-area-inset-bottom))
+    max(12px,env(safe-area-inset-left))!important;
+}
+.admin-gate-card{
+  flex:0 0 auto;
+  width:min(460px,calc(100vw - 24px))!important;
+  max-width:100%!important;
+  max-height:none!important;
+  overflow:visible!important;
+  margin:auto 0!important;
+}
+#adminMfaEnrollStep,
+#adminMfaChallengeStep,
+#adminAccountLoginStep,
+#adminForgotStep{
+  min-width:0;
+  max-width:100%;
+}
+.admin-mfa-qr{
+  max-width:100%!important;
+  overflow:hidden;
+}
+.admin-mfa-qr img,
+.admin-mfa-qr svg{
+  width:min(210px,58vw)!important;
+  height:auto!important;
+  max-width:100%!important;
+}
+.admin-mfa-secret-wrap{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.admin-mfa-secret-wrap code{
+  display:block;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-all;
+}
+.admin-gate-card .btn,
+.admin-switch-account-btn{
+  min-height:46px;
+}
+
+@media(max-height:900px){
+  .admin-gate-card{padding:20px!important;border-radius:22px!important}
+  .admin-gate-shield{font-size:34px!important}
+  .admin-gate-card h2{margin:6px 0 8px!important;font-size:25px!important}
+  .admin-gate-card h3{margin:12px 0 8px!important;font-size:21px!important}
+  .admin-gate-card p{margin:7px 0!important;line-height:1.35}
+  .admin-mfa-qr{margin:10px auto!important;padding:8px!important}
+  .admin-mfa-qr img,.admin-mfa-qr svg{width:min(180px,48vw)!important}
+  .admin-gate-field{margin-top:9px!important}
+}
+
+@media(max-height:720px){
+  .admin-gate-card{padding:16px!important;border-radius:18px!important}
+  .admin-gate-shield{font-size:28px!important}
+  .admin-gate-card h2{font-size:22px!important}
+  .admin-gate-card h3{font-size:18px!important}
+  .admin-mfa-qr img,.admin-mfa-qr svg{width:min(140px,42vw)!important}
+  .admin-mfa-secret-wrap{font-size:11px!important;margin:7px 0!important}
+  .admin-gate-card input{padding:9px!important}
+  .admin-gate-card .btn,.admin-switch-account-btn{min-height:42px;padding:9px 12px!important}
+}
+
+@media(max-width:560px){
+  .admin-gate-overlay{padding-left:8px!important;padding-right:8px!important}
+  .admin-gate-card{width:100%!important;padding:17px!important;border-radius:20px!important}
+  .admin-mfa-qr img,.admin-mfa-qr svg{width:min(190px,62vw)!important}
+}
