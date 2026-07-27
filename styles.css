@@ -1058,3 +1058,28 @@ body.admin-security-pending .admin-switch-account-btn{
 .student-install-footer{width:min(760px,100%);margin:12px auto 26px;padding:0 14px}.student-install-footer:has(.hidden){display:none}.student-install-btn{width:100%;min-height:50px;background:linear-gradient(135deg,#dff4e8,#dcecff)!important;color:#173a55!important;border:1px solid #aac7d8!important;box-shadow:0 8px 18px rgba(33,70,95,.11)!important}
 .complex-question-format{display:grid;gap:8px}.complex-heading{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-left:4px solid #89a9c6;border-radius:9px;background:#f4f8fc;line-height:1.55}.complex-heading span{flex:0 0 auto;color:#173f62;font-weight:950}.complex-heading b{color:#172b3e;font-weight:800}.complex-numbered-line,.complex-detail-line{padding-left:12px;line-height:1.6;color:#172b3e}.complex-numbered-line{font-weight:800}
 @media(max-width:650px){.student-top{padding-left:6px!important;padding-right:6px!important}.top-section-nav{display:flex!important;overflow-x:auto;scrollbar-width:none;justify-content:flex-start}.top-section-nav::-webkit-scrollbar{display:none}.top-section-nav button{flex:0 0 88px;min-width:88px}.student-main{padding-top:11px}.section-identity{margin-top:2px}}
+
+
+/* ================================================================
+   V12.3 — Official channel branding card on signed-in Home page
+   Placement: quick-action cards → official channels → student greeting
+   ================================================================ */
+.brand-only-home-hero{margin-bottom:13px}
+.home-brand-connect-card{display:grid;grid-template-columns:minmax(0,.9fr) minmax(330px,1.35fr);gap:16px;align-items:center;margin:15px 0 13px;padding:17px;border:1.5px solid #cddff0;border-radius:22px;background:linear-gradient(135deg,#fbfdff 0%,#f3f9ff 52%,#fffaf1 100%);box-shadow:0 12px 28px rgba(35,74,112,.10)}
+.home-brand-connect-copy h3{margin:3px 0 5px;color:#173a59;font-size:clamp(20px,4.5vw,25px);font-weight:1000;line-height:1.15}
+.home-brand-connect-copy p{margin:0;color:#526b80;font-size:13px;font-weight:700;line-height:1.55}
+.home-brand-connect-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.brand-connect-btn{min-width:0;display:grid;grid-template-columns:42px minmax(0,1fr) 20px;gap:10px;align-items:center;padding:12px;border:1.5px solid transparent;border-radius:17px;text-decoration:none;box-shadow:0 7px 16px rgba(42,67,91,.08);transition:transform .16s ease,box-shadow .16s ease}
+.brand-connect-btn:hover{transform:translateY(-2px);box-shadow:0 10px 20px rgba(42,67,91,.13)}
+.brand-connect-btn:active{transform:translateY(1px)}
+.brand-connect-youtube{background:#fff3f4;border-color:#f1c9cf;color:#7d2432}
+.brand-connect-telegram{background:#eef9ff;border-color:#bfe1f3;color:#155a7a}
+.brand-connect-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:rgba(255,255,255,.82);font-size:20px;font-weight:1000;box-shadow:inset 0 0 0 1px rgba(29,64,90,.08)}
+.brand-connect-text{min-width:0;display:block}
+.brand-connect-text b,.brand-connect-text small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brand-connect-text b{font-size:14px;font-weight:1000;color:inherit}
+.brand-connect-text small{margin-top:3px;color:#587083;font-size:11px;font-weight:800}
+.brand-connect-arrow{font-size:19px;font-weight:1000;color:inherit}
+.home-student-greeting{margin:4px 0 13px;padding:2px 2px 0}
+.home-student-greeting .muted{margin-left:3px;color:#566c7d;font-weight:750}
+@media(max-width:700px){.home-brand-connect-card{grid-template-columns:1fr;padding:15px}.home-brand-connect-actions{grid-template-columns:1fr}.brand-connect-btn{grid-template-columns:42px minmax(0,1fr) 20px}.brand-connect-text b{font-size:15px}.brand-connect-text small{font-size:12px}}

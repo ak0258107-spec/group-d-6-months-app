@@ -23,3 +23,10 @@ V12.1 CORRECTION:
 - Student CBT dropdown अब केवल active MCQ questions वाले Subjects/Topics दिखाता है।
 - Admin topic catalog वैसा ही उपलब्ध है।
 - Empty topics बच्चों से hidden हैं।
+
+
+V12.3 HOME BRANDING UPDATE:
+- YouTube/Telegram buttons removed from first-time onboarding.
+- New pastel “हमसे जुड़ें” card added on signed-in Home page.
+- Card is placed after quick-action cards and immediately before the student greeting.
+- Existing databases, Workers, CBT and PDF systems unchanged.

@@ -881,9 +881,9 @@ renderHome=async function(){
   const classCount=currentTargets.filter(t=>t.youtube_url).length;
   const mats=currentDayMaterials();
   const finalT=finalTest();
-  homeBox.innerHTML=`<div class="premium-home-hero final-home-hero"><div><div class="hero-kicker">GK BY PURUSHOTAM SIR</div><div class="hello">Hello, ${esc(profile?.full_name||'Student')} 👋</div><div class="home-slogan">अबकी बार, आखिरी बार — जीत फिक्स!</div></div><div class="hero-day-badge">DAY ${currentDay?.day_number||'-'}</div></div>
-  <div class="status-hero ${st.key}"><div class="small">आज का संदेश</div><h2>${esc(st.title)}</h2><p>${esc(st.msg)}</p></div>
-  <div class="daily-flow-ribbon"><span>▶ Class</span><i>→</i><span>📄 PDF Verification</span><i>→</i><span>👁 PDF Study</span><i>→</i><span>📝 Final Submit</span></div>
+  const youtubeUrl=esc(APP_CONFIG.YOUTUBE_URL||'#');
+  const telegramUrl=esc(APP_CONFIG.TELEGRAM_URL||'#');
+  homeBox.innerHTML=`<div class="premium-home-hero final-home-hero brand-only-home-hero"><div><div class="hero-kicker">GK BY PURUSHOTAM SIR</div><div class="home-slogan">अबकी बार, आखिरी बार — जीत फिक्स!</div></div><div class="hero-day-badge">DAY ${currentDay?.day_number||'-'}</div></div>
   <div class="home-action-grid final-action-grid">
     <button class="home-action-card class-card" onclick="openTodayClasses()"><div class="action-icon">▶</div><div class="action-text"><span>आज की Classes</span><b>${classCount} Available</b><small>सीधे YouTube class links खोलें</small></div></button>
     <button class="home-action-card pdf-card-home" onclick="openPdfLibrary()"><div class="action-icon">PDF</div><div class="action-text"><span>PDF Notes</span><b>${mats.length} Today</b><small>Verification clear करके PDF पढ़ें</small></div></button>
@@ -891,7 +891,17 @@ renderHome=async function(){
     <button class="home-action-card one-card-home" onclick="openOneLinerLibrary()"><div class="action-icon">1L</div><div class="action-text"><span>One-Liners</span><b>Topic-wise</b><small>तेज revision और याद करने योग्य facts</small></div></button>
     ${finalT?`<a class="home-action-card final-submit-card" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${finalT.id}"><div class="action-icon">✓</div><div class="action-text"><span>Final Submit</span><b>${finalT.passing_percent||0}% Condition</b><small>आज का final assessment पूरा करें</small></div></a>`:''}
   </div>
+  <div class="home-brand-connect-card" aria-label="Official YouTube and Telegram channels">
+    <div class="home-brand-connect-copy"><span class="section-kicker">OFFICIAL CHANNELS</span><h3>हमसे जुड़ें</h3><p>Free Classes, PDFs और जरूरी updates के लिए हमारे official channels follow करें।</p></div>
+    <div class="home-brand-connect-actions">
+      <a class="brand-connect-btn brand-connect-youtube" href="${youtubeUrl}" target="_blank" rel="noopener noreferrer"><span class="brand-connect-icon">▶</span><span class="brand-connect-text"><b>YouTube Channel</b><small>Free Classes देखें</small></span><span class="brand-connect-arrow">↗</span></a>
+      <a class="brand-connect-btn brand-connect-telegram" href="${telegramUrl}" target="_blank" rel="noopener noreferrer"><span class="brand-connect-icon">✈</span><span class="brand-connect-text"><b>Telegram Channel</b><small>PDF और Updates पाएँ</small></span><span class="brand-connect-arrow">↗</span></a>
+    </div>
+  </div>
+  <div class="home-student-greeting"><div class="hello">Hello, ${esc(profile?.full_name||'Student')} 👋</div><div class="muted">आज का काम step-by-step पूरा करें।</div></div>
   <div id="homeDynamicPanel" class="hidden premium-home-panel"></div>
+  <div class="status-hero ${st.key}"><div class="small">आज का संदेश</div><h2>${esc(st.title)}</h2><p>${esc(st.msg)}</p></div>
+  <div class="daily-flow-ribbon"><span>▶ Class</span><i>→</i><span>📄 PDF Verification</span><i>→</i><span>👁 PDF Study</span><i>→</i><span>📝 Final Submit</span></div>
   <div class="card today-target-summary"><h3>🎯 आज पढ़ने वाले Topics</h3><div class="target-summary-list">${currentTargets.map(t=>`<div class="target-summary-row"><span class="topic-chip">${esc(t.subject)}</span><b>${esc(t.topic)}</b><span class="badge ${t.youtube_url?'badge-green':'badge-orange'}">${t.youtube_url?'Class Ready':'Link Pending'}</span></div>`).join('')}</div></div>
   <div class="stat-row" style="margin-top:10px"><div class="stat-mini"><div class="muted">Current Streak</div><div class="kpi">${profile?.current_streak||0} Days</div></div><div class="stat-mini"><div class="muted">Average Test</div><div class="kpi">${profile?.average_test_percentage||0}%</div></div></div>`;
 };

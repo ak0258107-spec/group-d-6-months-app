@@ -17,3 +17,6 @@ GK BY PURUSHOTAM SIR — COMPLETE V12.1 CORRECTED
 - Install App button नीचे
 - Hello Student name high-contrast
 - 10 सामान्य MCQ formats का multiline display/parser support
+
+
+V12.3 के लिए: केवल GitHub में सभी 98 files upload/replace करके Commit करें। Cloudflare, Turso, Supabase और R2 में कोई बदलाव नहीं करना है।

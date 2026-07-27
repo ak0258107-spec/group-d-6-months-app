@@ -1,14 +1,13 @@
 {
-  "version": "12.2.0",
+  "version": "12.3.0",
   "type": "complete-project",
   "files_expected": 98,
   "changes": [
-    "top pastel sticky navigation retained",
-    "install button at bottom retained",
-    "high-contrast user greeting retained",
-    "admin topic catalog retained",
-    "student dropdown shows only subjects/topics containing active MCQ questions",
-    "empty topics never appear to students",
+    "official YouTube and Telegram links moved out of onboarding",
+    "official channel branding card placed after Home quick-action cards and before student greeting",
+    "pastel channel buttons with high-contrast readable text",
+    "top navigation, bottom install button and dynamic active-question topics retained",
+    "Target Batch Supabase and Mock Test Turso separation retained",
     "10 MCQ layout support retained"
   ]
 }
