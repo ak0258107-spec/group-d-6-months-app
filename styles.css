@@ -1038,3 +1038,23 @@ body.admin-security-pending .admin-switch-account-btn{
   .onboarding-rules>div{grid-template-columns:36px 1fr;padding:12px}
   .onboarding-rules>div>span{width:34px;height:34px}
 }
+
+
+/* ===== V12 TOP PASTEL SECTION NAV + CLEAR USER NAME ===== */
+.mobile-shell{padding-bottom:0!important}
+.student-top{padding:10px 10px 8px!important}
+.student-top-inner{align-items:center;padding:0 4px 9px}
+.top-section-nav{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;top:auto!important;z-index:1!important;width:min(760px,100%);margin:0 auto;padding:7px!important;border:1px solid #dbe5ef!important;border-radius:18px!important;box-shadow:0 8px 20px rgba(36,63,90,.09)!important;display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:6px;background:#fbfdff!important;backdrop-filter:none!important}
+.top-section-nav button{min-height:54px;padding:6px 4px!important;border:1px solid transparent!important;border-radius:13px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px!important;font-weight:900!important;line-height:1.05;color:#26394d!important;box-shadow:none!important;transform:none!important}
+.top-section-nav .nav-icon{font-size:20px;line-height:1}.top-section-nav .nav-label{white-space:nowrap}
+.top-section-nav .nav-home{background:#eaf4ff!important}.top-section-nav .nav-target{background:#eaf8ef!important}.top-section-nav .nav-test{background:#fff2df!important}.top-section-nav .nav-oneliner{background:#f2edff!important}.top-section-nav .nav-pdf{background:#ffeded!important}.top-section-nav .nav-profile{background:#e8f8f7!important}
+.top-section-nav button.active{border-color:#91a9c1!important;box-shadow:0 5px 12px rgba(42,68,95,.14),inset 0 0 0 2px rgba(255,255,255,.85)!important;color:#102a43!important;transform:translateY(-1px)!important}
+.top-section-nav button:hover{filter:brightness(.985);transform:translateY(-1px)!important}
+.section-identity{display:flex;align-items:center;gap:11px;margin:4px 0 14px;padding:11px 14px;border:1px solid #dbe4ec;border-radius:16px;color:#1f3348;box-shadow:0 7px 18px rgba(34,59,84,.07)}
+.section-identity>span{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:rgba(255,255,255,.78)}
+.section-identity b,.section-identity small{display:block}.section-identity b{font-size:18px;font-weight:950}.section-identity small{margin-top:2px;color:#52677a;font-size:12px;font-weight:750}
+.section-home{background:#eef7ff}.section-target{background:#eef9f2}.section-test{background:#fff5e8}.section-oneliner{background:#f5f0ff}.section-pdf{background:#fff0f0}.section-profile{background:#edf9f8}
+.hello{display:inline-flex!important;align-items:center;max-width:100%;margin:4px 0 7px;padding:10px 15px;border:2px solid #e7bd58;border-radius:16px;background:linear-gradient(135deg,#fffdf5,#fff6d9)!important;color:#12304e!important;font-size:clamp(22px,5vw,29px)!important;font-weight:1000!important;line-height:1.2;box-shadow:0 9px 20px rgba(82,64,23,.11);text-shadow:none!important}
+.student-install-footer{width:min(760px,100%);margin:12px auto 26px;padding:0 14px}.student-install-footer:has(.hidden){display:none}.student-install-btn{width:100%;min-height:50px;background:linear-gradient(135deg,#dff4e8,#dcecff)!important;color:#173a55!important;border:1px solid #aac7d8!important;box-shadow:0 8px 18px rgba(33,70,95,.11)!important}
+.complex-question-format{display:grid;gap:8px}.complex-heading{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-left:4px solid #89a9c6;border-radius:9px;background:#f4f8fc;line-height:1.55}.complex-heading span{flex:0 0 auto;color:#173f62;font-weight:950}.complex-heading b{color:#172b3e;font-weight:800}.complex-numbered-line,.complex-detail-line{padding-left:12px;line-height:1.6;color:#172b3e}.complex-numbered-line{font-weight:800}
+@media(max-width:650px){.student-top{padding-left:6px!important;padding-right:6px!important}.top-section-nav{display:flex!important;overflow-x:auto;scrollbar-width:none;justify-content:flex-start}.top-section-nav::-webkit-scrollbar{display:none}.top-section-nav button{flex:0 0 88px;min-width:88px}.student-main{padding-top:11px}.section-identity{margin-top:2px}}

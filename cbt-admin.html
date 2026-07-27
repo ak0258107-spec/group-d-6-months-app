@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Haryana GK Admin Panel - GK BY PURUSHOTAM SIR</title>
+    <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=11.0.0"></script>
-    <script src="common.js?v=11.0.0"></script>
-    <script src="cbt-topics-data.js?v=11.0.0"></script>
+    <script src="config.js?v=12.0.0"></script>
+    <script src="common.js?v=12.0.0"></script>
+    <script src="cbt-topics-data.js?v=12.0.0"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -618,6 +618,7 @@
                 <br>
 
                 <textarea id="questionsBox" placeholder="यहाँ selected Subject/Topic के questions paste करें..."></textarea>
+                <div class="help" style="margin-top:10px">10 MCQ formats accepted: सामान्य MCQ, क/ख/ग/घ, कथन–निष्कर्ष, कथन-1/2, Assertion–Reason, मिलान, सही कूट, कालानुक्रम, रिक्त स्थान और Odd One Out। सभी में 4 options और सही उत्तर जरूरी हैं।</div>
 
                 <div class="btn-row">
                     <button type="button" class="blue" onclick="validateQuestions()">Validate Questions</button>

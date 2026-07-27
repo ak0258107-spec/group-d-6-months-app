@@ -1,0 +1,19 @@
+GK BY PURUSHOTAM SIR — COMPLETE V12.1 CORRECTED
+
+1. ZIP extract करके सभी files GitHub repository root में upload/replace करें और Commit करें।
+2. Cloudflare Worker, उसके Secrets, Supabase, PDF Worker और R2 में कोई बदलाव नहीं करना है।
+3. Turso में RUN_THIS_V12_TOPIC_SYNC_ONCE.sql पहले चला चुके हैं तो दोबारा चलाने की जरूरत नहीं है। यदि Admin Panel में 203 Topics उपलब्ध नहीं हैं, तभी इसे एक बार चलाएँ।
+4. GitHub Pages deploy होने के बाद app को Ctrl+Shift+R या Incognito में खोलें।
+
+सही Topic नियम:
+- Admin Panel में Subjects/Topics उपलब्ध रहेंगे ताकि Questions upload किए जा सकें।
+- Student dropdown में केवल वही Subject और Topic दिखाई देगा जिसमें कम से कम 1 active MCQ Question मौजूद है।
+- जिस Topic में कोई MCQ Question नहीं है, वह बच्चे को दिखाई नहीं देगा।
+- Topic में पहला Question upload होने के बाद app refresh पर वह Topic अपने-आप दिखेगा।
+- Topic के सभी Questions delete होने पर वह Topic अपने-आप छिप जाएगा।
+
+बाकी V12 बदलाव सुरक्षित रखे गए हैं:
+- ऊपर हल्के रंगों वाला navigation
+- Install App button नीचे
+- Hello Student name high-contrast
+- 10 सामान्य MCQ formats का multiline display/parser support

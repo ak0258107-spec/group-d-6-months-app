@@ -17,3 +17,9 @@ FINAL CHANGES — 26 JULY 2026
 • Updated admin labels, PDF upload controls and test categories.
 • Added a single final Supabase migration file and a clean deployment guide.
 • Bumped Service Worker cache/build version.
+
+
+V12.1 CORRECTION:
+- Student CBT dropdown अब केवल active MCQ questions वाले Subjects/Topics दिखाता है।
+- Admin topic catalog वैसा ही उपलब्ध है।
+- Empty topics बच्चों से hidden हैं।

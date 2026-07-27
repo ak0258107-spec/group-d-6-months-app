@@ -1,3 +1,4 @@
+// V12.1: Student dropdown shows only topics that contain active MCQ questions.
 const API_BASE_URL = String((window.APP_CONFIG && window.APP_CONFIG.MOCK_TEST_API_URL) || "https://exam-arena-api-live.ak0258107.workers.dev/api").replace(/\/+$/, "");
 
 const FIXED_SUBJECT_KEY = "all_subjects";
@@ -76,18 +77,7 @@ async function apiFetch(path, options = {}) {
 }
 
 function getCatalogSubjects() {
-    if (catalogSubjects.length) return catalogSubjects;
-    const source = getTopicsDataSource();
-    return Object.entries(source || {}).map(([key, subject], index) => ({
-        key,
-        name: clean(subject.name || subject.subject_name || key),
-        display_order: index + 1,
-        topics: (Array.isArray(subject.topics) ? subject.topics : []).map((topic, topicIndex) => ({
-            key: clean(typeof topic === "string" ? makeKey(topic) : (topic.key || topic.topic_key || makeKey(topic.name || topic.topic_name))),
-            name: clean(typeof topic === "string" ? topic : (topic.name || topic.topic_name || topic.key)),
-            display_order: topicIndex + 1
-        }))
-    }));
+    return Array.isArray(catalogSubjects) ? catalogSubjects : [];
 }
 
 function getSubject(subjectKey) {
@@ -116,24 +106,52 @@ function getTestSubjectLabel() {
 }
 
 async function loadCatalog() {
+    const localCatalog = Object.entries(getTopicsDataSource() || {}).map(([key, subject], index) => ({
+        key,
+        name: clean(subject.name || subject.subject_name || key),
+        display_order: Number(subject.order || subject.display_order || index + 1),
+        topics: (Array.isArray(subject.topics) ? subject.topics : []).map((topic, topicIndex) => ({
+            key: clean(typeof topic === "string" ? makeKey(topic) : (topic.key || topic.topic_key || makeKey(topic.name || topic.topic_name))),
+            name: clean(typeof topic === "string" ? topic : (topic.name || topic.topic_name || topic.key)),
+            display_order: Number((typeof topic === "object" && (topic.order || topic.display_order)) || topicIndex + 1)
+        }))
+    }));
+
+    const merged = new Map(localCatalog.map((subject) => [subject.key, subject]));
+
     try {
         const response = await apiFetch(`/catalog?t=${Date.now()}`);
         const data = await response.json().catch(() => ({}));
-        if (response.ok && data.success && Array.isArray(data.subjects) && data.subjects.length) {
-            catalogSubjects = data.subjects.map((subject) => ({
-                key: clean(subject.subject_key || subject.key),
-                name: clean(subject.subject_name || subject.name),
-                display_order: Number(subject.display_order || 0),
-                topics: (Array.isArray(subject.topics) ? subject.topics : []).map((topic) => ({
-                    key: clean(topic.topic_key || topic.key),
-                    name: clean(topic.topic_name || topic.name),
-                    display_order: Number(topic.display_order || 0)
-                }))
-            })).filter((subject) => subject.key && subject.name);
+        if (response.ok && data.success && Array.isArray(data.subjects)) {
+            data.subjects.forEach((subject, subjectIndex) => {
+                const key = clean(subject.subject_key || subject.key);
+                if (!key) return;
+                const previous = merged.get(key) || { key, name: key, display_order: subjectIndex + 1, topics: [] };
+                const topicMap = new Map((previous.topics || []).map((topic) => [topic.key, topic]));
+                (Array.isArray(subject.topics) ? subject.topics : []).forEach((topic, topicIndex) => {
+                    const topicKey = clean(topic.topic_key || topic.key);
+                    if (!topicKey) return;
+                    topicMap.set(topicKey, {
+                        key: topicKey,
+                        name: clean(topic.topic_name || topic.name || topicKey),
+                        display_order: Number(topic.display_order || topicIndex + 1)
+                    });
+                });
+                merged.set(key, {
+                    key,
+                    name: clean(subject.subject_name || subject.name || previous.name || key),
+                    display_order: Number(subject.display_order || previous.display_order || subjectIndex + 1),
+                    topics: [...topicMap.values()].sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0))
+                });
+            });
         }
     } catch (error) {
         console.warn("Catalog fallback active:", error);
     }
+
+    catalogSubjects = [...merged.values()]
+        .filter((subject) => subject.key && subject.name)
+        .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
 }
 
 function safeText(value) {
@@ -316,7 +334,7 @@ function makeKey(value) {
 
 function getHaryanaTopics() { return getTopicsForSubject("haryana_gk"); }
 
-function getTopicName(topicKey) {
+function getHaryanaTopicName(topicKey) {
     const topic = getHaryanaTopics().find((item) => item.key === topicKey);
     return topic ? topic.name : topicKey;
 }
@@ -335,9 +353,22 @@ async function loadQuestionCounts() {
             questionCounts[subject.key] = subjectCounts.topics || {};
         }));
         countsLoaded = Object.keys(questionCounts).length > 0;
+        filterCatalogToTopicsWithQuestions();
     } catch (error) {
         console.warn("Question counts load failed:", error);
+        catalogSubjects = [];
     }
+}
+
+function filterCatalogToTopicsWithQuestions() {
+    catalogSubjects = getCatalogSubjects()
+        .map((subject) => ({
+            ...subject,
+            topics: (Array.isArray(subject.topics) ? subject.topics : []).filter((topic) => {
+                return getTopicTotal(subject.key, topic.key, "all") > 0;
+            })
+        }))
+        .filter((subject) => subject.topics.length > 0);
 }
 
 function getTopicTotal(subjectKey, topicKey, difficulty) {
@@ -354,7 +385,7 @@ function addTopic(defaultTopicKey = "", defaultSubjectKey = "") {
         alert(`Maximum ${MAX_TOPICS} topics ही select कर सकते हैं।`);
         return;
     }
-    const firstSubject = defaultSubjectKey || (getCatalogSubjects()[0] || {}).key || "haryana_gk";
+    const firstSubject = defaultSubjectKey || (getCatalogSubjects()[0] || {}).key || "";
     selectedTopics.push({ id: topicIdCounter++, subjectKey: firstSubject, topicKey: defaultTopicKey });
     renderDifficultyOptions(); renderTopics(); updateLimitOptions();
 }
@@ -397,7 +428,13 @@ function renderTopics() {
     if (!area) return;
     const subjects = getCatalogSubjects();
     const difficulty = getSelectedDifficulty();
-    if (!selectedTopics.length) selectedTopics.push({ id: topicIdCounter++, subjectKey: (subjects[0] || {}).key || "haryana_gk", topicKey: "" });
+
+    if (!subjects.length) {
+        area.innerHTML = `<div class="unit-card"><div class="unit-title">अभी Mock Test उपलब्ध नहीं है</div><div class="selection-note">Admin जिस Subject/Topic में MCQ Questions upload करेगा, केवल वही Subject और Topic यहाँ अपने-आप दिखाई देगा।</div></div>`;
+        return;
+    }
+
+    if (!selectedTopics.length) selectedTopics.push({ id: topicIdCounter++, subjectKey: (subjects[0] || {}).key || "", topicKey: "" });
 
     area.innerHTML = selectedTopics.map((unit, index) => {
         const subjectOptions = [`<option value="">-- Subject Select करें --</option>`, ...subjects.map((subject) => `<option value="${safeText(subject.key)}" ${subject.key === unit.subjectKey ? "selected" : ""}>${safeText(subject.name)}</option>`)].join("");
@@ -1065,43 +1102,52 @@ function splitConclusionLines(text) {
         .filter(Boolean);
 }
 
-function buildQuestionHtml(rawText, questionNumber) {
+function prepareComplexQuestionLines(rawText) {
     let text = clean(rawText)
-        .replace(/\s*\|\|\s*/g, " ")
-        .replace(/\s*\|\s*/g, " ");
+        .replace(/\s*\|\|\s*/g, "\n")
+        .replace(/\s*\|\s*/g, "\n")
+        .replace(/^Q\s*\d+\s*[\.\)]\s*/i, "")
+        .replace(/^प्रश्न\s*\d+\s*[\.\)]\s*/i, "")
+        .trim();
 
-    text = text.replace(/^Q\s*\d+\s*[\.\)]\s*/i, "").trim();
+    const labelPattern = "(?:कथन|निष्कर्ष|अभिकथन|कारण|Assertion|Reason|Statement|Conclusion|सूची|List|Column|स्तम्भ)";
+    const suffixPattern = "(?:\\s*(?:[-–—]?\\s*(?:\\d+|[०-९]+|I|II|III|IV|V|A|B|R)|\\([^)]{1,12}\\)))?";
+    text = text.replace(new RegExp("\\s+(?=" + labelPattern + suffixPattern + "\\s*[:：])", "gi"), "\n");
+    text = text.replace(/\s+(?=(?:I|II|III|IV|V|VI|VII|VIII|IX|X|\d+|[०-९]+)\s*[\.\)]\s+)/g, "\n");
 
-    const kathanMatch = text.match(/कथन\s*[:：]/);
-    const conclusionMatch = text.match(/निष्कर्ष\s*[:：]/);
+    return text.split(/\n+/).map((line) => clean(line)).filter(Boolean);
+}
 
-    if (!kathanMatch || !conclusionMatch) {
-        return `Q${questionNumber}. ${safeText(text)}`;
-    }
+function buildQuestionHtml(rawText, questionNumber) {
+    const lines = prepareComplexQuestionLines(rawText);
+    if (!lines.length) return `Q${questionNumber}.`;
+    if (lines.length === 1) return `Q${questionNumber}. ${safeText(lines[0])}`;
 
-    const intro = text.slice(0, kathanMatch.index).trim();
-    const statementPart = text.slice(kathanMatch.index + kathanMatch[0].length, conclusionMatch.index).trim();
-    const conclusionPart = text.slice(conclusionMatch.index + conclusionMatch[0].length).trim();
+    const headingRegex = /^((?:कथन|निष्कर्ष|अभिकथन|कारण|Assertion|Reason|Statement|Conclusion|सूची|List|Column|स्तम्भ)(?:\s*(?:[-–—]?\s*(?:\d+|[०-९]+|I|II|III|IV|V|A|B|R)|\([^)]{1,12}\)))?\s*[:：])\s*(.*)$/i;
+    const numberedRegex = /^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|\d+|[०-९]+)\s*[\.\)]/i;
+    let html = `<div class="complex-question-format">`;
+    let hasMain = false;
 
-    const statementLines = splitStatementLines(statementPart);
-    const conclusionLines = splitConclusionLines(conclusionPart);
-
-    let html = `<div class="statement-question-format-fixed">`;
-
-    html += `<div class="main-question-line">Q${questionNumber}. ${safeText(intro || "नीचे दिए गए कथनों और निष्कर्षों पर विचार कीजिए।")}</div>`;
-
-    html += `<div class="stmt-heading">कथन :</div>`;
-    statementLines.forEach((line) => {
-        html += `<div class="stmt-line">${safeText(line)}</div>`;
+    lines.forEach((line, index) => {
+        const heading = line.match(headingRegex);
+        if (heading) {
+            html += `<div class="complex-heading"><span>${safeText(heading[1])}</span>${heading[2] ? `<b>${safeText(heading[2])}</b>` : ""}</div>`;
+            return;
+        }
+        if (numberedRegex.test(line)) {
+            html += `<div class="complex-numbered-line">${safeText(line)}</div>`;
+            return;
+        }
+        if (!hasMain) {
+            html += `<div class="main-question-line">Q${questionNumber}. ${safeText(line)}</div>`;
+            hasMain = true;
+        } else {
+            html += `<div class="complex-detail-line">${safeText(line)}</div>`;
+        }
     });
 
-    html += `<div class="stmt-heading">निष्कर्ष :</div>`;
-    conclusionLines.forEach((line) => {
-        html += `<div class="conclusion-line">${safeText(line)}</div>`;
-    });
-
+    if (!hasMain) html = `<div class="complex-question-format"><div class="main-question-line">Q${questionNumber}. नीचे दिए गए कथनों पर विचार कीजिए।</div>` + html.split('<div class="complex-question-format">')[1];
     html += `</div>`;
-
     return html;
 }
 
