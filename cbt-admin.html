@@ -6,9 +6,9 @@
     <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=12.0.0"></script>
-    <script src="common.js?v=12.0.0"></script>
-    <script src="cbt-topics-data.js?v=12.0.0"></script>
+    <script src="config.js?v=12.5.0"></script>
+    <script src="common.js?v=12.5.0"></script>
+    <script src="cbt-topics-data.js?v=12.5.0"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -436,15 +436,139 @@
             font-weight: 700;
         }
 
+
+        .fixed-catalog-note {
+            background: #eef6ff;
+            border: 2px solid #93c5fd;
+            color: #1e3a8a;
+            border-radius: 12px;
+            padding: 12px;
+            font-weight: 800;
+            line-height: 1.55;
+            margin-bottom: 14px;
+        }
+
+        .subject-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin: 10px 0 18px;
+        }
+
+        .subject-card {
+            width: 100%;
+            min-height: 68px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-align: left;
+            color: #111827;
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 11px 12px;
+            box-shadow: none;
+        }
+
+        .subject-card:hover {
+            border-color: #60a5fa;
+            background: #eff6ff;
+        }
+
+        .subject-card.selected {
+            border-color: #16a34a;
+            background: #dcfce7;
+            color: #14532d;
+        }
+
+        .selection-tick {
+            width: 28px;
+            height: 28px;
+            min-width: 28px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #94a3b8;
+            background: #fff;
+            color: transparent;
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .selected .selection-tick,
+        .topic-card.selected .selection-tick {
+            border-color: #16a34a;
+            background: #16a34a;
+            color: #fff;
+        }
+
+        .subject-card-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .subject-card-name {
+            display: block;
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .subject-card-meta {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #475569;
+            font-weight: 800;
+        }
+
+        .catalog-step-title {
+            margin: 14px 0 8px;
+            font-size: 18px;
+            font-weight: 900;
+            color: #111827;
+        }
+
+        .selected-path {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 12px;
+            color: #14532d;
+            font-weight: 900;
+            line-height: 1.5;
+        }
+
+        .topic-card input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .topic-visibility-note {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+            font-weight: 900;
+            color: #64748b;
+        }
+
+        .topic-visibility-note.live {
+            color: #15803d;
+        }
+
         @media (max-width: 850px) {
             .grid2, .grid3 { grid-template-columns: 1fr; }
             .summary-grid { grid-template-columns: 1fr 1fr; }
             .topic-grid { grid-template-columns: 1fr; }
+            .subject-grid { grid-template-columns: 1fr 1fr; }
             .topic-toolbar { grid-template-columns: 1fr; }
             .count-row { grid-template-columns: 1fr; }
             h1 { font-size: 24px; }
             h2 { font-size: 18px; }
             button { width: 100%; }
+            .subject-card { width: 100%; }
         }
     </style>
 </head>
@@ -470,13 +594,13 @@
         <div id="adminPanel" class="hidden">
             <div class="panel">
                 <h3>Live Admin Message</h3>
-                <div id="topActionStatus" class="status info">Admin panel ready होने पर यहाँ upload/delete/count message दिखेंगे।</div>
+                <div id="topActionStatus" class="status info">Admin panel ready होने पर यहाँ Subject, Topic, upload, delete और count message दिखेंगे।</div>
             </div>
 
             <div class="panel">
                 <h3>Admin Security</h3>
                 <div class="help">
-                    Admin panel unlocked है। Upload, Delete, Count और Sync requests admin password token के साथ जाएंगी।
+                    Admin panel unlocked है। Upload, Delete और Count requests verified Admin session के साथ जाएंगी।
                 </div>
                 <div class="btn-row">
                     <button type="button" class="red" onclick="logoutAdmin()">Logout / Lock Admin</button>
@@ -484,29 +608,32 @@
             </div>
 
             <div class="panel">
-                <h3>Subject और Topic Setup</h3>
-                <div class="grid2">
-                    <div><label>Active Subject</label><select id="adminSubjectSelect" onchange="changeAdminSubject(this.value)"></select></div>
-                    <div><label>नया Subject Name</label><input id="newSubjectName" placeholder="जैसे History"></div>
-                    <div><label>Subject Key</label><input id="newSubjectKey" placeholder="जैसे indian_history"></div>
-                    <div><label>Topics (हर लाइन में एक)</label><textarea id="newTopicsBox" style="min-height:110px" placeholder="प्राचीन इतिहास
-मध्यकालीन इतिहास
-आधुनिक इतिहास"></textarea></div>
+                <h3>Fixed Subject और Topic Selection</h3>
+                <div class="fixed-catalog-note">
+                    सभी Subjects और Topics पहले से fixed हैं। नया Subject Name, Subject Key या Topic list बनाने की जरूरत नहीं है।
+                    पहले Subject चुनें, फिर उसके नीचे Topic चुनें और उसी Topic के Questions upload करें।
+                    जिस Topic में कम से कम 1 Active MCQ होगा, वही बच्चों के Mock Test में अपने-आप दिखाई देगा।
                 </div>
-                <div class="btn-row"><button type="button" class="green" onclick="saveSubjectTopics()">Save / Sync Subject Topics</button><button type="button" class="blue" onclick="loadTopics()">Refresh Catalog</button></div>
-                <div class="help">Mock Test database अलग Turso database रहेगा। यहाँ बनाए गए Subjects/Topics Target Batch Supabase में नहीं जाएंगे।</div>
-            </div>
 
-            <div class="panel">
-                <h3>Database Topic Sync</h3>
-                <div class="subject-box">Selected Subject: <span id="selectedSubjectLabel">Loading...</span></div>
-                <div class="help">
-                    Admin panel में हमेशा <b>topics-data.js</b> वाली selected Subject की topic list ही दिखाई जाएगी।
+                <div class="catalog-step-title">1. Subject चुनें</div>
+                <div id="fixedSubjectGrid" class="subject-grid">Subjects loading...</div>
+
+                <div class="catalog-step-title">2. Topic चुनें</div>
+                <div class="topic-toolbar">
+                    <div>
+                        <label>Topic Search करें</label>
+                        <input id="topicSearchInput" type="text" placeholder="Topic search करें... जैसे नदियाँ, कृषि, संविधान">
+                    </div>
+                    <div class="btn-row" style="margin-top:0;">
+                        <button type="button" class="gray" onclick="clearSelectedTopics()">Clear Topic</button>
+                        <button type="button" class="purple" onclick="loadQuestionCounts(false)">Refresh Counts</button>
+                    </div>
                 </div>
-                <div class="btn-row">
-                    <button type="button" class="orange" id="syncBtn" onclick="syncTopicsToDatabase()">Sync Selected Subject Topics</button>
-                    <button type="button" class="blue" onclick="loadTopics()">Refresh Final Topics</button>
-                    <button type="button" class="purple" onclick="loadQuestionCounts(false)">Refresh Question Counts</button>
+
+                <div id="topicGrid" class="topic-grid">Topics loading...</div>
+                <div class="selected-path">
+                    <span id="topicCountPill">Topic नहीं चुना गया</span>
+                    <div id="selectedTopicBox" class="chips"></div>
                 </div>
             </div>
 
@@ -567,7 +694,10 @@
 
             <div class="panel">
                 <h3>Question Upload System</h3>
-                <div class="subject-box">Subject: <span id="uploadSubjectLabel">Loading...</span></div>
+                <div class="subject-box">
+                    Selected: <span id="uploadSubjectLabel">Loading...</span>
+                    → <span id="uploadTopicLabel">पहले Topic चुनें</span>
+                </div>
 
                 <div class="grid2">
                     <div>
@@ -578,26 +708,11 @@
                             <option value="tough">Tough</option>
                         </select>
                     </div>
-
                     <div>
-                        <label>Selected Topic Limit</label>
-                        <div class="topic-count-pill" id="topicCountPill">0/5 Topics Selected</div>
+                        <label>Student Visibility</label>
+                        <div class="help">Question upload होते ही count refresh होगा। Topic में Active MCQ आते ही वह बच्चों के Mock Test dropdown में दिखाई देगा।</div>
                     </div>
                 </div>
-
-                <div class="topic-toolbar">
-                    <div>
-                        <label>Topic Search करें</label>
-                        <input id="topicSearchInput" type="text" placeholder="Topic search करें... जैसे गठन, कृषि, कथन">
-                    </div>
-
-                    <div class="btn-row" style="margin-top:0;">
-                        <button type="button" class="gray" onclick="clearSelectedTopics()">Clear Topics</button>
-                    </div>
-                </div>
-
-                <div id="topicGrid" class="topic-grid">Topics loading...</div>
-                <div id="selectedTopicBox" class="chips"></div>
 
                 <div class="btn-row">
                     <button type="button" class="yellow" onclick="insertSampleFormat()">Sample Format डालें</button>
@@ -651,7 +766,7 @@
         let currentAdminUser = null;
         let currentAdminProfile = null;
         let currentAdminAccessToken = "";
-        const MAX_TOPIC_SELECT = 5;
+        const MAX_TOPIC_SELECT = 1;
         const FIRST_BATCH_SIZE = 20;
 
         const ANSWER_PREFIX_PATTERN = "(?:सही\\s*उत्तर\\s*विकल्प|उत्तर\\s*विकल्प|सही\\s*उत्तर|उत्तर|Correct\\s*Answer|Answer|Ans|Correct|जवाब|सही\\s*जवाब)";
@@ -791,34 +906,44 @@
         function verifyAdminPasswordForDanger(actionText) { return confirm(`${actionText} जारी रखना है? Existing Admin login verified है।`); }
 
         function getLocalTopics() {
-            const subject=adminCatalogSubjects.find((item)=>item.subject_key===FIXED_SUBJECT_KEY);
-            const source=subject && Array.isArray(subject.topics)?subject.topics:[];
-            const seen=new Set();
-            return source.map((topic,index)=>({subject_key:FIXED_SUBJECT_KEY,topic_key:clean(topic.topic_key||topic.key||topic.name),topic_name:clean(topic.topic_name||topic.name||topic.key),order:Number(topic.display_order||index+1)})).filter((topic)=>{if(!topic.topic_key||!topic.topic_name||seen.has(topic.topic_key))return false;seen.add(topic.topic_key);return true;});
+            const subject = adminCatalogSubjects.find((item) => item.subject_key === FIXED_SUBJECT_KEY);
+            const source = subject && Array.isArray(subject.topics) ? subject.topics : [];
+            const seen = new Set();
+            return source.map((topic, index) => ({
+                subject_key: FIXED_SUBJECT_KEY,
+                topic_key: clean(topic.topic_key || topic.key || topic.name),
+                topic_name: clean(topic.topic_name || topic.name || topic.key),
+                order: Number(topic.display_order || topic.order || index + 1)
+            })).filter((topic) => {
+                if (!topic.topic_key || !topic.topic_name || seen.has(topic.topic_key)) return false;
+                seen.add(topic.topic_key);
+                return true;
+            });
         }
 
         async function changeAdminSubject(subjectKey) {
-            const subject=adminCatalogSubjects.find((item)=>item.subject_key===subjectKey); if(!subject)return;
-            FIXED_SUBJECT_KEY=subject.subject_key;FIXED_SUBJECT_NAME=subject.subject_name;window.__selectedTopicKeys=[];questionCountMap={};
-            await loadTopics();await loadQuestionCounts(true);
+            const subject = adminCatalogSubjects.find((item) => item.subject_key === subjectKey);
+            if (!subject) return;
+            FIXED_SUBJECT_KEY = subject.subject_key;
+            FIXED_SUBJECT_NAME = subject.subject_name;
+            window.__selectedTopicKeys = [];
+            questionCountMap = {};
+            totalQuestionsInDb = 0;
+            lastValidation = null;
+            allTopics = getLocalTopics();
+            renderSubjectCards();
+            renderTopics();
+            updateSelectedTopicUI();
+            renderQuestionCountBoard();
+            refreshUploadButton();
+            await loadQuestionCounts(true);
+            setStatus(`${FIXED_SUBJECT_NAME} चुना गया ✅ अब नीचे Topic चुनें।`, "ok");
         }
 
         function makeAdminKey(value){return clean(value).toLowerCase().replace(/[^a-z0-9\u0900-\u097f]+/g,"_").replace(/^_+|_+$/g,"")||"subject";}
 
-        async function saveSubjectTopics(){
-            const name=clean(document.getElementById("newSubjectName").value)||FIXED_SUBJECT_NAME;
-            const key=clean(document.getElementById("newSubjectKey").value)||FIXED_SUBJECT_KEY||makeAdminKey(name);
-            const raw=clean(document.getElementById("newTopicsBox").value);
-            const existing=adminCatalogSubjects.find((s)=>s.subject_key===key);
-            const topics=raw?raw.split(/\n+/).map(clean).filter(Boolean).map((topic,index)=>({key:makeAdminKey(topic),name:topic,order:index+1})):(existing&&existing.topics||[]).map((t,index)=>({key:t.topic_key||t.key,name:t.topic_name||t.name,order:index+1}));
-            if(!name||!key){setStatus("Subject Name और Key जरूरी हैं।","err",true);return;}
-            try{
-                setStatus("Subject/Topics sync हो रहे हैं...","info",true);
-                const response=await fetch(`${API_BASE_URL}/admin/sync-topics`,{method:"POST",headers:adminHeaders(),body:JSON.stringify({subjects:[{key,name,order:(existing&&existing.display_order)||adminCatalogSubjects.length+1,topics}]})});
-                const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)throw new Error(data.error||data.message||"Sync failed");
-                FIXED_SUBJECT_KEY=key;FIXED_SUBJECT_NAME=name;document.getElementById("newSubjectName").value="";document.getElementById("newSubjectKey").value="";document.getElementById("newTopicsBox").value="";
-                await loadTopics();await loadQuestionCounts(true);setStatus(`Subject/Topics Sync Complete ✅\nInserted: ${data.topics_inserted||0}\nUpdated: ${data.topics_updated||0}`,"ok",true);
-            }catch(error){setStatus("Sync error: "+error.message,"err",true);}
+        async function saveSubjectTopics() {
+            setStatus("Subjects और Topics fixed हैं। Manual Subject/Topic Setup बंद है।", "info", true);
         }
 
         function getTopicQuestionCount(topicKey) {
@@ -827,21 +952,57 @@
 
         async function loadTopics() {
             try {
-                const response=await fetch(`${API_BASE_URL}/catalog?t=${Date.now()}`,{headers:adminHeaders()});
-                const data=await response.json().catch(()=>({}));
-                if(!response.ok||!data.success) throw new Error(data.error||"Catalog load नहीं हुआ।");
-                adminCatalogSubjects=(data.subjects||[]).map((s)=>({subject_key:clean(s.subject_key||s.key),subject_name:clean(s.subject_name||s.name),display_order:Number(s.display_order||0),topics:Array.isArray(s.topics)?s.topics:[]}));
-                if(!adminCatalogSubjects.length) throw new Error("कोई Subject नहीं मिला। पहले Subject/Topics save करें।");
-                if(!adminCatalogSubjects.some((s)=>s.subject_key===FIXED_SUBJECT_KEY)){FIXED_SUBJECT_KEY=adminCatalogSubjects[0].subject_key;FIXED_SUBJECT_NAME=adminCatalogSubjects[0].subject_name;}
-                const select=document.getElementById("adminSubjectSelect");
-                if(select){select.innerHTML=adminCatalogSubjects.map((s)=>`<option value="${escapeHtml(s.subject_key)}" ${s.subject_key===FIXED_SUBJECT_KEY?"selected":""}>${escapeHtml(s.subject_name)}</option>`).join("");}
-                const active=adminCatalogSubjects.find((s)=>s.subject_key===FIXED_SUBJECT_KEY); FIXED_SUBJECT_NAME=active?active.subject_name:FIXED_SUBJECT_NAME;
-                const label=document.getElementById("selectedSubjectLabel"); if(label)label.textContent=FIXED_SUBJECT_NAME;
-                const uploadLabel=document.getElementById("uploadSubjectLabel"); if(uploadLabel)uploadLabel.textContent=FIXED_SUBJECT_NAME;
-                allTopics=getLocalTopics();
-                const finalKeys=new Set(allTopics.map((topic)=>topic.topic_key)); window.__selectedTopicKeys=(window.__selectedTopicKeys||[]).filter((key)=>finalKeys.has(key));
-                renderTopics();updateSelectedTopicUI();renderQuestionCountBoard();setStatus(`${FIXED_SUBJECT_NAME} topics loaded ✅ Total: ${allTopics.length}`,"ok");
-            }catch(error){allTopics=[];topicGrid.innerHTML=`<div class="help">${escapeHtml(error.message||"Topics load नहीं हुए।")}</div>`;setStatus(error.message||"Topics load नहीं हुए।","err");}
+                const source = (window.topicsData && typeof window.topicsData === "object") ? window.topicsData : {};
+                adminCatalogSubjects = Object.entries(source).map(([subjectKey, subject], subjectIndex) => ({
+                    subject_key: clean(subjectKey),
+                    subject_name: clean(subject.subject_name || subject.name || subjectKey),
+                    display_order: Number(subject.display_order || subject.order || subjectIndex + 1),
+                    topics: (Array.isArray(subject.topics) ? subject.topics : []).map((topic, topicIndex) => ({
+                        topic_key: clean(typeof topic === "string" ? topic : (topic.topic_key || topic.key || topic.name)),
+                        topic_name: clean(typeof topic === "string" ? topic : (topic.topic_name || topic.name || topic.key)),
+                        display_order: Number((typeof topic === "object" && (topic.display_order || topic.order)) || topicIndex + 1)
+                    }))
+                })).filter((subject) => subject.subject_key && subject.subject_name)
+                  .sort((a, b) => a.display_order - b.display_order);
+
+                if (!adminCatalogSubjects.length) throw new Error("Fixed Subject/Topic catalog load नहीं हुआ।");
+                if (!adminCatalogSubjects.some((subject) => subject.subject_key === FIXED_SUBJECT_KEY)) {
+                    FIXED_SUBJECT_KEY = adminCatalogSubjects[0].subject_key;
+                }
+                const active = adminCatalogSubjects.find((subject) => subject.subject_key === FIXED_SUBJECT_KEY) || adminCatalogSubjects[0];
+                FIXED_SUBJECT_KEY = active.subject_key;
+                FIXED_SUBJECT_NAME = active.subject_name;
+                allTopics = getLocalTopics();
+                const finalKeys = new Set(allTopics.map((topic) => topic.topic_key));
+                window.__selectedTopicKeys = (window.__selectedTopicKeys || []).filter((key) => finalKeys.has(key)).slice(0, 1);
+                renderSubjectCards();
+                renderTopics();
+                updateSelectedTopicUI();
+                renderQuestionCountBoard();
+                setStatus(`Fixed catalog ready ✅ ${adminCatalogSubjects.length} Subjects | ${allTopics.length} ${FIXED_SUBJECT_NAME} Topics`, "ok");
+            } catch (error) {
+                allTopics = [];
+                if (topicGrid) topicGrid.innerHTML = `<div class="help">${escapeHtml(error.message || "Topics load नहीं हुए।")}</div>`;
+                setStatus(error.message || "Topics load नहीं हुए।", "err");
+            }
+        }
+
+        function renderSubjectCards() {
+            const grid = document.getElementById("fixedSubjectGrid");
+            if (!grid) return;
+            grid.innerHTML = adminCatalogSubjects.map((subject) => {
+                const selected = subject.subject_key === FIXED_SUBJECT_KEY;
+                const topicCount = Array.isArray(subject.topics) ? subject.topics.length : 0;
+                return `
+                    <button type="button" class="subject-card ${selected ? "selected" : ""}" onclick="changeAdminSubject('${escapeHtml(subject.subject_key)}')">
+                        <span class="selection-tick">✓</span>
+                        <span class="subject-card-text">
+                            <span class="subject-card-name">${escapeHtml(subject.subject_name)}</span>
+                            <span class="subject-card-meta">${topicCount} fixed Topics</span>
+                        </span>
+                    </button>
+                `;
+            }).join("");
         }
 
         async function loadQuestionCounts(silent = false) {
@@ -888,13 +1049,7 @@
         }
 
         async function syncTopicsToDatabase() {
-            const localTopics=getLocalTopics();
-            if(!localTopics.length){setStatus("Selected Subject में topics नहीं हैं। ऊपर Topic Setup से जोड़ें।","err",true);return;}
-            try{
-                const response=await fetch(`${API_BASE_URL}/admin/sync-topics`,{method:"POST",headers:adminHeaders(),body:JSON.stringify({subjects:[{key:FIXED_SUBJECT_KEY,name:FIXED_SUBJECT_NAME,order:1,topics:localTopics.map((topic)=>({key:topic.topic_key,name:topic.topic_name,order:topic.order}))}]})});
-                const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)throw new Error(data.message||data.error||"Topic sync failed");
-                setStatus(`${FIXED_SUBJECT_NAME} Topics Sync Complete ✅\nTopics: ${localTopics.length}`,"ok",true);await loadTopics();await loadQuestionCounts(true);
-            }catch(error){setStatus("Sync error: "+error.message,"err",true);}
+            setStatus("Fixed catalog active है। Manual Topic Sync की जरूरत नहीं है।", "info", true);
         }
 
 
@@ -1072,37 +1227,32 @@
         }
 
         function renderTopics() {
-            const search = normalizeForCompare(topicSearchInput.value || "");
-
-            const filtered = allTopics.filter(topic => {
+            const search = normalizeForCompare(topicSearchInput ? topicSearchInput.value : "");
+            const filtered = allTopics.filter((topic) => {
                 if (!search) return true;
                 return normalizeForCompare(topic.topic_name).includes(search) ||
                        normalizeForCompare(topic.topic_key).includes(search);
             });
 
             if (!filtered.length) {
-                topicGrid.innerHTML = `<div class="help">No topic found.</div>`;
+                topicGrid.innerHTML = `<div class="help">कोई Topic नहीं मिला।</div>`;
                 return;
             }
 
-            topicGrid.innerHTML = filtered.map(topic => {
-                const realIndex = allTopics.findIndex(t => t.topic_key === topic.topic_key);
-                const checked = (window.__selectedTopicKeys || []).includes(topic.topic_key);
+            const selectedKey = (window.__selectedTopicKeys || [])[0] || "";
+            topicGrid.innerHTML = filtered.map((topic) => {
+                const realIndex = allTopics.findIndex((item) => item.topic_key === topic.topic_key);
+                const checked = selectedKey === topic.topic_key;
                 const count = getTopicQuestionCount(topic.topic_key);
-
                 return `
                     <label class="topic-card ${checked ? "selected" : ""}">
-                        <input
-                            type="checkbox"
-                            class="topic-checkbox"
-                            value="${escapeHtml(topic.topic_key)}"
-                            onchange="handleTopicChange(this)"
-                            ${checked ? "checked" : ""}
-                        >
+                        <input type="radio" name="fixedTopicSelection" class="topic-checkbox" value="${escapeHtml(topic.topic_key)}" onchange="handleTopicChange(this)" ${checked ? "checked" : ""}>
+                        <span class="selection-tick">✓</span>
                         <span class="topic-name-wrap">
                             ${realIndex + 1}. ${escapeHtml(topic.topic_name)}
                             <br>
                             <span class="q-count ${count === 0 ? "zero" : "good"}">${count} Q</span>
+                            <span class="topic-visibility-note ${count > 0 ? "live" : ""}">${count > 0 ? "✓ बच्चों के Mock Test में दिखाई देगा" : "Question upload करें — अभी बच्चों को नहीं दिखेगा"}</span>
                         </span>
                     </label>
                 `;
@@ -1110,93 +1260,66 @@
         }
 
         function handleTopicChange(input) {
-            let selectedKeys = window.__selectedTopicKeys || [];
-
-            if (input.checked) {
-                if (!selectedKeys.includes(input.value)) selectedKeys.push(input.value);
-
-                if (selectedKeys.length > MAX_TOPIC_SELECT) {
-                    input.checked = false;
-                    selectedKeys = selectedKeys.filter(key => key !== input.value);
-                    setStatus(`Maximum ${MAX_TOPIC_SELECT} topics ही select कर सकते हैं।`, "err");
-                }
-            } else {
-                selectedKeys = selectedKeys.filter(key => key !== input.value);
-            }
-
-            window.__selectedTopicKeys = selectedKeys;
-
-            document.querySelectorAll(".topic-checkbox").forEach(box => {
-                const isChecked = selectedKeys.includes(box.value);
+            window.__selectedTopicKeys = input && input.checked ? [input.value] : [];
+            document.querySelectorAll(".topic-checkbox").forEach((box) => {
+                const isChecked = window.__selectedTopicKeys.includes(box.value);
                 box.checked = isChecked;
                 const card = box.closest(".topic-card");
                 if (card) card.classList.toggle("selected", isChecked);
             });
-
             updateSelectedTopicUI();
             refreshUploadButton();
+            const topic = getSelectedTopicsFull()[0];
+            if (topic) setStatus(`${FIXED_SUBJECT_NAME} → ${topic.topic_name} चुना गया ✅ अब Questions paste करें।`, "ok");
         }
 
         function clearSelectedTopics() {
             window.__selectedTopicKeys = [];
-
-            document.querySelectorAll(".topic-checkbox").forEach(input => {
+            document.querySelectorAll(".topic-checkbox").forEach((input) => {
                 input.checked = false;
                 const card = input.closest(".topic-card");
                 if (card) card.classList.remove("selected");
             });
-
+            lastValidation = null;
             updateSelectedTopicUI();
             refreshUploadButton();
-            setStatus("Selected topics clear हो गए।", "info");
+            setStatus("Selected Topic clear हो गया।", "info");
         }
 
         function updateSelectedTopicUI() {
-            const selectedKeys = window.__selectedTopicKeys || [];
-            const selectedTopics = selectedKeys
-                .map(key => allTopics.find(topic => topic.topic_key === key))
-                .filter(Boolean);
+            const selectedTopic = getSelectedTopicsFull()[0] || null;
+            const uploadSubjectLabel = document.getElementById("uploadSubjectLabel");
+            const uploadTopicLabel = document.getElementById("uploadTopicLabel");
+            if (uploadSubjectLabel) uploadSubjectLabel.textContent = FIXED_SUBJECT_NAME;
 
-            topicCountPill.textContent = `${selectedTopics.length}/${MAX_TOPIC_SELECT} Topics Selected`;
-
-            if (!selectedTopics.length) {
-                selectedTopicBox.innerHTML = `<span class="chip">कोई topic selected नहीं है</span>`;
-                deleteSelectedTopicBox.innerHTML = `<span class="chip danger-chip">Delete के लिए कोई topic selected नहीं है</span>`;
+            if (!selectedTopic) {
+                topicCountPill.textContent = `${FIXED_SUBJECT_NAME}: Topic नहीं चुना गया`;
+                selectedTopicBox.innerHTML = `<span class="chip">पहले नीचे से एक Topic चुनें</span>`;
+                deleteSelectedTopicBox.innerHTML = `<span class="chip danger-chip">Delete के लिए कोई Topic selected नहीं है</span>`;
+                if (uploadTopicLabel) uploadTopicLabel.textContent = "पहले Topic चुनें";
                 return;
             }
 
-            const chipsHtml = selectedTopics.map(topic => {
-                const index = allTopics.findIndex(t => t.topic_key === topic.topic_key) + 1;
-                const count = getTopicQuestionCount(topic.topic_key);
-                return `<span class="chip">${index}. ${escapeHtml(topic.topic_name)} — ${count} Q</span>`;
-            }).join("");
-
-            selectedTopicBox.innerHTML = chipsHtml;
-
-            deleteSelectedTopicBox.innerHTML = selectedTopics.map(topic => {
-                const index = allTopics.findIndex(t => t.topic_key === topic.topic_key) + 1;
-                const count = getTopicQuestionCount(topic.topic_key);
-                return `<span class="chip danger-chip">${index}. ${escapeHtml(topic.topic_name)} — ${count} Q</span>`;
-            }).join("");
+            const index = allTopics.findIndex((topic) => topic.topic_key === selectedTopic.topic_key) + 1;
+            const count = getTopicQuestionCount(selectedTopic.topic_key);
+            const visibility = count > 0 ? "बच्चों को दिखाई देगा" : "पहला Question upload होते ही दिखाई देगा";
+            topicCountPill.textContent = `Selected: ${FIXED_SUBJECT_NAME} → ${selectedTopic.topic_name}`;
+            selectedTopicBox.innerHTML = `<span class="chip">✓ ${index}. ${escapeHtml(selectedTopic.topic_name)} — ${count} Q — ${visibility}</span>`;
+            deleteSelectedTopicBox.innerHTML = `<span class="chip danger-chip">${index}. ${escapeHtml(selectedTopic.topic_name)} — ${count} Q</span>`;
+            if (uploadTopicLabel) uploadTopicLabel.textContent = selectedTopic.topic_name;
         }
 
         function getSelectedTopicsFull() {
-            const selectedKeys = window.__selectedTopicKeys || [];
-
-            return selectedKeys
-                .map(key => allTopics.find(topic => topic.topic_key === key))
-                .filter(Boolean)
-                .slice(0, MAX_TOPIC_SELECT);
+            const selectedKey = (window.__selectedTopicKeys || [])[0];
+            const topic = allTopics.find((item) => item.topic_key === selectedKey);
+            return topic ? [topic] : [];
         }
 
         function ensureTopicSelected() {
-            const selectedTopics = getSelectedTopicsFull();
-
-            if (!selectedTopics.length) {
-                setStatus("पहले कम से कम 1 topic select करें।", "err");
+            if (!getSelectedTopicsFull().length) {
+                setStatus("पहले Subject के नीचे एक Topic चुनें।", "err", true);
                 return false;
             }
-
             return true;
         }
 

@@ -1,12 +1,13 @@
 {
-  "version": "12.4.0",
+  "version": "12.5.0",
   "type": "complete-project",
   "files_expected": 98,
   "changes": [
-    "signed-in regular Home tab keeps official channel card visible on every Home visit",
-    "YouTube button updated to the supplied official channel URL",
-    "YouTube and Telegram buttons now use clear inline official-style logos instead of play/plane text symbols",
-    "first-time registration onboarding remains free of channel buttons",
-    "all Target Batch, CBT, Turso, Supabase, PDF and Worker behaviour retained unchanged"
+    "removed manual Subject Name, Subject Key, Topics textarea and manual Sync controls from CBT Admin",
+    "all 9 Subjects and 203 Topics are fixed from cbt-topics-data.js",
+    "admin selects one Subject and one Topic using clear green tick cards",
+    "topic cards show question count and whether the topic is currently visible to students",
+    "uploading the first active MCQ makes that Topic appear automatically in the student Mock Test dropdown",
+    "student dropdown still hides empty topics; Target Batch, Supabase, PDF Worker, Turso secrets and Cloudflare configuration remain unchanged"
   ]
 }
