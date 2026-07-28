@@ -87,7 +87,133 @@ async function readPdf(id,path,title){
   window.open(r.data.signedUrl,'_blank','noopener');
 }
 async function downloadPdf(id,path){const ok=await sb.rpc('can_download_material',{p_material_id:id});if(ok.error){toast(ok.error.message,'error');return}if(!ok.data){toast('PDF Download Locked — Required Test passing score पूरा करें।','error');return}const rr=await sb.storage.from('study-pdfs').createSignedUrl(path,120);if(rr.error){toast(rr.error.message,'error');return}const a=document.createElement('a');a.href=rr.data.signedUrl;a.download='study-material.pdf';a.target='_blank';a.click()}
-async function renderProfile(){profileBox.innerHTML=`<div class="card"><h3>${esc(profile?.full_name||'Student')}</h3><p>Mobile: ${esc(profile?.phone||'')}</p><p>Completed Days: ${profile?.total_completed_days||0}</p><p>Average Test: ${profile?.average_test_percentage||0}%</p><p>Current Streak: ${profile?.current_streak||0}</p><button class="btn btn-red" onclick="logout()">Logout</button></div>`}
+function profileAvatarSvg(type='boy'){
+  if(type==='girl')return `<svg class="profile-avatar-svg" viewBox="0 0 160 160" role="img" aria-label="Girl avatar"><defs><linearGradient id="girlBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff2f7"/><stop offset="1" stop-color="#e8f3ff"/></linearGradient><linearGradient id="girlDress" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a88aec"/><stop offset="1" stop-color="#6c7de8"/></linearGradient></defs><circle cx="80" cy="80" r="76" fill="url(#girlBg)"/><circle cx="80" cy="63" r="36" fill="#3c2b3f"/><path d="M48 64c0-30 15-46 33-46 22 0 37 18 35 49-8-8-16-13-25-15-11 9-25 13-43 12Z" fill="#352438"/><ellipse cx="80" cy="68" rx="29" ry="32" fill="#ffd8bd"/><path d="M56 62c16-1 29-6 39-16 6 4 12 9 18 17-3-25-16-39-34-39-17 0-29 13-31 38Z" fill="#3c2b3f"/><circle cx="69" cy="70" r="3.2" fill="#263749"/><circle cx="92" cy="70" r="3.2" fill="#263749"/><path d="M71 83c6 5 13 5 19 0" fill="none" stroke="#c66f78" stroke-width="3" stroke-linecap="round"/><path d="M45 151c4-34 18-51 35-51 19 0 33 17 37 51Z" fill="url(#girlDress)"/><path d="M64 103c4 8 10 12 16 12s12-4 16-12" fill="#ffd8bd"/><circle cx="117" cy="38" r="11" fill="#fff" opacity=".9"/><path d="M112 38h10M117 33v10" stroke="#ef6fa1" stroke-width="3" stroke-linecap="round"/></svg>`;
+  return `<svg class="profile-avatar-svg" viewBox="0 0 160 160" role="img" aria-label="Boy avatar"><defs><linearGradient id="boyBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eaf7ff"/><stop offset="1" stop-color="#effff3"/></linearGradient><linearGradient id="boyShirt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4e97e8"/><stop offset="1" stop-color="#3269bd"/></linearGradient></defs><circle cx="80" cy="80" r="76" fill="url(#boyBg)"/><path d="M44 151c4-34 18-51 36-51 19 0 33 17 37 51Z" fill="url(#boyShirt)"/><ellipse cx="80" cy="67" rx="30" ry="33" fill="#ffd5b5"/><path d="M48 62c0-28 14-43 33-43 18 0 31 12 34 35-10-7-22-11-35-11-9 9-20 15-32 19Z" fill="#283a4b"/><path d="M54 48c7-19 19-29 36-28 12 1 20 7 25 18-18-6-39-3-61 10Z" fill="#30485d"/><circle cx="69" cy="70" r="3.2" fill="#263749"/><circle cx="92" cy="70" r="3.2" fill="#263749"/><path d="M71 83c6 5 13 5 19 0" fill="none" stroke="#b66d63" stroke-width="3" stroke-linecap="round"/><path d="M65 103c3 8 9 12 15 12s12-4 15-12" fill="#ffd5b5"/><path d="M70 116l10 9 10-9" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="119" cy="38" r="11" fill="#fff" opacity=".9"/><path d="M114 38h10M119 33v10" stroke="#3e94df" stroke-width="3" stroke-linecap="round"/></svg>`;
+}
+function profileMaskPhone(value=''){
+  const digits=String(value||'').replace(/\D/g,'');
+  if(digits.length<6)return value||'Not added';
+  return `${digits.slice(0,2)}******${digits.slice(-2)}`;
+}
+function profileMaskEmail(value=''){
+  const email=String(value||'').trim();
+  if(!email||email.endsWith('@groupd90.local'))return 'Mobile Login Account';
+  const parts=email.split('@');if(parts.length!==2)return email;
+  const left=parts[0];return `${left.slice(0,Math.min(3,left.length))}****@${parts[1]}`;
+}
+function profilePercent(value){const n=Number(value);return Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n))):0}
+function selectedProfileAvatar(){
+  const fromProfile=String(profile?.avatar_type||'').toLowerCase();
+  const fromLocal=localStorage.getItem('gk_profile_avatar_'+String(user?.id||''));
+  return ['boy','girl'].includes(fromProfile)?fromProfile:(['boy','girl'].includes(fromLocal)?fromLocal:'boy');
+}
+async function selectProfileAvatar(type){
+  if(!['boy','girl'].includes(type)||!user)return;
+  localStorage.setItem('gk_profile_avatar_'+user.id,type);
+  profile={...(profile||{}),avatar_type:type};
+  const host=document.getElementById('profileMainAvatar');if(host)host.innerHTML=profileAvatarSvg(type);
+  document.querySelectorAll('.profile-avatar-choice').forEach(btn=>btn.classList.toggle('active',btn.dataset.avatar===type));
+  const result=await sb.rpc('set_my_avatar_type',{p_avatar_type:type});
+  if(result.error){toast('Avatar इस device पर save है। Supabase में Profile Avatar SQL चलाने के बाद सभी devices पर save होगा।','info');return}
+  toast(type==='girl'?'Girl Avatar save हो गया।':'Boy Avatar save हो गया।','success');
+}
+async function loadPremiumProfileStats(){
+  const stats={completedClasses:0,pdfVerified:0,mockAttempts:0,averageScore:0,completedDays:Number(profile?.total_completed_days||0),streak:Number(profile?.current_streak||0),todayTargets:currentTargets.length,todayDone:currentTargets.filter(t=>targetCompletionMap.has(t.id)).length,todayPdfs:materials.length,todayPdfsReady:0,finalStatus:'Not Added',targetStatus:currentDay?'In Progress':'No Target',level:0,weekCompleted:0,subjects:[]};
+  try{
+    const [targetR,progressR,attemptR,pdfR]=await Promise.all([
+      sb.from('target_completions').select('target_id').eq('user_id',user.id).limit(5000),
+      sb.from('daily_progress').select('schedule_day_id,status,test_score_percent,updated_at').eq('user_id',user.id).order('updated_at',{ascending:false}).limit(365),
+      sb.from('test_attempts').select('id,test_id,percentage,status').eq('user_id',user.id).eq('status','submitted').limit(300),
+      sb.from('pdf_verification_attempts').select('material_id,is_correct').eq('user_id',user.id).eq('is_correct',true).limit(5000)
+    ]);
+    if(!targetR.error)stats.completedClasses=(targetR.data||[]).length;
+    const progressRows=progressR.error?[]:(progressR.data||[]);
+    const completedRows=progressRows.filter(x=>x.status==='completed');
+    stats.completedDays=Math.max(stats.completedDays,completedRows.length);
+    const weekAgo=Date.now()-7*24*60*60*1000;
+    stats.weekCompleted=completedRows.filter(x=>new Date(x.updated_at||0).getTime()>=weekAgo).length;
+    const attempts=attemptR.error?[]:(attemptR.data||[]);
+    stats.mockAttempts=attempts.length;
+    const validScores=attempts.map(x=>Number(x.percentage)).filter(Number.isFinite);
+    stats.averageScore=validScores.length?Math.round(validScores.reduce((a,b)=>a+b,0)/validScores.length):Number(profile?.average_test_percentage||0);
+    if(!pdfR.error)stats.pdfVerified=new Set((pdfR.data||[]).map(x=>String(x.material_id))).size;
+    if(materials.length){
+      const access=await Promise.all(materials.map(async m=>{const r=await sb.rpc('can_read_material',{p_material_id:m.id});return !r.error&&r.data===true}));
+      stats.todayPdfsReady=access.filter(Boolean).length;
+    }
+    const ft=finalTest();
+    if(ft){
+      const best=attempts.filter(x=>String(x.test_id)===String(ft.id)).map(x=>Number(x.percentage)).filter(Number.isFinite).sort((a,b)=>b-a)[0];
+      stats.finalStatus=best===undefined?'Pending':best>=Number(ft.passing_percent||0)?'Passed':'Retry';
+    }
+    const targetsReady=stats.todayTargets===0||stats.todayDone>=stats.todayTargets;
+    const pdfsReady=stats.todayPdfs===0||stats.todayPdfsReady>=stats.todayPdfs;
+    const finalReady=stats.finalStatus==='Not Added'||stats.finalStatus==='Passed';
+    if(currentDay&&targetsReady&&pdfsReady&&finalReady)stats.targetStatus='Completed';
+    const completionRate=progressRows.length?completedRows.length/progressRows.length*100:0;
+    stats.level=profilePercent(completionRate*.4+profilePercent(stats.averageScore)*.35+Math.min(stats.streak,7)/7*100*.25);
+    const attemptIds=attempts.slice(0,40).map(x=>x.id).filter(Boolean);
+    if(attemptIds.length){
+      const ar=await sb.from('test_answers').select('is_correct,test_questions(subject)').in('attempt_id',attemptIds).limit(5000);
+      if(!ar.error){
+        const map=new Map();
+        for(const row of ar.data||[]){
+          const relation=Array.isArray(row.test_questions)?row.test_questions[0]:row.test_questions;
+          const subject=String(relation?.subject||'').trim();if(!subject)continue;
+          const item=map.get(subject)||{subject,total:0,correct:0};item.total+=1;if(row.is_correct===true)item.correct+=1;map.set(subject,item);
+        }
+        stats.subjects=[...map.values()].map(x=>({...x,percent:profilePercent(x.correct*100/Math.max(1,x.total))})).sort((a,b)=>b.total-a.total).slice(0,6);
+      }
+    }
+  }catch(e){console.warn('Profile stats:',e)}
+  return stats;
+}
+function profileAchievement(label,icon,unlocked,help){return `<div class="profile-achievement ${unlocked?'unlocked':'locked'}"><span>${icon}</span><div><b>${esc(label)}</b><small>${esc(unlocked?'Unlocked':help)}</small></div></div>`}
+function toggleProfileRules(){document.getElementById('profileRulesPanel')?.classList.toggle('hidden')}
+async function sendProfilePasswordReset(){
+  const email=String(user?.email||'');
+  if(!email||email.endsWith('@groupd90.local')){toast('Mobile Login account के Password के लिए Admin से संपर्क करें।','info');return}
+  const base=location.href.split('/').slice(0,-1).join('/');
+  const r=await sb.auth.resetPasswordForEmail(email,{redirectTo:base+'/s4n8v2k7-r1p6x9m3-c5t8q4z2.html'});
+  if(r.error){toast(r.error.message,'error');return}toast('Password Reset Link Email पर भेज दिया गया है।','success');
+}
+async function renderProfile(){
+  const box=document.getElementById('profileBox');if(!box)return;
+  box.innerHTML='<div class="profile-loading card"><div class="profile-loader"></div><b>Profile तैयार हो रही है…</b></div>';
+  const stats=await loadPremiumProfileStats();
+  const avatar=selectedProfileAvatar();
+  const name=profile?.full_name||user?.user_metadata?.full_name||'Student';
+  const studentId='GKD-'+String(user?.id||'00000000').replace(/-/g,'').slice(0,8).toUpperCase();
+  const todayClassText=`${stats.todayDone}/${stats.todayTargets}`;
+  const todayPdfText=`${stats.todayPdfsReady}/${stats.todayPdfs}`;
+  const statusClass=stats.targetStatus==='Completed'?'complete':'progress';
+  const subjectHtml=stats.subjects.length?stats.subjects.map(s=>`<div class="profile-subject-row"><div class="profile-subject-head"><b>${esc(s.subject)}</b><span>${s.percent}%</span></div><div class="profile-progress-track"><i style="width:${s.percent}%"></i></div></div>`).join(''):'<div class="profile-empty-state">Subject-wise performance आपके Tests attempt करने के बाद यहाँ दिखाई देगी।</div>';
+  box.innerHTML=`<div class="profile-premium-shell">
+    <section class="profile-id-card">
+      <div class="profile-id-watermark">GK</div>
+      <div class="profile-id-brand"><span>GK</span><div><b>GK BY PURUSHOTAM SIR</b><small>GROUP-D TARGET BATCH</small></div></div>
+      <div class="profile-id-main"><div id="profileMainAvatar" class="profile-main-avatar">${profileAvatarSvg(avatar)}</div><div class="profile-id-copy"><div class="profile-welcome">STUDENT PROFILE</div><h2>${esc(name)}</h2><p>${esc(studentId)}</p><div class="profile-badges"><span>● Account Active</span><span>✓ Batch Member</span></div></div></div>
+      <div class="profile-slogan">अबकी बार, आखिरी बार — जीत फिक्स!</div>
+    </section>
+
+    <section class="profile-panel profile-avatar-panel"><div class="profile-panel-title"><div><span>01</span><b>अपना Avatar चुनें</b></div><small>केवल Boy या Girl Avatar</small></div><div class="profile-avatar-options"><button type="button" data-avatar="boy" class="profile-avatar-choice ${avatar==='boy'?'active':''}" onclick="selectProfileAvatar('boy')">${profileAvatarSvg('boy')}<b>Boy Avatar</b><i>✓</i></button><button type="button" data-avatar="girl" class="profile-avatar-choice ${avatar==='girl'?'active':''}" onclick="selectProfileAvatar('girl')">${profileAvatarSvg('girl')}<b>Girl Avatar</b><i>✓</i></button></div></section>
+
+    <section class="profile-panel"><div class="profile-panel-title"><div><span>02</span><b>आज की स्थिति</b></div><em class="profile-target-status ${statusClass}">${esc(stats.targetStatus)}</em></div><div class="profile-today-grid"><div><span>▶</span><b>${todayClassText}</b><small>Classes</small></div><div><span>▤</span><b>${todayPdfText}</b><small>PDF Verified</small></div><div><span>✎</span><b>${esc(stats.finalStatus)}</b><small>Final Test</small></div><div><span>✓</span><b>${esc(stats.targetStatus)}</b><small>Target</small></div></div></section>
+
+    <section class="profile-stat-grid"><div class="profile-stat-card blue"><span>▶</span><b>${stats.completedClasses}</b><small>Classes Completed</small></div><div class="profile-stat-card green"><span>▤</span><b>${stats.pdfVerified}</b><small>PDFs Verified</small></div><div class="profile-stat-card purple"><span>✎</span><b>${stats.mockAttempts}</b><small>Mock Tests</small></div><div class="profile-stat-card orange"><span>★</span><b>${profilePercent(stats.averageScore)}%</b><small>Average Score</small></div></section>
+
+    <section class="profile-panel profile-preparation-panel"><div class="profile-panel-title"><div><span>03</span><b>Preparation Progress</b></div><small>आपकी अपनी progress</small></div><div class="profile-progress-layout"><div class="profile-level-ring" style="--level:${stats.level*3.6}deg"><div><b>${stats.level}%</b><small>Preparation<br>Level</small></div></div><div class="profile-progress-details"><div><span>Completed Days</span><b>${stats.completedDays}</b></div><div><span>This Week</span><b>${stats.weekCompleted}/7</b></div><div><span>Current Streak</span><b>${stats.streak} Days</b></div><div class="profile-progress-track"><i style="width:${stats.level}%"></i></div></div></div></section>
+
+    <section class="profile-panel"><div class="profile-panel-title"><div><span>04</span><b>Subject Performance</b></div><small>App Tests के आधार पर</small></div><div class="profile-subject-list">${subjectHtml}</div></section>
+
+    <section class="profile-panel"><div class="profile-panel-title"><div><span>05</span><b>Achievements</b></div><small>Consistency और मेहनत</small></div><div class="profile-achievement-grid">${profileAchievement('First Mock Test','🏁',stats.mockAttempts>=1,'पहला Test दें')}${profileAchievement('10 PDFs Completed','📚',stats.pdfVerified>=10,`${stats.pdfVerified}/10 PDFs`)}${profileAchievement('7-Day Warrior','🔥',stats.streak>=7,`${stats.streak}/7 Days`)}${profileAchievement('Target Champion','🏆',stats.completedDays>=1,'एक Target पूरा करें')}${profileAchievement('High Scorer','⭐',stats.averageScore>=80,`${profilePercent(stats.averageScore)}/80%`)}</div></section>
+
+    <section class="profile-panel"><div class="profile-panel-title"><div><span>06</span><b>Account Details</b></div><small>आपकी सुरक्षित जानकारी</small></div><div class="profile-account-list"><div><span>Full Name</span><b>${esc(name)}</b></div><div><span>Email</span><b>${esc(profileMaskEmail(user?.email||''))}</b></div><div><span>Mobile</span><b>${esc(profileMaskPhone(profile?.phone||''))}</b></div><div><span>Registration</span><b>${user?.created_at?new Date(user.created_at).toLocaleDateString('hi-IN',{day:'2-digit',month:'short',year:'numeric'}):'—'}</b></div></div></section>
+
+    <section class="profile-panel profile-actions-panel"><div class="profile-panel-title"><div><span>07</span><b>Quick Actions</b></div></div><div class="profile-actions"><button class="profile-action" onclick="sendProfilePasswordReset()"><span>🔐</span><b>Password Reset</b></button><button class="profile-action" onclick="toggleProfileRules()"><span>📜</span><b>App Rules</b></button><a class="profile-action" href="https://t.me/gkbypurushotamsir" target="_blank" rel="noopener"><span>💬</span><b>Help & Support</b></a><button class="profile-action danger" onclick="logout()"><span>↪</span><b>Logout</b></button></div><div id="profileRulesPanel" class="profile-rules hidden"><b>App Rules</b><p>अपना Login, Password, PDF link या protected content किसी अन्य व्यक्ति के साथ share न करें। Daily Target ईमानदारी से पूरा करें और Tests स्वयं attempt करें।</p></div></section>
+  </div>`;
+}
 let notificationRows=[];async function loadNotifications(){const [br,ar,reads]=await Promise.all([sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(50),sb.from('app_notifications').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(50),sb.from('student_notification_reads').select('broadcast_id').eq('student_id',user.id)]);const readSet=new Set((reads.data||[]).map(x=>String(x.broadcast_id)));const broadcasts=(br.data||[]).map(x=>({id:'b_'+x.id,rawId:x.id,title:x.title,message:x.message,type:x.message_type||'info',created_at:x.created_at,unread:!readSet.has(String(x.id)),isBroadcast:true}));const auto=(ar.data||[]).filter(x=>x.related_type!=='broadcast').map(x=>({id:'a_'+x.id,title:x.title,message:x.message,type:x.notification_type||'info',created_at:x.created_at,unread:false,isBroadcast:false}));notificationRows=[...broadcasts,...auto].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));const unread=notificationRows.filter(x=>x.unread).length,b=document.getElementById('notificationBadge');if(b){b.textContent=unread;b.classList.toggle('hidden',!unread)}renderNotifications()}
 function renderNotifications(){notificationsList.innerHTML=notificationRows.map(x=>`<div class="item notice-premium ${esc(x.type)}"><div class="row"><b>${esc(x.title)}</b>${x.unread?'<span class="badge badge-red">NEW</span>':''}</div><p>${esc(x.message)}</p><div class="small muted">${new Date(x.created_at).toLocaleString('en-IN')}</div></div>`).join('')||'<div class="card">अभी कोई Notification नहीं है।</div>'}
 function openNotifications(){tab('notifications');markAllNotificationsRead()}

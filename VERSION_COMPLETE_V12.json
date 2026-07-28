@@ -1,14 +1,12 @@
 {
-  "version": "12.10.0",
+  "version": "12.11.0",
   "type": "complete-project",
   "files_expected": 98,
   "changes": [
-    "Every PDF upload now has a clear Yes/No option for the PDF Download Mock Test; No keeps direct-download/read-only choices and stores no gate test",
-    "Each PDF is linked to one Daily Target/Class using study_materials.target_id",
-    "Each Class PDF uses only that Class verification questions; 3 Classes can have 3 separate PDFs and verifications",
-    "Admin Daily Content Setup now shows a clear 3-step Class Link → Verification → PDF flow",
-    "Mock Test publisher uses a single Purpose selector: Standalone, PDF Download Gate, or Final Daily Target Test",
-    "Student Today Target has one clear Final Submit button; final mock test pass is required before completion",
-    "Existing Supabase auth, R2 PDF Worker, CBT Turso module and topic controls remain unchanged"
+    "Student Profile redesigned as a premium digital identity card and progress dashboard",
+    "Fixed Boy and Girl illustrated avatars; no personal photo upload or image storage",
+    "Avatar selection persists in profiles.avatar_type through a safe Supabase RPC",
+    "Today status, classes, PDFs, tests, average score, preparation level, achievements and account details are shown from existing app data",
+    "Existing PDF flow, Target Batch, CBT Turso, Cloudflare Workers, Auth and Admin systems remain unchanged"
   ]
 }

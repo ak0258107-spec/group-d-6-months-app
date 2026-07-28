@@ -10,3 +10,10 @@ Deploy:
 1. सभी 98 files GitHub repository root में upload/replace करें।
 2. Commit करें और Ctrl+Shift+R से refresh करें।
 3. Supabase, Cloudflare, Turso, R2 या SQL में कोई नया बदलाव नहीं है।
+
+
+V12.11 PROFILE UPDATE
+1. Supabase SQL Editor में RUN_THIS_PROFILE_AVATAR_ONCE.sql एक बार Run करें।
+2. Complete ZIP की सभी files GitHub repository root में upload/replace करके Commit करें।
+3. Cloudflare, Turso, R2, PDF Worker और Mock Test Worker में कोई बदलाव नहीं करना।
+4. Deployment के बाद Ctrl + Shift + R करें।
