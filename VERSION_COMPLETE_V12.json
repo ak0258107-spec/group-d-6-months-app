@@ -1,8 +1,9 @@
 {
-  "version": "12.9.0",
+  "version": "12.10.0",
   "type": "complete-project",
   "files_expected": 98,
   "changes": [
+    "Every PDF upload now has a clear Yes/No option for the PDF Download Mock Test; No keeps direct-download/read-only choices and stores no gate test",
     "Each PDF is linked to one Daily Target/Class using study_materials.target_id",
     "Each Class PDF uses only that Class verification questions; 3 Classes can have 3 separate PDFs and verifications",
     "Admin Daily Content Setup now shows a clear 3-step Class Link → Verification → PDF flow",

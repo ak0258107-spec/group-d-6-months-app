@@ -1,14 +1,12 @@
-GK BY PURUSHOTAM SIR — V12.9 FINAL DAILY FLOW
+V12.10 FINAL PDF DOWNLOAD MOCK TEST OPTION
 
-केवल ये काम करें:
+PDF Upload screen में अब साफ Yes / No विकल्प है:
+- Yes: Related PDF Download Gate Test और Passing % चुनना अनिवार्य है।
+- No: कोई Download Mock Test नहीं आएगा; Admin Direct Download या Read Only चुन सकता है।
 
-1) Supabase SQL Editor में ZIP की RUN_THIS_FINAL_PDF_FLOW_ONCE.sql फाइल का पूरा SQL चलाएँ। यह idempotent है और दोबारा चलाना सुरक्षित है। इससे हर PDF को एक Class/Target से link करने का target_id column और updated verification functions बनेंगे।
+बाकी V12.9 का Class-wise PDF Verification, अलग PDF Download Gate और Final Daily Target Test flow वैसा ही है।
 
-2) ZIP extract करके सभी files GitHub repository root में upload/replace करें और Commit करें।
-
-3) Deployment के बाद Ctrl + Shift + R करें।
-
-Cloudflare में कोई बदलाव नहीं करना। group-d-pdf-api, exam-arena-api-live, Turso secrets, R2 bucket, Supabase Auth/MFA को नहीं छेड़ना।
-
-Admin Flow:
-Day चुनें → हर Class का YouTube link Save → उसी Class के Verification Questions Save → “इस Class की PDF Upload करें” → PDF Download Gate Test चुनें → अलग Final Daily Test publish करें।
+Deploy:
+1. सभी 98 files GitHub repository root में upload/replace करें।
+2. Commit करें और Ctrl+Shift+R से refresh करें।
+3. Supabase, Cloudflare, Turso, R2 या SQL में कोई नया बदलाव नहीं है।

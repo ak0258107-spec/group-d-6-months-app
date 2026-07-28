@@ -1143,6 +1143,20 @@ loadDaySetup=async function(){
   }).join('')||'<div class="item">इस Day में पहले Daily Targets जोड़ें।</div>';
 };
 
+function syncPdfDownloadRule(){
+  const required=document.getElementById('pdfDownloadMockRequired')?.value==='yes';
+  const mockSettings=document.getElementById('pdfDownloadMockSettings');
+  const noMockAccess=document.getElementById('pdfNoMockAccessWrap');
+  if(mockSettings)mockSettings.classList.toggle('hidden',!required);
+  if(noMockAccess)noMockAccess.classList.toggle('hidden',required);
+  const test=document.getElementById('pdfTest');
+  const pass=document.getElementById('pdfPass');
+  const access=document.getElementById('pdfAccess');
+  if(test)test.disabled=!required;
+  if(pass)pass.disabled=!required;
+  if(access)access.disabled=required;
+}
+
 uploadPdf=async function(){
   const f=pdfFile.files[0];
   const targetId=document.getElementById('pdfTarget')?.value||'';
@@ -1150,8 +1164,10 @@ uploadPdf=async function(){
   if(!f){toast('PDF चुनें','error');return}
   if(f.type&&f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}
   if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
-  const access=pdfAccess.value;
-  if(access==='test_required'&&!pdfTest.value){toast('Download के लिए PDF Gate Mock Test चुनना जरूरी है।','error');return}
+  const downloadMockRequired=document.getElementById('pdfDownloadMockRequired')?.value==='yes';
+  const access=downloadMockRequired?'test_required':(document.getElementById('pdfAccess')?.value||'direct_download');
+  if(downloadMockRequired&&!pdfTest.value){toast('Mock Test = Yes चुना है। Related PDF Download Gate Test चुनें।','error');return}
+  const downloadPass=downloadMockRequired?Math.max(0,Math.min(100,Number(document.getElementById('pdfPass')?.value||80))):0;
   const verifyRequired=document.getElementById('pdfVerificationRequired')?.value!=='false';
   const verifyPass=Math.max(0,Math.min(100,Number(document.getElementById('pdfVerifyPass')?.value||30)));
   const btn=document.querySelector('#pdfsTab button[onclick="uploadPdf()"]')||document.querySelector('button[onclick="uploadPdf()"]');
@@ -1163,13 +1179,13 @@ uploadPdf=async function(){
     uploadedKey=(await uploadRes.json()).key;if(!uploadedKey)throw new Error('R2 file key नहीं मिला।');
     const ins=await sb.from('study_materials').insert({
       schedule_day_id:pdfDay.value,target_id:targetId,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:uploadedKey,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',access_mode:access,
-      download_test_id:access==='test_required'?(pdfTest.value||null):null,download_pass_percent:+pdfPass.value||80,
+      download_test_id:downloadMockRequired?(pdfTest.value||null):null,download_pass_percent:downloadPass,
       requires_pdf_verification:verifyRequired,pdf_verification_pass_percent:verifyPass,
       requires_class_verification:false,uploaded_by:adminUser.id,published_at:new Date().toISOString()
     }).select().single();
     if(ins.error){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(uploadedKey)}`,{method:'DELETE'})}catch(_){}throw new Error(ins.error.message)}
     await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);
-    pdfTitle.value='';pdfFile.value='';toast('Class-wise PDF Cloudflare R2 में upload हो गई।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
+    pdfTitle.value='';pdfFile.value='';toast(downloadMockRequired?'PDF upload हो गई। Download Mock Test लागू है।':'PDF upload हो गई। Download Mock Test लागू नहीं है।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
   }catch(e){console.error(e);toast(e.message||'PDF upload नहीं हो पाई।','error')}
   finally{if(btn){btn.disabled=false;btn.textContent=oldText;}}
 };
@@ -1202,6 +1218,7 @@ const __v129AdminInit=init;
 init=async function(){
   await __v129AdminInit();
   syncTestPurpose();
+  syncPdfDownloadRule();
   await loadPdfTargetOptions();
 };
 
