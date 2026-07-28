@@ -13,6 +13,23 @@ alter table public.study_materials
 alter table public.study_materials
   add column if not exists pdf_verification_pass_percent numeric(5,2) not null default 30;
 
+alter table public.study_materials
+  add column if not exists target_id uuid references public.daily_targets(id) on delete set null;
+
+create index if not exists study_materials_target_idx
+on public.study_materials(target_id,status);
+
+-- Safe legacy backfill: only days having exactly one published target are linked automatically.
+update public.study_materials m
+set target_id=(
+  select t.id from public.daily_targets t
+  where t.schedule_day_id=m.schedule_day_id and t.status='published'
+  order by t.target_order nulls last,t.created_at
+  limit 1
+)
+where m.target_id is null
+  and 1=(select count(*) from public.daily_targets t where t.schedule_day_id=m.schedule_day_id and t.status='published');
+
 update public.study_materials
 set requires_pdf_verification=coalesce(requires_class_verification,true),
     requires_class_verification=false
@@ -110,22 +127,27 @@ set search_path=public
 as $$
 declare
   v_day uuid;
+  v_target uuid;
   v_required boolean:=true;
   v_pass numeric(5,2):=30;
   v_total integer:=0;
   v_correct integer:=0;
 begin
-  select schedule_day_id,requires_pdf_verification,pdf_verification_pass_percent
-  into v_day,v_required,v_pass
+  select schedule_day_id,target_id,requires_pdf_verification,pdf_verification_pass_percent
+  into v_day,v_target,v_required,v_pass
   from public.study_materials
   where id=p_material_id and status='published';
 
   if v_day is null then return false; end if;
   if coalesce(v_required,true)=false then return true; end if;
 
-  select count(*) into v_total
-  from public.verification_questions
-  where schedule_day_id=v_day and is_active=true;
+  if v_target is not null then
+    select count(*) into v_total from public.verification_questions
+    where target_id=v_target and is_active=true;
+  else
+    select count(*) into v_total from public.verification_questions
+    where schedule_day_id=v_day and is_active=true;
+  end if;
 
   if v_total=0 then return true; end if;
 
@@ -135,8 +157,8 @@ begin
   where a.user_id=p_user_id
     and a.material_id=p_material_id
     and a.is_correct=true
-    and q.schedule_day_id=v_day
-    and q.is_active=true;
+    and q.is_active=true
+    and ((v_target is not null and q.target_id=v_target) or (v_target is null and q.schedule_day_id=v_day));
 
   return (v_correct::numeric*100/nullif(v_total,0))>=coalesce(v_pass,30);
 end;
@@ -167,6 +189,7 @@ as $$
 declare
   v_user uuid:=auth.uid();
   v_day uuid;
+  v_target uuid;
   v_required numeric(5,2):=30;
   v_total integer:=0;
   v_correct_count integer:=0;
@@ -181,25 +204,26 @@ begin
   if v_user is null then raise exception 'Authentication required'; end if;
   if p_answers is null or jsonb_typeof(p_answers)<>'array' then raise exception 'Invalid answers'; end if;
 
-  select schedule_day_id,pdf_verification_pass_percent
-  into v_day,v_required
+  select schedule_day_id,target_id,pdf_verification_pass_percent
+  into v_day,v_target,v_required
   from public.study_materials
   where id=p_material_id and status='published';
   if v_day is null then raise exception 'PDF not found'; end if;
 
-  select count(*) into v_total
-  from public.verification_questions
-  where schedule_day_id=v_day and is_active=true;
+  if v_target is not null then
+    select count(*) into v_total from public.verification_questions where target_id=v_target and is_active=true;
+  else
+    select count(*) into v_total from public.verification_questions where schedule_day_id=v_day and is_active=true;
+  end if;
 
   if v_total=0 then
     return jsonb_build_object('passed',true,'score_percent',100,'required_percent',coalesce(v_required,30),'correct_count',0,'total_count',0);
   end if;
 
   v_answer_count:=jsonb_array_length(p_answers);
-  if v_answer_count<>v_total then raise exception 'हर PDF verification question attempt करना जरूरी है'; end if;
+  if v_answer_count<>v_total then raise exception 'इस PDF के हर verification question को attempt करना जरूरी है'; end if;
 
-  delete from public.pdf_verification_attempts
-  where user_id=v_user and material_id=p_material_id;
+  delete from public.pdf_verification_attempts where user_id=v_user and material_id=p_material_id;
 
   for item in select * from jsonb_array_elements(p_answers)
   loop
@@ -210,31 +234,23 @@ begin
     into v_correct_text
     from public.verification_questions q
     join public.verification_answer_keys k on k.verification_question_id=q.id
-    where q.id=v_qid and q.schedule_day_id=v_day and q.is_active=true;
+    where q.id=v_qid and q.is_active=true
+      and ((v_target is not null and q.target_id=v_target) or (v_target is null and q.schedule_day_id=v_day));
 
     if v_correct_text is null then raise exception 'PDF verification question is not configured'; end if;
     v_is_correct:=(v_selected::text=v_correct_text);
 
-    insert into public.pdf_verification_attempts(
-      user_id,material_id,verification_question_id,selected_option,is_correct,submitted_at
-    ) values(v_user,p_material_id,v_qid,v_selected,v_is_correct,now())
+    insert into public.pdf_verification_attempts(user_id,material_id,verification_question_id,selected_option,is_correct,submitted_at)
+    values(v_user,p_material_id,v_qid,v_selected,v_is_correct,now())
     on conflict(user_id,material_id,verification_question_id)
     do update set selected_option=excluded.selected_option,is_correct=excluded.is_correct,submitted_at=now();
   end loop;
 
-  select count(*) into v_correct_count
-  from public.pdf_verification_attempts
+  select count(*) into v_correct_count from public.pdf_verification_attempts
   where user_id=v_user and material_id=p_material_id and is_correct=true;
 
   v_score:=round(v_correct_count::numeric*100/nullif(v_total,0),2);
-
-  return jsonb_build_object(
-    'passed',v_score>=coalesce(v_required,30),
-    'score_percent',v_score,
-    'required_percent',coalesce(v_required,30),
-    'correct_count',v_correct_count,
-    'total_count',v_total
-  );
+  return jsonb_build_object('passed',v_score>=coalesce(v_required,30),'score_percent',v_score,'required_percent',coalesce(v_required,30),'correct_count',v_correct_count,'total_count',v_total);
 end;
 $$;
 

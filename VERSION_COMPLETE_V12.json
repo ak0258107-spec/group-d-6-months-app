@@ -1,12 +1,13 @@
 {
-  "version": "12.8.0",
+  "version": "12.9.0",
   "type": "complete-project",
   "files_expected": 98,
   "changes": [
-    "Removed individual-question checkbox/list delete workflow from CBT Admin",
-    "Admin now selects one Topic and deletes all questions of that Topic in one action",
-    "Missing selection message is now: कृपया पहले एक Topic चुनें।",
-    "Topic record remains safe for future re-upload; only its questions are deleted",
-    "Existing Topic Show to Students + Save, Target Batch, Supabase, PDF Worker and R2 remain untouched"
+    "Each PDF is linked to one Daily Target/Class using study_materials.target_id",
+    "Each Class PDF uses only that Class verification questions; 3 Classes can have 3 separate PDFs and verifications",
+    "Admin Daily Content Setup now shows a clear 3-step Class Link → Verification → PDF flow",
+    "Mock Test publisher uses a single Purpose selector: Standalone, PDF Download Gate, or Final Daily Target Test",
+    "Student Today Target has one clear Final Submit button; final mock test pass is required before completion",
+    "Existing Supabase auth, R2 PDF Worker, CBT Turso module and topic controls remain unchanged"
   ]
 }

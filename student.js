@@ -889,7 +889,7 @@ renderHome=async function(){
     <button class="home-action-card pdf-card-home" onclick="openPdfLibrary()"><div class="action-icon">PDF</div><div class="action-text"><span>PDF Notes</span><b>${mats.length} Today</b><small>Verification clear करके PDF पढ़ें</small></div></button>
     <button class="home-action-card test-card-home" onclick="openTestsLibrary()"><div class="action-icon">T</div><div class="action-text"><span>Mock Tests</span><b>Practice + Gate</b><small>Standalone और PDF download tests</small></div></button>
     <button class="home-action-card one-card-home" onclick="openOneLinerLibrary()"><div class="action-icon">1L</div><div class="action-text"><span>One-Liners</span><b>Topic-wise</b><small>तेज revision और याद करने योग्य facts</small></div></button>
-    ${finalT?`<a class="home-action-card final-submit-card" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${finalT.id}"><div class="action-icon">✓</div><div class="action-text"><span>Final Submit</span><b>${finalT.passing_percent||0}% Condition</b><small>आज का final assessment पूरा करें</small></div></a>`:''}
+    ${finalT?`<button class="home-action-card final-submit-card" onclick="attemptFinalTargetSubmit()"><div class="action-icon">✓</div><div class="action-text"><span>Final Submit</span><b>${finalT.passing_percent||0}% Condition</b><small>पहले सभी Class PDFs verify करें</small></div></button>`:''}
   </div>
   <div class="home-brand-connect-card" aria-label="Official YouTube and Telegram channels">
     <div class="home-brand-connect-copy"><span class="section-kicker">OFFICIAL CHANNELS</span><h3>हमसे जुड़ें</h3><p>Free Classes, PDFs और जरूरी updates के लिए हमारे official channels follow करें।</p></div>
@@ -970,7 +970,7 @@ readPdf=async function(id,path,title){
   if(!isR2PdfPath(path)){
     const ok=await sb.rpc('can_read_material',{p_material_id:id});
     if(ok.error){showActionNotice('PDF खोलने में समस्या आई: '+ok.error.message,'',null,'error');return}
-    if(!ok.data){showActionNotice('PDF खोलने से पहले Verification condition clear करें।','PDF Verification खोलें',()=>openVerificationForMaterial(id),'warning');return}
+    if(!ok.data){showActionNotice('पहले Class Verify कीजिए, तभी यह PDF खुलेगी।','Class Verification खोलें',()=>openVerificationForMaterial(id),'warning');return}
     const legacy=await sb.storage.from('study-pdfs').createSignedUrl(path,120);if(legacy.error){showActionNotice(legacy.error.message,'',null,'error');return}window.open(legacy.data.signedUrl,'_blank','noopener');return;
   }
   try{
@@ -984,7 +984,7 @@ downloadPdf=async function(id,path,testId='',mode='direct_download',passPercent=
   if(mode==='read_only'){toast('यह PDF Read Only है। Download उपलब्ध नहीं है।','error');return}
   const read=await sb.rpc('can_read_material',{p_material_id:id});
   if(read.error){toast(read.error.message,'error');return}
-  if(!read.data){showActionNotice('पहले PDF Verification condition clear करें।','PDF Verification खोलें',()=>openVerificationForMaterial(id),'warning');return}
+  if(!read.data){showActionNotice('पहले Class Verify कीजिए, तभी Download का अगला चरण खुलेगा।','Class Verification खोलें',()=>openVerificationForMaterial(id),'warning');return}
   if(!isR2PdfPath(path)){
     const ok=await sb.rpc('can_download_material',{p_material_id:id});if(ok.error){toast(ok.error.message,'error');return}
     if(ok.data){const rr=await sb.storage.from('study-pdfs').createSignedUrl(path,120);if(rr.error){toast(rr.error.message,'error');return}const a=document.createElement('a');a.href=rr.data.signedUrl;a.download=title;a.target='_blank';a.click();return}
@@ -1014,5 +1014,77 @@ loadTests = async function(){
   }catch(_){ }
   testsList.innerHTML=`<div class="card cbt-launch-card"><div class="row wrap"><div><h2>🖥 CBT Mock Test</h2><p class="muted">सभी Subjects और Topics का वास्तविक CBT-style practice test। इसका question database Target Batch से पूरी तरह अलग है।</p></div><a class="btn btn-purple" href="cbt-mock-test.html">START CBT MOCK TEST</a></div></div>${targetHtml}`;
 };
+
+
+/* ==================================================================
+   V12.9 — CLASS-WISE PDF VERIFICATION + FINAL TARGET SUBMIT BUTTON
+   ================================================================== */
+getMaterialVerificationContext=async function(materialId){
+  const mat=await sb.from('study_materials').select('id,title,schedule_day_id,target_id,storage_path,requires_pdf_verification,pdf_verification_pass_percent,daily_targets(subject,topic,target_order)').eq('id',materialId).maybeSingle();
+  if(mat.error)throw mat.error;
+  if(!mat.data)return {material:null,targets:[],questions:[]};
+  let tq=sb.from('daily_targets').select('*');
+  let vq=sb.from('verification_questions').select('*').eq('is_active',true).order('sort_order').order('created_at');
+  if(mat.data.target_id){tq=tq.eq('id',mat.data.target_id);vq=vq.eq('target_id',mat.data.target_id)}
+  else{tq=tq.eq('schedule_day_id',mat.data.schedule_day_id).order('target_order');vq=vq.eq('schedule_day_id',mat.data.schedule_day_id)}
+  const [tr,vr]=await Promise.all([tq,vq]);
+  return {material:mat.data,targets:tr.data||[],questions:vr.data||[]};
+};
+
+async function attemptFinalTargetSubmit(){
+  if(!currentDay){showActionNotice('आज का Target उपलब्ध नहीं है।','',null,'warning');return}
+  const mats=currentDayMaterials();
+  if(!mats.length){showActionNotice('Admin ने आज की PDFs अभी publish नहीं की हैं।','PDF Library खोलें',()=>openPdfLibrary(),'warning');return}
+  const readiness=await Promise.all(mats.map(pdfVerificationReady));
+  if(!readiness.every(Boolean)){
+    showActionNotice('पहले हर Class की PDF Verification पूरी करें।','PDF Library खोलें',()=>openPdfLibrary(),'warning');
+    return;
+  }
+  const ft=finalTest();
+  if(!ft){showActionNotice('Admin ने आज का Final Mock Test अभी publish नहीं किया है।','',null,'warning');return}
+  const a=await bestAttempt(ft.id);
+  const passed=!!a&&Number(a.percentage||0)>=Number(ft.passing_percent||0);
+  if(passed){
+    await sb.rpc('refresh_daily_progress',{p_user_id:user.id,p_schedule_day_id:currentDay.id});
+    await Promise.all([renderTargets(),renderHome()]);
+    showActionNotice('आज का Target सफलतापूर्वक Complete और Verified हो गया।','',null,'success');
+    return;
+  }
+  showActionNotice(`Final Submission से पहले Final Mock Test में ${Number(ft.passing_percent||0)}% score करना जरूरी है।`,'Final Mock Test शुरू करें',()=>{location.href=`m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${encodeURIComponent(ft.id)}&return=final`},'warning');
+}
+
+renderTargets=async function(){
+  if(!currentDay){targetsBox.innerHTML=fiveDayPreviewHtml()||'<div class="card">अभी Target उपलब्ध नहीं है।</div>';return}
+  let html=fiveDayPreviewHtml()+`<div class="premium-section-head"><div><span class="section-kicker">TODAY'S TARGET</span><h2>Day ${currentDay.day_number} की Classes</h2><div class="muted">हर Class की अलग PDF और अलग Verification होगी।</div></div></div>`;
+  const mats=currentDayMaterials();
+  for(const t of currentTargets){
+    const linked=mats.filter(m=>String(m.target_id||'')===String(t.id));
+    html+=`<div class="target-card ${sclass(t.subject)}"><div class="row wrap" style="justify-content:space-between"><div><div class="small">Class ${t.target_order||'-'} • ${esc(t.subject)}</div><div class="topic">${esc(t.topic)}</div></div><span class="badge ${linked.length?'badge-green':'badge-blue'}">${linked.length?`${linked.length} PDF`:'PDF Pending'}</span></div>${t.youtube_url?`<p><a class="btn btn-red premium-action-btn" target="_blank" rel="noopener" href="${esc(t.youtube_url)}">▶ YouTube Class खोलें</a></p>`:'<p class="small muted">Class link अभी add नहीं किया गया।</p>'}${linked.length?`<div class="linked-class-pdfs">${linked.map(m=>`<button class="btn btn-blue btn-mini" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")},${JSON.stringify(m.title||"PDF")})'>📄 ${esc(m.title)}</button>`).join('')}</div>`:'<div class="small muted">इस Class की PDF अभी upload नहीं हुई।</div>'}</div>`;
+  }
+  html+=`<div class="card final-submit-workflow"><div><span class="section-kicker">FINAL SUBMISSION</span><h3>आज का Target Complete करें</h3><p>सभी Class PDFs verify करने के बाद Final Mock Test पास करना जरूरी है।</p></div><button class="btn btn-purple" onclick="attemptFinalTargetSubmit()">आज का Target Complete करें</button></div>`;
+  targetsBox.innerHTML=html;
+};
+
+loadPdfs=async function(){
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order)').eq('status','published').order('created_at',{ascending:false});
+  const rows=r.data||[];materials=rows;
+  if(r.error){pdfList.innerHTML=`<div class="card text-error">${esc(r.error.message)}<br><small>Supabase में updated RUN_THIS_FINAL_PDF_FLOW_ONCE.sql चलाएँ।</small></div>`;return}
+  pdfList.innerHTML=rows.map(m=>{const verifyRequired=m.requires_pdf_verification!==false,verifyPass=Number(m.pdf_verification_pass_percent||30);return `<div class="item pdf-read-card premium-pdf-card"><div class="row wrap"><div class="pdf-card-copy"><div class="pdf-title-row"><b>📄 ${esc(m.title)}</b><span class="badge badge-blue">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'}</span></div><div class="pdf-linked-class">${esc(m.daily_targets?.subject||'Legacy PDF')} • ${esc(m.daily_targets?.topic||'Class link not set')}</div><div class="pdf-step-list"><span>${verifyRequired?`🔐 पहले Class Verify करें: ${verifyPass}%`:'🔓 View: Direct'}</span><span>${m.access_mode==='test_required'?`📝 Download से पहले Mock Test: ${m.download_pass_percent}%`:m.access_mode==='direct_download'?'⬇ Download: Direct after view unlock':'👁 Read Only'}</span><span>${isR2PdfPath(m.storage_path)?'☁ Secure R2 Storage':'Legacy PDF'}</span></div></div><div class="row wrap pdf-card-actions"><button class="btn btn-blue" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")},${JSON.stringify(m.title||"PDF")})'>पहले Class Verify करें / PDF खोलें</button>${m.access_mode!=='read_only'?`<button class="btn btn-green" onclick='downloadPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")},${JSON.stringify(m.download_test_id||"")},${JSON.stringify(m.access_mode)},${Number(m.download_pass_percent||80)},${JSON.stringify(m.title||"study-material.pdf")})'>Download</button>`:''}</div></div></div>`}).join('')||'<div class="card">अभी कोई PDF नहीं है।</div>';
+  if(currentDay)await renderHome();
+};
+
+loadTests=async function(){
+  let targetHtml='';
+  try{
+    const r=await sb.from('tests').select('*').eq('status','published').order('created_at',{ascending:false});
+    const rows=r.data||[];
+    const standalone=rows.filter(t=>!t.is_final_daily&&!t.is_pdf_download_gate);
+    targetHtml=standalone.length?`<div class="card"><h3>Standalone Practice Tests</h3>${standalone.map(t=>`<div class="item"><div class="row wrap"><div><b>${esc(t.title||t.name||"Test")}</b><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent}%</div></div><a class="btn btn-blue" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${t.id}">Start Practice</a></div></div>`).join('')}</div>`:'<div class="card"><p class="muted">अभी कोई standalone practice test publish नहीं है। PDF Gate Test Download के समय और Final Test “आज का Target Complete करें” पर खुलेगा।</p></div>';
+  }catch(_){ }
+  testsList.innerHTML=`<div class="card cbt-launch-card"><div class="row wrap"><div><h2>🖥 CBT Mock Test</h2><p class="muted">सभी Subjects और Topics का वास्तविक CBT-style practice test। इसका question database Target Batch से अलग है।</p></div><a class="btn btn-purple" href="cbt-mock-test.html">START CBT MOCK TEST</a></div></div>${targetHtml}`;
+};
+
+const __v129StudentInit=init;
+init=async function(){await __v129StudentInit();};
 
 init();

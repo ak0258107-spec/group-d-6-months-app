@@ -1067,4 +1067,142 @@ loadMaterials=async function(){
   host.innerHTML=rows.map(m=>`<div class="item admin-delete-group"><div class="row wrap" style="justify-content:space-between;align-items:center"><div><b>📄 ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${esc(m.access_mode||'read_only')}</div><div class="small">${m.requires_pdf_verification===false?'PDF Verification: नहीं':`PDF Verification: ${Number(m.pdf_verification_pass_percent||30)}%`} • ${m.access_mode==='test_required'?`Download Test: ${Number(m.download_pass_percent||80)}%`:'Download Gate: नहीं'} • ${isR2PdfPath(m.storage_path)?'☁ R2':'Legacy'}</div></div><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>🗑 Delete PDF</button></div></div>`).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
 };
 
+
+/* ==================================================================
+   V12.9 — EASY CLASS-WISE PDF + FINAL DAILY FLOW
+   Each PDF is linked to one Daily Target/Class.
+   ================================================================== */
+let pdfTargetRows=[];
+
+async function loadPdfTargetOptions(preselectTargetId=''){
+  const host=document.getElementById('pdfTarget');
+  const dayEl=document.getElementById('pdfDay');
+  if(!host||!dayEl)return;
+  const dayId=dayEl.value||days[0]?.id||'';
+  if(!dayId){host.innerHTML='<option value="">पहले Day चुनें</option>';return}
+  const r=await sb.from('daily_targets').select('id,subject,topic,target_order,status').eq('schedule_day_id',dayId).order('target_order');
+  if(r.error){host.innerHTML='<option value="">Classes load नहीं हुईं</option>';toast(r.error.message,'error');return}
+  pdfTargetRows=(r.data||[]).filter(x=>x.status==='published');
+  host.innerHTML='<option value="">Class / Topic चुनें</option>'+pdfTargetRows.map(t=>`<option value="${t.id}">Class ${t.target_order||'-'} — ${esc(t.subject||'')} • ${esc(t.topic||'')}</option>`).join('');
+  if(preselectTargetId&&pdfTargetRows.some(t=>String(t.id)===String(preselectTargetId)))host.value=String(preselectTargetId);
+}
+
+async function openPdfUploadForTarget(dayId,targetId){
+  const link=[...document.querySelectorAll('.sidebar a')].find(a=>(a.getAttribute('onclick')||'').includes("tab('pdfs'"));
+  tab('pdfs',link||null);
+  if(document.getElementById('pdfDay'))document.getElementById('pdfDay').value=String(dayId);
+  await loadPdfTargetOptions(targetId);
+  document.getElementById('pdfTitle')?.focus();
+  document.getElementById('pdfsTab')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function syncTestPurpose(){
+  const purpose=document.getElementById('testPurpose')?.value||'standalone';
+  const finalEl=document.getElementById('isFinalDaily');
+  const gateEl=document.getElementById('isPdfGate');
+  if(finalEl)finalEl.checked=purpose==='final_daily';
+  if(gateEl)gateEl.checked=purpose==='pdf_gate';
+  const help=document.getElementById('testPurposeHelp');
+  if(help){
+    help.innerHTML=purpose==='pdf_gate'
+      ?'<b>PDF Download Gate:</b> इस Test को PDF Upload screen में चुनें। Pass होने पर केवल उस PDF का Download खुलेगा।'
+      :purpose==='final_daily'
+        ?'<b>Final Daily Target Test:</b> सभी PDF verification के बाद “आज का Target Complete करें” पर यही Test खुलेगा।'
+        :'<b>Standalone Practice:</b> यह स्वतंत्र practice test रहेगा; PDF Download या Final Submit से link नहीं होगा।';
+  }
+}
+
+const __v129PublishRawTest=publishRawTest;
+publishRawTest=async function(){
+  syncTestPurpose();
+  const purpose=document.getElementById('testPurpose')?.value||'standalone';
+  if((purpose==='final_daily'||purpose==='pdf_gate')&&!testDay.value){toast('PDF Gate या Final Daily Test के लिए Schedule Day चुनना जरूरी है।','error');return}
+  return __v129PublishRawTest();
+};
+
+loadDaySetup=async function(){
+  const dayId=setupDay.value||days[0]?.id;if(!dayId)return;
+  const [t,v,m]=await Promise.all([
+    sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),
+    sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true).order('created_at'),
+    sb.from('study_materials').select('id,title,target_id,access_mode,download_test_id,status').eq('schedule_day_id',dayId).eq('status','published').order('created_at')
+  ]);
+  allTargets=t.data||[];
+  const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));
+  const mmap={};(m.data||[]).forEach(x=>(mmap[x.target_id]??=[]).push(x));
+  setupTargets.innerHTML=allTargets.map((x,idx)=>{
+    const pdfs=mmap[x.id]||[],qs=vmap[x.id]||[];
+    return `<details class="target-setup-3d easy-class-flow" ${idx===0?'open':''}>
+      <summary><div><span class="topic-chip">Class ${x.target_order||idx+1}</span><b>${esc(x.subject)} — ${esc(x.topic)}</b></div><span class="badge ${pdfs.length?'badge-green':'badge-blue'}">${pdfs.length?`${pdfs.length} PDF Linked`:'PDF Pending'}</span></summary>
+      <div class="target-setup-body">
+        <div class="easy-step-card"><span class="easy-step-no">1</span><div class="easy-step-content"><h4>YouTube Class Link</h4><p>Class पर कोई verification नहीं होगा।</p><div class="setup-inline"><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><button class="btn btn-red" onclick="saveYoutube('${x.id}')">Save Class Link</button></div></div></div>
+        <div class="easy-step-card"><span class="easy-step-no">2</span><div class="easy-step-content"><div class="row wrap" style="justify-content:space-between;align-items:center"><div><h4>इस Class की PDF Verification</h4><p>Question hide/show आप तय करेंगे।</p></div><div class="row wrap"><span class="badge badge-purple">${qs.length} Questions</span>${qs.length?`<button class="btn btn-red btn-mini" onclick="deleteTargetVerifications('${x.id}','${dayId}')">Delete Verification</button>`:''}</div></div><label>Question Visibility</label><select id="show_${x.id}"><option value="false">Hide Question — केवल Options दिखें</option><option value="true">Show Question — Question + Options दिखें</option></select><label>Verification Questions Paste करें</label><textarea class="verification-raw-box" id="vqraw_${x.id}" placeholder="प्रश्न 1. ........\n(A) ....\n(B) ....\n(C) ....\n(D) ....\nउत्तर: (A)\nव्याख्या: ....\n\n------\n\nप्रश्न 2. ........"></textarea><div class="format-tip"><b>Format:</b> 1, 2, 3 या जितने चाहें प्रश्न paste करें। Save करने पर इस Class के पुराने verification questions replace होंगे।</div><button class="btn btn-green" onclick="saveVerificationBatch('${x.id}','${dayId}')">Save Verification Questions</button></div></div>
+        <div class="easy-step-card"><span class="easy-step-no">3</span><div class="easy-step-content"><h4>इस Class की अलग PDF</h4>${pdfs.length?`<div class="linked-pdf-list">${pdfs.map(p=>`<span>📄 ${esc(p.title)}</span>`).join('')}</div>`:'<p class="muted">अभी इस Class से कोई PDF linked नहीं है।</p>'}<button class="btn btn-blue" onclick="openPdfUploadForTarget('${dayId}','${x.id}')">इस Class की PDF Upload करें</button></div></div>
+      </div>
+    </details>`;
+  }).join('')||'<div class="item">इस Day में पहले Daily Targets जोड़ें।</div>';
+};
+
+uploadPdf=async function(){
+  const f=pdfFile.files[0];
+  const targetId=document.getElementById('pdfTarget')?.value||'';
+  if(!targetId){toast('पहले Class / Topic चुनें।','error');return}
+  if(!f){toast('PDF चुनें','error');return}
+  if(f.type&&f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}
+  if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
+  const access=pdfAccess.value;
+  if(access==='test_required'&&!pdfTest.value){toast('Download के लिए PDF Gate Mock Test चुनना जरूरी है।','error');return}
+  const verifyRequired=document.getElementById('pdfVerificationRequired')?.value!=='false';
+  const verifyPass=Math.max(0,Math.min(100,Number(document.getElementById('pdfVerifyPass')?.value||30)));
+  const btn=document.querySelector('#pdfsTab button[onclick="uploadPdf()"]')||document.querySelector('button[onclick="uploadPdf()"]');
+  const oldText=btn?.textContent||'Upload PDF';if(btn){btn.disabled=true;btn.textContent='Uploading securely to R2...';}
+  let uploadedKey=null;
+  try{
+    const uploadRes=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(f.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f});
+    if(!uploadRes.ok)throw new Error(await r2ErrorMessage(uploadRes,'R2 upload failed'));
+    uploadedKey=(await uploadRes.json()).key;if(!uploadedKey)throw new Error('R2 file key नहीं मिला।');
+    const ins=await sb.from('study_materials').insert({
+      schedule_day_id:pdfDay.value,target_id:targetId,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:uploadedKey,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',access_mode:access,
+      download_test_id:access==='test_required'?(pdfTest.value||null):null,download_pass_percent:+pdfPass.value||80,
+      requires_pdf_verification:verifyRequired,pdf_verification_pass_percent:verifyPass,
+      requires_class_verification:false,uploaded_by:adminUser.id,published_at:new Date().toISOString()
+    }).select().single();
+    if(ins.error){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(uploadedKey)}`,{method:'DELETE'})}catch(_){}throw new Error(ins.error.message)}
+    await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);
+    pdfTitle.value='';pdfFile.value='';toast('Class-wise PDF Cloudflare R2 में upload हो गई।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
+  }catch(e){console.error(e);toast(e.message||'PDF upload नहीं हो पाई।','error')}
+  finally{if(btn){btn.disabled=false;btn.textContent=oldText;}}
+};
+
+async function linkExistingPdfToTarget(materialId,dayId){
+  const sel=document.getElementById('materialTarget_'+materialId);
+  const targetId=sel?.value||'';
+  if(!targetId){toast('इस PDF के लिए Class / Topic चुनें।','error');return}
+  const r=await sb.from('study_materials').update({target_id:targetId}).eq('id',materialId);
+  if(r.error){toast(r.error.message,'error');return}
+  toast('PDF की Class link save हो गई।','success');
+  await Promise.all([loadMaterials(),loadDaySetup()]);
+}
+
+loadMaterials=async function(){
+  const [r,t]=await Promise.all([
+    sb.from('study_materials').select('*,schedule_days(day_number,day_date),daily_targets(subject,topic,target_order)').order('created_at',{ascending:false}),
+    sb.from('daily_targets').select('id,schedule_day_id,subject,topic,target_order,status').eq('status','published').order('target_order')
+  ]);
+  const rows=r.data||[],targets=t.data||[],host=document.getElementById('materialsList');if(!host)return;
+  if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>Supabase में updated RUN_THIS_FINAL_PDF_FLOW_ONCE.sql चलाएँ।</small></div>`;return}
+  host.innerHTML=rows.map(m=>{
+    const dayTargets=targets.filter(x=>String(x.schedule_day_id)===String(m.schedule_day_id));
+    const options='<option value="">Class / Topic चुनें</option>'+dayTargets.map(x=>`<option value="${x.id}" ${String(x.id)===String(m.target_id)?'selected':''}>Class ${x.target_order||'-'} — ${esc(x.subject||'')} • ${esc(x.topic||'')}</option>`).join('');
+    return `<div class="item admin-delete-group"><div class="row wrap" style="justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:260px"><b>📄 ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'} — ${esc(m.daily_targets?.subject||'Unlinked')} • ${esc(m.daily_targets?.topic||'Class चुनना बाकी')}</div><div class="small">${m.requires_pdf_verification===false?'View Verification: नहीं':`View Verification: ${Number(m.pdf_verification_pass_percent||30)}%`} • ${m.access_mode==='test_required'?`Download Mock Test: ${Number(m.download_pass_percent||80)}%`:m.access_mode==='direct_download'?'Direct Download':'Read Only'} • ${isR2PdfPath(m.storage_path)?'☁ R2':'Legacy'}</div><div class="existing-pdf-linker"><select id="materialTarget_${m.id}">${options}</select><button class="btn btn-blue btn-mini" onclick="linkExistingPdfToTarget('${m.id}','${m.schedule_day_id}')">Save Class Link</button></div></div><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>🗑 Delete PDF</button></div></div>`;
+  }).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
+};
+
+const __v129AdminInit=init;
+init=async function(){
+  await __v129AdminInit();
+  syncTestPurpose();
+  await loadPdfTargetOptions();
+};
+
 init();
