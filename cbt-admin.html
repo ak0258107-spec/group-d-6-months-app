@@ -6,9 +6,9 @@
     <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=12.7.0"></script>
-    <script src="common.js?v=12.7.0"></script>
-    <script src="cbt-topics-data.js?v=12.7.0"></script>
+    <script src="config.js?v=12.8.0"></script>
+    <script src="common.js?v=12.8.0"></script>
+    <script src="cbt-topics-data.js?v=12.8.0"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -841,45 +841,17 @@
             </div>
 
             <div class="panel">
-                <h3>Uploaded Questions — View / Delete</h3>
+                <h3>Selected Topic के सभी Questions Delete करें</h3>
                 <div class="help">
-                    पहले ऊपर से Subject और Topic चुनें। फिर <b>Load Questions</b> दबाकर उस Topic के सभी uploaded questions देखें।
-                    किसी एक प्रश्न को अलग delete कर सकते हैं, या कई प्रश्न select करके एक साथ delete कर सकते हैं।
-                    Delete होने के बाद प्रश्न Turso database से permanently हट जाएगा।
-                </div>
-
-                <div class="question-manager-toolbar">
-                    <button type="button" class="blue" onclick="loadUploadedQuestions()">Load Selected Topic Questions</button>
-                    <button type="button" class="gray" onclick="toggleAllUploadedQuestionChecks(true)">Select All</button>
-                    <button type="button" class="gray" onclick="toggleAllUploadedQuestionChecks(false)">Clear Selection</button>
-                    <button type="button" class="red" onclick="deleteSelectedUploadedQuestions()">Delete Selected Questions</button>
-                </div>
-
-                <div id="questionManagerStatus" class="question-manager-status">पहले Subject और Topic चुनकर Load Questions दबाएँ।</div>
-                <div id="uploadedQuestionList" class="question-manager-list"></div>
-            </div>
-
-            <div class="panel">
-                <h3>Danger Zone - Delete Questions</h3>
-                <div class="help">
-                    <b>Delete Selected Topic Questions</b> से सिर्फ selected topics के questions delete होंगे।<br>
-                    <b>Delete All Questions / Fresh Start</b> से पूरे database के सारे questions delete होंगे।<br>
-                    दोनों में Admin Password और confirmation word मांगा जाएगा। Topics delete नहीं होंगे।
+                    ऊपर पहले एक Subject और Topic चुनें। फिर नीचे वाला button दबाने पर केवल उसी Topic के सभी uploaded questions permanently delete होंगे।
+                    Topic का नाम सुरक्षित रहेगा और बाद में उसी Topic में नए questions दोबारा upload किए जा सकेंगे।
                 </div>
 
                 <div id="deleteSelectedTopicBox" class="chips"></div>
 
                 <div class="btn-row">
-                    <button type="button" class="red" onclick="deleteEmptyOptionQuestionsOnly()">
-                        🧹 Empty Option / One-Liner हटाएँ
-                    </button>
-
                     <button type="button" class="red" onclick="deleteSelectedTopicQuestions()">
-                        Delete Selected Topic Questions
-                    </button>
-
-                    <button type="button" class="darkred" onclick="deleteAllQuestionsFreshStart()">
-                        ⚠ Delete All Questions / Fresh Start
+                        इस Topic के सभी Questions Delete करें
                     </button>
                 </div>
             </div>
@@ -1338,19 +1310,7 @@
         }
 
         async function deleteSelectedUploadedQuestions() {
-            const ids = [...document.querySelectorAll(".uploaded-question-checkbox:checked")]
-                .map((box) => Number(box.value))
-                .filter((id) => Number.isInteger(id) && id > 0);
-            if (!ids.length) {
-                setStatus("Delete करने के लिए कम से कम एक Question select करें।", "err", true);
-                return;
-            }
-            const confirmation = prompt(`${ids.length} selected Questions permanently delete होंगे। Confirm करने के लिए DELETE लिखें:`);
-            if (confirmation !== "DELETE") {
-                setStatus("Delete cancel कर दिया गया।", "info");
-                return;
-            }
-            await deleteUploadedQuestionIds(ids);
+            await deleteSelectedTopicQuestions();
         }
 
         async function deleteUploadedQuestionIds(ids) {
@@ -1440,61 +1400,63 @@
         }
 
         async function deleteSelectedTopicQuestions() {
-            const selectedTopics = getSelectedTopicsFull();
+            const topic = getSelectedTopicsFull()[0] || null;
 
-            if (!selectedTopics.length) {
-                setStatus("पहले जिस topic के questions delete करने हैं, उसे select करें।", "err", true);
+            if (!topic) {
+                setStatus("कृपया पहले एक Topic चुनें।", "err", true);
                 return;
             }
 
-            const topicNames = selectedTopics.map((topic, index) => {
-                const count = getTopicQuestionCount(topic.topic_key);
-                return `${index + 1}. ${topic.topic_name} (${count} Q)`;
-            }).join("\n");
-
+            const count = getTopicQuestionCount(topic.topic_key);
             const confirmText = prompt(
-                `Selected topics के questions delete होंगे:\n\n${topicNames}\n\nConfirm करने के लिए SELECTED लिखें:`
+                `क्या आप “${topic.topic_name}” Topic के सभी ${count} Questions permanently delete करना चाहते हैं?
+
+Topic का नाम delete नहीं होगा। बाद में इसी Topic में नए Questions दोबारा upload किए जा सकेंगे।
+
+Confirm करने के लिए DELETE लिखें:`
             );
 
-            if (clean(confirmText).toUpperCase() !== "SELECTED") {
-                setStatus("Confirmation match नहीं हुई। Selected topic delete cancel।", "info", true);
+            if (clean(confirmText).toUpperCase() !== "DELETE") {
+                setStatus("Delete cancel कर दिया गया।", "info");
                 return;
             }
 
-            if (!verifyAdminPasswordForDanger("Delete Selected Topic Questions")) return;
+            if (!verifyAdminPasswordForDanger("Delete This Topic's All Questions")) return;
 
             try {
-                setStatus("Selected topics के questions delete हो रहे हैं... कृपया wait करें।", "info", true);
+                setStatus(`${topic.topic_name} के सभी Questions delete हो रहे हैं...`, "info", true);
 
                 const response = await fetch(`${API_BASE_URL}/admin/delete-topic-questions`, {
                     method: "POST",
                     headers: adminHeaders(),
                     body: JSON.stringify({
                         subject_key: FIXED_SUBJECT_KEY,
-                        topic_keys: selectedTopics.map(topic => topic.topic_key)
+                        topic_keys: [topic.topic_key]
                     })
                 });
 
                 const data = await response.json().catch(() => ({}));
 
                 if (!response.ok || !data.success) {
-                    setStatus(data.message || data.error || "Selected topic delete failed.", "err", true);
+                    setStatus(data.message || data.error || "Topic questions delete failed.", "err", true);
                     return;
                 }
 
                 lastValidation = null;
                 uploadBtn.disabled = true;
-
                 await loadQuestionCounts(true);
 
                 setStatus(
-                    `Selected Topic Questions Deleted ✅\nDeleted Questions: ${data.deleted_questions || 0}\nTopics affected: ${selectedTopics.length}\n\n${topicNames}\n\nअब count board में updated count दिख रहा है। Topics safe हैं।`,
+                    `${topic.topic_name} के सभी Questions Delete हो गए ✅
+Deleted Questions: ${data.deleted_questions || 0}
+
+Topic सुरक्षित है। अब आप इसी Topic में नए Questions दोबारा upload कर सकते हैं।`,
                     "ok",
                     true
                 );
 
             } catch (error) {
-                setStatus("Selected topic delete error: " + error.message, "err", true);
+                setStatus("Topic questions delete error: " + error.message, "err", true);
             }
         }
 
