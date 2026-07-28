@@ -1,26 +1,12 @@
-GK BY PURUSHOTAM SIR — COMPLETE V12.1 CORRECTED
+GK BY PURUSHOTAM SIR — V12.6 DEPLOYMENT
 
-1. ZIP extract करके सभी files GitHub repository root में upload/replace करें और Commit करें।
-2. Cloudflare Worker, उसके Secrets, Supabase, PDF Worker और R2 में कोई बदलाव नहीं करना है।
-3. Turso में RUN_THIS_V12_TOPIC_SYNC_ONCE.sql पहले चला चुके हैं तो दोबारा चलाने की जरूरत नहीं है। यदि Admin Panel में 203 Topics उपलब्ध नहीं हैं, तभी इसे एक बार चलाएँ।
-4. GitHub Pages deploy होने के बाद app को Ctrl+Shift+R या Incognito में खोलें।
+इस version में Topic Publish Control जोड़ा गया है। Question upload होने पर Topic Draft/Hidden रहेगा। Admin Show to Students टिक करके Save करेगा, तभी Student Panel में Subject/Topic दिखेगा।
 
-सही Topic नियम:
-- Admin Panel में Subjects/Topics उपलब्ध रहेंगे ताकि Questions upload किए जा सकें।
-- Student dropdown में केवल वही Subject और Topic दिखाई देगा जिसमें कम से कम 1 active MCQ Question मौजूद है।
-- जिस Topic में कोई MCQ Question नहीं है, वह बच्चे को दिखाई नहीं देगा।
-- Topic में पहला Question upload होने के बाद app refresh पर वह Topic अपने-आप दिखेगा।
-- Topic के सभी Questions delete होने पर वह Topic अपने-आप छिप जाएगा।
+क्रम:
+1. Turso के gk-mock-test-production database में RUN_THIS_V12_6_HIDE_TOPICS_ONCE.sql केवल एक बार चलाएँ। Questions delete नहीं होंगे।
+2. Cloudflare में केवल exam-arena-api-live Worker खोलें। CLOUDFLARE_MOCK_TEST_WORKER.js का पूरा code paste करके Deploy करें। group-d-pdf-api को नहीं छेड़ना। Existing Secrets नहीं बदलने।
+3. GitHub repository root में ZIP की सभी files upload/replace करके Commit करें।
+4. App को Ctrl+Shift+R से refresh करें।
+5. Admin CBT panel में Topic चुनें, Questions upload करें, Show to Students टिक करें और Save दबाएँ।
 
-बाकी V12 बदलाव सुरक्षित रखे गए हैं:
-- ऊपर हल्के रंगों वाला navigation
-- Install App button नीचे
-- Hello Student name high-contrast
-- 10 सामान्य MCQ formats का multiline display/parser support
-
-
-V12.3 के लिए: केवल GitHub में सभी 98 files upload/replace करके Commit करें। Cloudflare, Turso, Supabase और R2 में कोई बदलाव नहीं करना है।
-
-V12.4 के लिए: केवल GitHub में सभी 98 files upload/replace करके Commit करें। नियमित Login के बाद Home tab में YouTube और Telegram buttons हर बार दिखेंगे। सही YouTube link और दोनों स्पष्ट logos लगाए गए हैं। Cloudflare, Turso, Supabase और R2 में कोई बदलाव नहीं करना है।
-
-V12.5 के लिए: केवल GitHub में सभी 98 files upload/replace करके Commit करें। CBT Admin में Subject/Topic Setup हटाकर fixed Subject → Topic tick-selection system लगाया गया है। Cloudflare, Turso, Supabase और R2 में कोई बदलाव नहीं करना है।
+Supabase, R2 और PDF Worker में कोई बदलाव नहीं करना।

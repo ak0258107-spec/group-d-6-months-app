@@ -1,4 +1,4 @@
-// V12.1: Student dropdown shows only topics that contain active MCQ questions.
+// V12.6: Student dropdown shows only Admin-published topics that contain active MCQ questions.
 const API_BASE_URL = String((window.APP_CONFIG && window.APP_CONFIG.MOCK_TEST_API_URL) || "https://exam-arena-api-live.ak0258107.workers.dev/api").replace(/\/+$/, "");
 
 const FIXED_SUBJECT_KEY = "all_subjects";
@@ -106,52 +106,52 @@ function getTestSubjectLabel() {
 }
 
 async function loadCatalog() {
-    const localCatalog = Object.entries(getTopicsDataSource() || {}).map(([key, subject], index) => ({
-        key,
-        name: clean(subject.name || subject.subject_name || key),
-        display_order: Number(subject.order || subject.display_order || index + 1),
-        topics: (Array.isArray(subject.topics) ? subject.topics : []).map((topic, topicIndex) => ({
-            key: clean(typeof topic === "string" ? makeKey(topic) : (topic.key || topic.topic_key || makeKey(topic.name || topic.topic_name))),
-            name: clean(typeof topic === "string" ? topic : (topic.name || topic.topic_name || topic.key)),
-            display_order: Number((typeof topic === "object" && (topic.order || topic.display_order)) || topicIndex + 1)
-        }))
-    }));
-
-    const merged = new Map(localCatalog.map((subject) => [subject.key, subject]));
+    catalogSubjects = [];
+    questionCounts = {};
+    countsLoaded = false;
 
     try {
         const response = await apiFetch(`/catalog?t=${Date.now()}`);
         const data = await response.json().catch(() => ({}));
-        if (response.ok && data.success && Array.isArray(data.subjects)) {
-            data.subjects.forEach((subject, subjectIndex) => {
-                const key = clean(subject.subject_key || subject.key);
-                if (!key) return;
-                const previous = merged.get(key) || { key, name: key, display_order: subjectIndex + 1, topics: [] };
-                const topicMap = new Map((previous.topics || []).map((topic) => [topic.key, topic]));
-                (Array.isArray(subject.topics) ? subject.topics : []).forEach((topic, topicIndex) => {
-                    const topicKey = clean(topic.topic_key || topic.key);
-                    if (!topicKey) return;
-                    topicMap.set(topicKey, {
-                        key: topicKey,
-                        name: clean(topic.topic_name || topic.name || topicKey),
-                        display_order: Number(topic.display_order || topicIndex + 1)
-                    });
-                });
-                merged.set(key, {
-                    key,
-                    name: clean(subject.subject_name || subject.name || previous.name || key),
-                    display_order: Number(subject.display_order || previous.display_order || subjectIndex + 1),
-                    topics: [...topicMap.values()].sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0))
-                });
-            });
+        if (!response.ok || !data.success || !Array.isArray(data.subjects)) {
+            throw new Error(data.error || data.message || "Mock Test catalog load नहीं हुआ।");
         }
-    } catch (error) {
-        console.warn("Catalog fallback active:", error);
-    }
 
-    catalogSubjects = [...merged.values()]
-        .filter((subject) => subject.key && subject.name)
-        .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
+        catalogSubjects = data.subjects.map((subject, subjectIndex) => {
+            const subjectKey = clean(subject.subject_key || subject.key);
+            const topics = (Array.isArray(subject.topics) ? subject.topics : []).map((topic, topicIndex) => {
+                const topicKey = clean(topic.topic_key || topic.key);
+                if (!questionCounts[subjectKey]) questionCounts[subjectKey] = {};
+                questionCounts[subjectKey][topicKey] = {
+                    topic_name: clean(topic.topic_name || topic.name || topicKey),
+                    total: Number(topic.total || 0),
+                    easy: Number(topic.easy || 0),
+                    normal: Number(topic.normal || 0),
+                    tough: Number(topic.tough || 0)
+                };
+                return {
+                    key: topicKey,
+                    name: clean(topic.topic_name || topic.name || topicKey),
+                    display_order: Number(topic.display_order || topicIndex + 1)
+                };
+            }).filter((topic) => topic.key && topic.name && getTopicTotal(subjectKey, topic.key, "all") > 0);
+
+            return {
+                key: subjectKey,
+                name: clean(subject.subject_name || subject.name || subjectKey),
+                display_order: Number(subject.display_order || subjectIndex + 1),
+                topics
+            };
+        }).filter((subject) => subject.key && subject.name && subject.topics.length > 0)
+          .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
+
+        countsLoaded = true;
+    } catch (error) {
+        console.warn("Published CBT catalog load failed:", error);
+        catalogSubjects = [];
+        questionCounts = {};
+        countsLoaded = false;
+    }
 }
 
 function safeText(value) {
@@ -356,7 +356,6 @@ async function loadQuestionCounts() {
         filterCatalogToTopicsWithQuestions();
     } catch (error) {
         console.warn("Question counts load failed:", error);
-        catalogSubjects = [];
     }
 }
 

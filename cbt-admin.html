@@ -6,9 +6,9 @@
     <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=12.5.0"></script>
-    <script src="common.js?v=12.5.0"></script>
-    <script src="cbt-topics-data.js?v=12.5.0"></script>
+    <script src="config.js?v=12.6.0"></script>
+    <script src="common.js?v=12.6.0"></script>
+    <script src="cbt-topics-data.js?v=12.6.0"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -558,6 +558,83 @@
             color: #15803d;
         }
 
+        .topic-card {
+            display: block;
+            cursor: default;
+        }
+
+        .topic-card.published {
+            border-color: #16a34a;
+            box-shadow: 0 0 0 2px rgba(22,163,74,0.08);
+        }
+
+        .topic-select-main {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .topic-name-wrap {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .topic-publish-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 9px;
+            border-top: 1px dashed #cbd5e1;
+        }
+
+        .publish-check-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            font-weight: 900;
+            color: #1e293b;
+            cursor: pointer;
+        }
+
+        .publish-check-label input[type="checkbox"] {
+            position: static;
+            opacity: 1;
+            pointer-events: auto;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            transform: none;
+            accent-color: #16a34a;
+        }
+
+        .visibility-save-btn {
+            padding: 7px 12px;
+            border-radius: 8px;
+            background: #2563eb;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .visibility-save-btn:hover { background: #1d4ed8; }
+
+        .visibility-badge {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .visibility-badge.live { background: #dcfce7; color: #166534; }
+        .visibility-badge.hidden-state { background: #f1f5f9; color: #475569; }
+
         @media (max-width: 850px) {
             .grid2, .grid3 { grid-template-columns: 1fr; }
             .summary-grid { grid-template-columns: 1fr 1fr; }
@@ -612,7 +689,7 @@
                 <div class="fixed-catalog-note">
                     सभी Subjects और Topics पहले से fixed हैं। नया Subject Name, Subject Key या Topic list बनाने की जरूरत नहीं है।
                     पहले Subject चुनें, फिर उसके नीचे Topic चुनें और उसी Topic के Questions upload करें।
-                    जिस Topic में कम से कम 1 Active MCQ होगा, वही बच्चों के Mock Test में अपने-आप दिखाई देगा।
+                    Questions upload होने के बाद Topic Draft/Hidden रहेगा। Topic के सामने <b>Show to Students</b> टिक करके <b>Save</b> करने पर ही वह बच्चों के Mock Test में दिखाई देगा।
                 </div>
 
                 <div class="catalog-step-title">1. Subject चुनें</div>
@@ -710,7 +787,7 @@
                     </div>
                     <div>
                         <label>Student Visibility</label>
-                        <div class="help">Question upload होते ही count refresh होगा। Topic में Active MCQ आते ही वह बच्चों के Mock Test dropdown में दिखाई देगा।</div>
+                        <div class="help">Questions upload होने के बाद Topic अपने-आप Live नहीं होगा। पहले Topic के सामने <b>Show to Students</b> टिक करें और <b>Save</b> दबाएँ।</div>
                     </div>
                 </div>
 
@@ -776,6 +853,7 @@
         let lastValidation = null;
         let isUploading = false;
         let questionCountMap = {};
+        let topicVisibilityMap = {};
         let totalQuestionsInDb = 0;
 
         const loginPanel = document.getElementById("loginPanel");
@@ -928,6 +1006,7 @@
             FIXED_SUBJECT_NAME = subject.subject_name;
             window.__selectedTopicKeys = [];
             questionCountMap = {};
+            topicVisibilityMap = {};
             totalQuestionsInDb = 0;
             lastValidation = null;
             allTopics = getLocalTopics();
@@ -948,6 +1027,10 @@
 
         function getTopicQuestionCount(topicKey) {
             return Number(questionCountMap[topicKey] || 0);
+        }
+
+        function getTopicVisibility(topicKey) {
+            return topicVisibilityMap[topicKey] === true;
         }
 
         async function loadTopics() {
@@ -1010,7 +1093,7 @@
                 if(!silent)setStatus("Question counts refresh हो रहे हैं...","info");
                 const response=await fetch(`${API_BASE_URL}/admin/summary?subject_key=${encodeURIComponent(FIXED_SUBJECT_KEY)}`,{method:"GET",headers:adminHeaders()});
                 const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)throw new Error(data.message||data.error||"Question counts load नहीं हुए।");
-                questionCountMap={};totalQuestionsInDb=Number(data.total_questions||0);(Array.isArray(data.by_topic)?data.by_topic:[]).forEach((row)=>{const key=clean(row.topic_key||"");if(key)questionCountMap[key]=Number(row.count||0);});
+                questionCountMap={};topicVisibilityMap={};totalQuestionsInDb=Number(data.total_questions||0);(Array.isArray(data.by_topic)?data.by_topic:[]).forEach((row)=>{const key=clean(row.topic_key||"");if(key){questionCountMap[key]=Number(row.active_mcq_count||row.count||0);topicVisibilityMap[key]=Number(row.student_visible||0)===1;}});
                 renderTopics();updateSelectedTopicUI();renderQuestionCountBoard();if(!silent)setStatus(`Question Counts Refreshed ✅\n${FIXED_SUBJECT_NAME}: ${totalQuestionsInDb}`,"ok",true);
             }catch(error){setStatus("Count refresh error: "+error.message,"err",true);}
         }
@@ -1035,7 +1118,7 @@
                 return `
                     <div class="count-row ${count === 0 ? "zero" : ""}">
                         <div class="count-number">${index + 1}</div>
-                        <div>${escapeHtml(topic.topic_name)}</div>
+                        <div>${escapeHtml(topic.topic_name)}<br><span class="visibility-badge ${getTopicVisibility(topic.topic_key) ? "live" : "hidden-state"}">${getTopicVisibility(topic.topic_key) ? "✓ Live for Students" : "Draft / Hidden"}</span></div>
                         <div class="q-count ${count === 0 ? "zero" : "good"}">${count} Q</div>
                     </div>
                 `;
@@ -1244,19 +1327,81 @@
                 const realIndex = allTopics.findIndex((item) => item.topic_key === topic.topic_key);
                 const checked = selectedKey === topic.topic_key;
                 const count = getTopicQuestionCount(topic.topic_key);
+                const visible = getTopicVisibility(topic.topic_key);
+                const note = count === 0
+                    ? "पहले Questions upload करें"
+                    : visible
+                        ? "✓ बच्चों के Mock Test में Live है"
+                        : "Questions तैयार हैं — अभी Draft/Hidden है";
                 return `
-                    <label class="topic-card ${checked ? "selected" : ""}">
-                        <input type="radio" name="fixedTopicSelection" class="topic-checkbox" value="${escapeHtml(topic.topic_key)}" onchange="handleTopicChange(this)" ${checked ? "checked" : ""}>
-                        <span class="selection-tick">✓</span>
-                        <span class="topic-name-wrap">
-                            ${realIndex + 1}. ${escapeHtml(topic.topic_name)}
-                            <br>
-                            <span class="q-count ${count === 0 ? "zero" : "good"}">${count} Q</span>
-                            <span class="topic-visibility-note ${count > 0 ? "live" : ""}">${count > 0 ? "✓ बच्चों के Mock Test में दिखाई देगा" : "Question upload करें — अभी बच्चों को नहीं दिखेगा"}</span>
-                        </span>
-                    </label>
+                    <div class="topic-card ${checked ? "selected" : ""} ${visible ? "published" : ""}">
+                        <label class="topic-select-main">
+                            <input type="radio" name="fixedTopicSelection" class="topic-checkbox" value="${escapeHtml(topic.topic_key)}" onchange="handleTopicChange(this)" ${checked ? "checked" : ""}>
+                            <span class="selection-tick">✓</span>
+                            <span class="topic-name-wrap">
+                                ${realIndex + 1}. ${escapeHtml(topic.topic_name)}
+                                <br>
+                                <span class="q-count ${count === 0 ? "zero" : "good"}">${count} Q</span>
+                                <span class="topic-visibility-note ${visible ? "live" : ""}">${note}</span>
+                            </span>
+                        </label>
+                        <div class="topic-publish-row">
+                            <label class="publish-check-label" onclick="event.stopPropagation()">
+                                <input id="visibility_${escapeHtml(topic.topic_key)}" type="checkbox" ${visible ? "checked" : ""} ${count === 0 ? "disabled" : ""}>
+                                Show to Students
+                            </label>
+                            <button type="button" class="visibility-save-btn" onclick="event.stopPropagation(); saveTopicVisibility('${escapeHtml(topic.topic_key)}')" ${count === 0 ? "disabled" : ""}>Save</button>
+                        </div>
+                    </div>
                 `;
             }).join("");
+        }
+
+        async function saveTopicVisibility(topicKey) {
+            const topic = allTopics.find((item) => item.topic_key === topicKey);
+            if (!topic) {
+                setStatus("Topic नहीं मिला। Refresh Counts करें।", "err", true);
+                return;
+            }
+            const count = getTopicQuestionCount(topicKey);
+            const checkbox = document.getElementById(`visibility_${topicKey}`);
+            const visible = Boolean(checkbox && checkbox.checked);
+            if (visible && count < 1) {
+                if (checkbox) checkbox.checked = false;
+                setStatus("इस Topic में Active MCQ नहीं है। पहले Questions upload करें।", "err", true);
+                return;
+            }
+
+            try {
+                setStatus(`${topic.topic_name}: Visibility save हो रही है...`, "info", true);
+                const response = await fetch(`${API_BASE_URL}/admin/topic-visibility`, {
+                    method: "POST",
+                    headers: adminHeaders(),
+                    body: JSON.stringify({
+                        subject_key: FIXED_SUBJECT_KEY,
+                        subject_name: FIXED_SUBJECT_NAME,
+                        topic_key: topic.topic_key,
+                        topic_name: topic.topic_name,
+                        visible
+                    })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success) throw new Error(data.message || data.error || "Visibility save failed.");
+                topicVisibilityMap[topicKey] = visible;
+                renderTopics();
+                updateSelectedTopicUI();
+                renderQuestionCountBoard();
+                setStatus(
+                    visible
+                        ? `${FIXED_SUBJECT_NAME} → ${topic.topic_name} अब बच्चों के Mock Test में दिखाई देगा ✅`
+                        : `${FIXED_SUBJECT_NAME} → ${topic.topic_name} अब Draft/Hidden है। बच्चों को नहीं दिखेगा।`,
+                    "ok",
+                    true
+                );
+            } catch (error) {
+                if (checkbox) checkbox.checked = getTopicVisibility(topicKey);
+                setStatus("Visibility save error: " + error.message, "err", true);
+            }
         }
 
         function handleTopicChange(input) {
@@ -1302,7 +1447,7 @@
 
             const index = allTopics.findIndex((topic) => topic.topic_key === selectedTopic.topic_key) + 1;
             const count = getTopicQuestionCount(selectedTopic.topic_key);
-            const visibility = count > 0 ? "बच्चों को दिखाई देगा" : "पहला Question upload होते ही दिखाई देगा";
+            const visibility = getTopicVisibility(selectedTopic.topic_key) ? "Live for Students" : "Draft / Hidden";
             topicCountPill.textContent = `Selected: ${FIXED_SUBJECT_NAME} → ${selectedTopic.topic_name}`;
             selectedTopicBox.innerHTML = `<span class="chip">✓ ${index}. ${escapeHtml(selectedTopic.topic_name)} — ${count} Q — ${visibility}</span>`;
             deleteSelectedTopicBox.innerHTML = `<span class="chip danger-chip">${index}. ${escapeHtml(selectedTopic.topic_name)} — ${count} Q</span>`;
@@ -2221,7 +2366,7 @@
                 await loadQuestionCounts(true);
 
                 setStatus(
-                    `Upload Complete ✅\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nInserted: ${totalInserted}\nDuplicate: ${totalDuplicate}\nDummy skipped: ${totalDummy}\nErrors: ${allErrors.length}\n\nQuestion count board refresh हो गया है।`,
+                    `Upload Complete ✅\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nInserted: ${totalInserted}\nDuplicate: ${totalDuplicate}\nDummy skipped: ${totalDummy}\nErrors: ${allErrors.length}\n\nQuestions Draft/Hidden में सुरक्षित हैं। Topic के सामने Show to Students टिक करके Save दबाएँ।`,
                     totalInserted > 0 ? "ok" : "err",
                     true
                 );
