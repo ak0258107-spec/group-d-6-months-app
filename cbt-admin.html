@@ -6,9 +6,9 @@
     <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=12.6.0"></script>
-    <script src="common.js?v=12.6.0"></script>
-    <script src="cbt-topics-data.js?v=12.6.0"></script>
+    <script src="config.js?v=12.7.0"></script>
+    <script src="common.js?v=12.7.0"></script>
+    <script src="cbt-topics-data.js?v=12.7.0"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -647,6 +647,102 @@
             button { width: 100%; }
             .subject-card { width: 100%; }
         }
+
+        .question-manager-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .question-manager-status {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #f2f7ff;
+            border: 1px solid #b9d4ff;
+            font-weight: 800;
+            color: #173a63;
+            white-space: pre-line;
+        }
+
+        .question-manager-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .uploaded-question-card {
+            border: 1px solid #cbd5e1;
+            border-radius: 14px;
+            padding: 14px;
+            background: #ffffff;
+            box-shadow: 0 5px 16px rgba(15, 23, 42, 0.07);
+        }
+
+        .uploaded-question-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .uploaded-question-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            align-items: center;
+            font-weight: 900;
+        }
+
+        .uploaded-question-text {
+            color: #111827;
+            font-weight: 800;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .uploaded-question-options {
+            margin-top: 10px;
+            display: grid;
+            gap: 5px;
+            color: #334155;
+            font-weight: 700;
+        }
+
+        .question-check-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            cursor: pointer;
+            color: #0f172a;
+            font-weight: 900;
+        }
+
+        .question-check-label input {
+            width: 19px;
+            height: 19px;
+            accent-color: #dc2626;
+        }
+
+        .mini-delete-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 9px 12px;
+            background: #fee2e2;
+            color: #991b1b;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .mini-delete-btn:hover {
+            background: #fecaca;
+        }
+
     </style>
 </head>
 
@@ -742,6 +838,25 @@
                 <div id="questionCountBoard" class="count-board">
                     Counts loading...
                 </div>
+            </div>
+
+            <div class="panel">
+                <h3>Uploaded Questions — View / Delete</h3>
+                <div class="help">
+                    पहले ऊपर से Subject और Topic चुनें। फिर <b>Load Questions</b> दबाकर उस Topic के सभी uploaded questions देखें।
+                    किसी एक प्रश्न को अलग delete कर सकते हैं, या कई प्रश्न select करके एक साथ delete कर सकते हैं।
+                    Delete होने के बाद प्रश्न Turso database से permanently हट जाएगा।
+                </div>
+
+                <div class="question-manager-toolbar">
+                    <button type="button" class="blue" onclick="loadUploadedQuestions()">Load Selected Topic Questions</button>
+                    <button type="button" class="gray" onclick="toggleAllUploadedQuestionChecks(true)">Select All</button>
+                    <button type="button" class="gray" onclick="toggleAllUploadedQuestionChecks(false)">Clear Selection</button>
+                    <button type="button" class="red" onclick="deleteSelectedUploadedQuestions()">Delete Selected Questions</button>
+                </div>
+
+                <div id="questionManagerStatus" class="question-manager-status">पहले Subject और Topic चुनकर Load Questions दबाएँ।</div>
+                <div id="uploadedQuestionList" class="question-manager-list"></div>
             </div>
 
             <div class="panel">
@@ -855,6 +970,7 @@
         let questionCountMap = {};
         let topicVisibilityMap = {};
         let totalQuestionsInDb = 0;
+        let uploadedQuestionsForSelectedTopic = [];
 
         const loginPanel = document.getElementById("loginPanel");
         const adminPanel = document.getElementById("adminPanel");
@@ -869,6 +985,8 @@
         const selectedTopicBox = document.getElementById("selectedTopicBox");
         const deleteSelectedTopicBox = document.getElementById("deleteSelectedTopicBox");
         const topActionStatus = document.getElementById("topActionStatus");
+        const questionManagerStatus = document.getElementById("questionManagerStatus");
+        const uploadedQuestionList = document.getElementById("uploadedQuestionList");
 
         window.__selectedTopicKeys = [];
 
@@ -1010,6 +1128,7 @@
             totalQuestionsInDb = 0;
             lastValidation = null;
             allTopics = getLocalTopics();
+            clearQuestionManager("नया Subject चुना गया। Topic चुनकर Load Questions दबाएँ।");
             renderSubjectCards();
             renderTopics();
             updateSelectedTopicUI();
@@ -1135,6 +1254,131 @@
             setStatus("Fixed catalog active है। Manual Topic Sync की जरूरत नहीं है।", "info", true);
         }
 
+
+        function clearQuestionManager(message = "पहले Subject और Topic चुनकर Load Questions दबाएँ।") {
+            uploadedQuestionsForSelectedTopic = [];
+            if (questionManagerStatus) questionManagerStatus.textContent = message;
+            if (uploadedQuestionList) uploadedQuestionList.innerHTML = "";
+        }
+
+        function answerLabelForQuestion(question) {
+            const index = Number(question.answer_index);
+            const letters = ["A", "B", "C", "D"];
+            if (index >= 0 && index < letters.length) return letters[index];
+            return clean(question.answer_text || "—");
+        }
+
+        function renderUploadedQuestions() {
+            if (!uploadedQuestionList || !questionManagerStatus) return;
+            if (!uploadedQuestionsForSelectedTopic.length) {
+                uploadedQuestionList.innerHTML = "";
+                questionManagerStatus.textContent = "इस selected Topic में कोई uploaded question नहीं मिला।";
+                return;
+            }
+
+            questionManagerStatus.textContent = `${uploadedQuestionsForSelectedTopic.length} Questions loaded. Delete करने से पहले प्रश्न ध्यान से जाँच लें।`;
+            uploadedQuestionList.innerHTML = uploadedQuestionsForSelectedTopic.map((question, index) => {
+                const options = [question.option_a, question.option_b, question.option_c, question.option_d];
+                const optionHtml = question.question_type === "mcq"
+                    ? `<div class="uploaded-question-options">${options.map((option, optionIndex) => `<div>${String.fromCharCode(65 + optionIndex)}. ${escapeHtml(option || "")}</div>`).join("")}</div>`
+                    : "";
+                return `
+                    <div class="uploaded-question-card" data-question-id="${Number(question.id)}">
+                        <div class="uploaded-question-head">
+                            <div class="uploaded-question-meta">
+                                <label class="question-check-label">
+                                    <input class="uploaded-question-checkbox" type="checkbox" value="${Number(question.id)}">
+                                    Select
+                                </label>
+                                <span class="chip">#${Number(question.id)}</span>
+                                <span class="chip">${escapeHtml(question.difficulty || "normal")}</span>
+                                <span class="chip">Answer: ${escapeHtml(answerLabelForQuestion(question))}</span>
+                            </div>
+                            <button type="button" class="mini-delete-btn" onclick="deleteOneUploadedQuestion(${Number(question.id)})">Delete This Question</button>
+                        </div>
+                        <div class="uploaded-question-text">${index + 1}. ${escapeHtml(question.question_text || "")}</div>
+                        ${optionHtml}
+                    </div>
+                `;
+            }).join("");
+        }
+
+        async function loadUploadedQuestions() {
+            const topic = getSelectedTopicsFull()[0] || null;
+            if (!topic) {
+                clearQuestionManager("पहले ऊपर से एक Topic चुनें।");
+                setStatus("Question list खोलने से पहले एक Topic चुनें।", "err", true);
+                return;
+            }
+
+            try {
+                questionManagerStatus.textContent = `${FIXED_SUBJECT_NAME} → ${topic.topic_name}: Questions loading...`;
+                uploadedQuestionList.innerHTML = "";
+                const url = `${API_BASE_URL}/admin/questions?subject_key=${encodeURIComponent(FIXED_SUBJECT_KEY)}&topic_key=${encodeURIComponent(topic.topic_key)}&limit=500`;
+                const response = await fetch(url, { method: "GET", headers: adminHeaders() });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success) throw new Error(data.message || data.error || "Questions load failed.");
+                uploadedQuestionsForSelectedTopic = Array.isArray(data.questions) ? data.questions : [];
+                renderUploadedQuestions();
+            } catch (error) {
+                clearQuestionManager("Questions load error: " + error.message);
+                setStatus("Questions load error: " + error.message, "err", true);
+            }
+        }
+
+        function toggleAllUploadedQuestionChecks(checked) {
+            document.querySelectorAll(".uploaded-question-checkbox").forEach((box) => { box.checked = Boolean(checked); });
+        }
+
+        async function deleteOneUploadedQuestion(questionId) {
+            const question = uploadedQuestionsForSelectedTopic.find((item) => Number(item.id) === Number(questionId));
+            const preview = clean(question && question.question_text).slice(0, 140);
+            if (!confirm(`यह Question permanently delete करना है?\n\n${preview}`)) return;
+            await deleteUploadedQuestionIds([Number(questionId)]);
+        }
+
+        async function deleteSelectedUploadedQuestions() {
+            const ids = [...document.querySelectorAll(".uploaded-question-checkbox:checked")]
+                .map((box) => Number(box.value))
+                .filter((id) => Number.isInteger(id) && id > 0);
+            if (!ids.length) {
+                setStatus("Delete करने के लिए कम से कम एक Question select करें।", "err", true);
+                return;
+            }
+            const confirmation = prompt(`${ids.length} selected Questions permanently delete होंगे। Confirm करने के लिए DELETE लिखें:`);
+            if (confirmation !== "DELETE") {
+                setStatus("Delete cancel कर दिया गया।", "info");
+                return;
+            }
+            await deleteUploadedQuestionIds(ids);
+        }
+
+        async function deleteUploadedQuestionIds(ids) {
+            const topic = getSelectedTopicsFull()[0] || null;
+            if (!topic) {
+                setStatus("Selected Topic नहीं मिला।", "err", true);
+                return;
+            }
+            try {
+                setStatus(`${ids.length} Question(s) delete हो रहे हैं...`, "info", true);
+                const response = await fetch(`${API_BASE_URL}/admin/delete-questions`, {
+                    method: "POST",
+                    headers: adminHeaders(),
+                    body: JSON.stringify({
+                        subject_key: FIXED_SUBJECT_KEY,
+                        topic_key: topic.topic_key,
+                        question_ids: ids
+                    })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success) throw new Error(data.message || data.error || "Question delete failed.");
+                setStatus(`${data.deleted_questions || 0} Question(s) permanently delete हो गए ✅`, "ok", true);
+                await loadQuestionCounts(false);
+                await loadUploadedQuestions();
+            } catch (error) {
+                setStatus("Question delete error: " + error.message, "err", true);
+            }
+        }
 
         async function deleteEmptyOptionQuestionsOnly() {
             const selectedTopics = getSelectedTopicsFull();
@@ -1413,6 +1657,7 @@
                 if (card) card.classList.toggle("selected", isChecked);
             });
             updateSelectedTopicUI();
+            clearQuestionManager("Topic बदल गया है। Questions देखने के लिए Load Questions दबाएँ।");
             refreshUploadButton();
             const topic = getSelectedTopicsFull()[0];
             if (topic) setStatus(`${FIXED_SUBJECT_NAME} → ${topic.topic_name} चुना गया ✅ अब Questions paste करें।`, "ok");
@@ -1427,6 +1672,7 @@
             });
             lastValidation = null;
             updateSelectedTopicUI();
+            clearQuestionManager();
             refreshUploadButton();
             setStatus("Selected Topic clear हो गया।", "info");
         }

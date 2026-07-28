@@ -1,12 +1,12 @@
 {
-  "version": "12.6.0",
+  "version": "12.7.0",
   "type": "complete-project",
   "files_expected": 98,
   "changes": [
-    "Admin-controlled Topic publishing: upload remains Draft/Hidden until Show to Students + Save",
-    "Student catalog contains only published topics with active MCQ questions",
-    "Existing uploaded questions remain safe during one-time visibility reset",
-    "Fixed 9 Subjects and 203 Topics remain unchanged",
-    "Target Batch Supabase and PDF Worker remain untouched"
+    "Admin can load and review uploaded questions for the selected Subject/Topic",
+    "Delete one question or select multiple questions and permanently delete them",
+    "Topic automatically becomes hidden when no active MCQ remains",
+    "Existing Topic Show to Students + Save publishing control remains unchanged",
+    "Target Batch Supabase, PDF Worker, R2 and existing authentication remain untouched"
   ]
 }

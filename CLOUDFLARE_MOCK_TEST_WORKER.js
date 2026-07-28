@@ -1,4 +1,4 @@
-/* GK BY PURUSHOTAM SIR — Separate CBT Mock Test API (V12.6)
+/* GK BY PURUSHOTAM SIR — Separate CBT Mock Test API (V12.7)
    Required Worker secrets/variables:
    TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
    Optional: APP_ORIGIN (example https://ak0258107-spec.github.io)
@@ -14,7 +14,7 @@ export default {
 
     try {
       const url = new URL(request.url);
-      if (!url.pathname.startsWith("/api")) return json({ success: true, service: "GK CBT Mock Test API V12.6" }, 200, cors);
+      if (!url.pathname.startsWith("/api")) return json({ success: true, service: "GK CBT Mock Test API V12.7" }, 200, cors);
 
       const user = await verifyUser(request, env);
       const route = url.pathname.replace(/^\/api/, "") || "/";
@@ -33,6 +33,8 @@ export default {
         if (request.method === "POST" && route === "/admin/sync-topics") return handleSyncTopics(request, env, cors);
         if (request.method === "POST" && route === "/admin/upload-questions") return handleUploadQuestions(request, env, cors);
         if (request.method === "POST" && route === "/admin/topic-visibility") return handleTopicVisibility(request, env, cors);
+        if (request.method === "GET" && route === "/admin/questions") return handleAdminQuestions(url, env, cors);
+        if (request.method === "POST" && route === "/admin/delete-questions") return handleDeleteQuestions(request, env, cors);
         if (request.method === "POST" && route === "/admin/delete-empty-option-questions") return handleDeleteEmpty(request, env, cors);
         if (request.method === "POST" && route === "/admin/delete-topic-questions") return handleDeleteTopics(request, env, cors);
         if (request.method === "POST" && route === "/admin/delete-all") return handleDeleteAll(env, cors);
@@ -329,6 +331,54 @@ async function handleTopicVisibility(request, env, cors) {
       ON CONFLICT(subject_key,topic_key) DO UPDATE SET topic_name=COALESCE(NULLIF(excluded.topic_name,''),cbt_topics.topic_name),active=excluded.active`, args: [subjectKey, topicKey, topicName || topicKey, visible ? 1 : 0] }
   ]);
   return json({ success: true, subject_key: subjectKey, topic_key: topicKey, student_visible: visible }, 200, cors);
+}
+
+async function handleAdminQuestions(url, env, cors) {
+  const subjectKey = safeKey(url.searchParams.get("subject_key"));
+  const topicKey = safeKey(url.searchParams.get("topic_key"));
+  const limit = Math.min(500, Math.max(1, Number(url.searchParams.get("limit") || 200)));
+  const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+  if (!subjectKey || !topicKey) throw httpError("Subject/Topic required");
+
+  const [total, rows] = await pipeline(env, [
+    { sql: `SELECT COUNT(*) total FROM cbt_questions WHERE subject_key=? AND topic_key=?`, args: [subjectKey, topicKey] },
+    { sql: `SELECT id, difficulty, question_type, question_text, option_a, option_b, option_c, option_d,
+        answer_index, answer_text, explanation, active, created_at
+      FROM cbt_questions
+      WHERE subject_key=? AND topic_key=?
+      ORDER BY id DESC
+      LIMIT ? OFFSET ?`, args: [subjectKey, topicKey, limit, offset] }
+  ]);
+
+  return json({
+    success: true,
+    total: Number(total.rows[0]?.total || 0),
+    questions: rows.rows
+  }, 200, cors);
+}
+
+async function handleDeleteQuestions(request, env, cors) {
+  const body = await request.json().catch(() => ({}));
+  const subjectKey = safeKey(body.subject_key);
+  const topicKey = safeKey(body.topic_key);
+  const ids = [...new Set((Array.isArray(body.question_ids) ? body.question_ids : [])
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value) && value > 0))].slice(0, 500);
+  if (!subjectKey || !topicKey || !ids.length) throw httpError("Subject, Topic और Question IDs required");
+
+  const placeholders = ids.map(() => "?").join(",");
+  const [deleted] = await pipeline(env, [
+    { sql: `DELETE FROM cbt_questions WHERE subject_key=? AND topic_key=? AND id IN (${placeholders})`, args: [subjectKey, topicKey, ...ids] },
+    { sql: `UPDATE cbt_topics SET active=0 WHERE subject_key=? AND topic_key=? AND NOT EXISTS (
+        SELECT 1 FROM cbt_questions q
+        WHERE q.subject_key=cbt_topics.subject_key
+          AND q.topic_key=cbt_topics.topic_key
+          AND q.active=1
+          AND q.question_type='mcq'
+      )`, args: [subjectKey, topicKey] }
+  ]);
+
+  return json({ success: true, deleted_questions: deleted.affected }, 200, cors);
 }
 
 async function handleDeleteEmpty(request, env, cors) {
