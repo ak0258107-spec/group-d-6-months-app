@@ -1213,4 +1213,178 @@ loadTests=async function(){
 const __v129StudentInit=init;
 init=async function(){await __v129StudentInit();};
 
+
+
+/* ==================================================================
+   V12.12 — STUDENT FLEXIBLE TIMETABLE + CLASS TIMING
+   ================================================================== */
+function localDateKey(){
+  const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function classClockText(value){
+  if(!value)return'';const [h,m]=String(value).slice(0,5).split(':').map(Number);const ap=h>=12?'PM':'AM';return `${(h%12)||12}:${String(m).padStart(2,'0')} ${ap}`;
+}
+function targetTimingText(t){
+  if(t.start_time&&t.end_time)return `${classClockText(t.start_time)} – ${classClockText(t.end_time)}`;
+  if(t.start_time)return `${classClockText(t.start_time)} से`;
+  return 'Timing जल्द बताई जाएगी';
+}
+function targetLiveState(t){
+  if(!currentDay||currentDay.day_date!==localDateKey()||!t.start_time)return {key:'scheduled',label:'Scheduled'};
+  const now=new Date();const nowMin=now.getHours()*60+now.getMinutes();
+  const parts=v=>String(v||'').slice(0,5).split(':').map(Number);
+  const [sh,sm]=parts(t.start_time);const start=sh*60+sm;
+  if(t.end_time){const [eh,em]=parts(t.end_time);const end=eh*60+em;if(nowMin>=start&&nowMin<=end)return {key:'live',label:'LIVE NOW'};if(nowMin>end)return {key:'passed',label:'Time Passed'};}
+  if(nowMin<start)return {key:'upcoming',label:'Upcoming'};
+  return {key:'live',label:'LIVE NOW'};
+}
+
+loadCurrentDay=async function(){
+  const today=localDateKey();
+  const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).eq('manual_lock',false).or(`manual_unlock.eq.true,and(manual_unlock.eq.false,day_date.lte.${today})`).order('day_number',{ascending:false}).limit(1).maybeSingle();
+  currentDay=r.data;currentTargets=[];verificationRows=[];materials=[];tests=[];targetCompletionMap.clear();
+  if(!currentDay)return;
+  const [tr,tc,vr,mr,te]=await Promise.all([
+    sb.from('daily_targets').select('*').eq('schedule_day_id',currentDay.id).eq('status','published').order('target_order'),
+    sb.from('target_completions').select('*').eq('user_id',user.id),
+    sb.from('verification_questions').select('*').eq('schedule_day_id',currentDay.id).eq('is_active',true).order('created_at'),
+    sb.from('study_materials').select('*').eq('schedule_day_id',currentDay.id).eq('status','published').order('created_at'),
+    sb.from('tests').select('*').eq('schedule_day_id',currentDay.id).eq('status','published').order('created_at')
+  ]);
+  currentTargets=(tr.data||[]).filter(t=>(t.class_status||'scheduled')!=='cancelled');
+  (tc.data||[]).forEach(x=>targetCompletionMap.set(x.target_id,x));verificationRows=vr.data||[];materials=mr.data||[];tests=te.data||[];
+};
+
+attemptFinalTargetSubmit=async function(){
+  if(!currentDay){showActionNotice('आज का Target उपलब्ध नहीं है।','',null,'warning');return}
+  const mats=currentDayMaterials();
+  const missing=currentTargets.filter(t=>!mats.some(m=>String(m.target_id||'')===String(t.id)));
+  if(missing.length){showActionNotice(`आज की ${missing.length} active Class की PDF अभी publish नहीं हुई है।`,'PDF Library खोलें',()=>openPdfLibrary(),'warning');return}
+  const readiness=await Promise.all(mats.map(pdfVerificationReady));
+  if(!readiness.every(Boolean)){showActionNotice('पहले हर Class की PDF Verification पूरी करें।','PDF Library खोलें',()=>openPdfLibrary(),'warning');return}
+  const ft=finalTest();
+  if(!ft){showActionNotice('Admin ने आज का Final Mock Test अभी publish नहीं किया है।','',null,'warning');return}
+  const a=await bestAttempt(ft.id);const passed=!!a&&Number(a.percentage||0)>=Number(ft.passing_percent||0);
+  if(passed){await sb.rpc('refresh_daily_progress',{p_user_id:user.id,p_schedule_day_id:currentDay.id});await Promise.all([renderTargets(),renderHome()]);showActionNotice('आज का Target सफलतापूर्वक Complete और Verified हो गया।','',null,'success');return}
+  showActionNotice(`Final Submission से पहले Final Mock Test में ${Number(ft.passing_percent||0)}% score करना जरूरी है।`,'Final Mock Test शुरू करें',()=>{location.href=`m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${encodeURIComponent(ft.id)}&return=final`},'warning');
+};
+
+renderTargets=async function(){
+  if(!currentDay){targetsBox.innerHTML=fiveDayPreviewHtml()||'<div class="card">अभी Target उपलब्ध नहीं है।</div>';return}
+  let html=fiveDayPreviewHtml()+`<div class="premium-section-head"><div><span class="section-kicker">TODAY'S TIMETABLE</span><h2>Day ${currentDay.day_number} की ${currentTargets.length} Classes</h2><div class="muted">${fmtDate(currentDay.day_date)} • Timing और Extra Classes Admin द्वारा live edit हो सकती हैं।</div></div></div>`;
+  const mats=currentDayMaterials();
+  for(const [idx,t] of currentTargets.entries()){
+    const linked=mats.filter(m=>String(m.target_id||'')===String(t.id));const live=targetLiveState(t);
+    html+=`<div class="target-card ${sclass(t.subject)} student-timed-class ${live.key}"><div class="class-timing-strip"><span>🕒 ${esc(targetTimingText(t))}</span><span class="live-state ${live.key}">${live.label}</span></div><div class="row wrap" style="justify-content:space-between"><div><div class="small">Class ${idx+1} • ${esc(t.subject)} ${t.is_extra_class?'• Extra Class':''}</div><div class="topic">${esc(t.topic)}</div>${t.class_note?`<div class="class-note">${esc(t.class_note)}</div>`:''}</div><span class="badge ${linked.length?'badge-green':'badge-blue'}">${linked.length?`${linked.length} PDF`:'PDF Pending'}</span></div>${t.youtube_url?`<p><a class="btn btn-red premium-action-btn" target="_blank" rel="noopener" href="${esc(t.youtube_url)}">▶ YouTube Class खोलें</a></p>`:'<p class="small muted">Class link अभी add नहीं किया गया।</p>'}${linked.length?`<div class="linked-class-pdfs">${linked.map(m=>`<button class="btn btn-blue btn-mini" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.title||'PDF')})'>📄 ${esc(m.title)}</button>`).join('')}</div>`:'<div class="small muted">इस Class की PDF अभी upload नहीं हुई।</div>'}</div>`;
+  }
+  html+=`<div class="card final-submit-workflow"><div><span class="section-kicker">FINAL SUBMISSION</span><h3>आज का Target Complete करें</h3><p>सभी active Classes की PDF verify करने के बाद Final Mock Test पास करना जरूरी है।</p></div><button class="btn btn-purple" onclick="attemptFinalTargetSubmit()">आज का Target Complete करें</button></div>`;
+  targetsBox.innerHTML=html;
+};
+
+const __v1212RenderHome=renderHome;
+renderHome=async function(){
+  await __v1212RenderHome();
+  const list=document.querySelector('#homeBox .today-target-summary .target-summary-list');
+  if(list)list.innerHTML=currentTargets.map((t,idx)=>{const live=targetLiveState(t);return `<div class="target-summary-row timed-summary-row"><span class="topic-chip">Class ${idx+1} • ${esc(t.subject)}</span><div><b>${esc(t.topic)}</b><small>🕒 ${esc(targetTimingText(t))}${t.is_extra_class?' • Extra Class':''}</small></div><span class="badge ${live.key==='live'?'badge-red':t.youtube_url?'badge-green':'badge-orange'}">${live.key==='live'?'LIVE':t.youtube_url?'Ready':'Link Pending'}</span></div>`}).join('');
+  const classCard=document.querySelector('#homeBox .home-action-card.class-card b');if(classCard)classCard.textContent=`${currentTargets.length} Classes Today`;
+};
+
+loadPdfs=async function(){
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order,class_status)').eq('status','published').order('created_at',{ascending:false});
+  const rows=(r.data||[]).filter(m=>(m.daily_targets?.class_status||'scheduled')!=='cancelled');materials=rows;
+  if(r.error){pdfList.innerHTML=`<div class="card text-error">${esc(r.error.message)}<br><small>Supabase में V12.12 SQL चलाएँ।</small></div>`;return}
+  pdfList.innerHTML=rows.map(m=>{const verifyRequired=m.requires_pdf_verification!==false,verifyPass=Number(m.pdf_verification_pass_percent||30);return `<div class="item pdf-read-card premium-pdf-card"><div class="row wrap"><div class="pdf-card-copy"><div class="pdf-title-row"><b>📄 ${esc(m.title)}</b><span class="badge badge-blue">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'}</span></div><div class="pdf-linked-class">${esc(m.daily_targets?.subject||'Legacy PDF')} • ${esc(m.daily_targets?.topic||'Class link not set')}</div><div class="pdf-step-list"><span>${verifyRequired?`🔐 पहले Class Verify करें: ${verifyPass}%`:'🔓 View: Direct'}</span><span>${m.access_mode==='test_required'?`📝 Download से पहले Mock Test: ${m.download_pass_percent}%`:m.access_mode==='direct_download'?'⬇ Download: Direct after view unlock':'👁 Read Only'}</span><span>${isR2PdfPath(m.storage_path)?'☁ Secure R2 Storage':'Legacy PDF'}</span></div></div><div class="row wrap pdf-card-actions"><button class="btn btn-blue" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.title||'PDF')})'>पहले Class Verify करें / PDF खोलें</button>${m.access_mode!=='read_only'?`<button class="btn btn-green" onclick='downloadPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.download_test_id||'')},${JSON.stringify(m.access_mode)},${Number(m.download_pass_percent||80)},${JSON.stringify(m.title||'study-material.pdf')})'>Download</button>`:''}</div></div></div>`}).join('')||'<div class="card">अभी कोई PDF नहीं है।</div>';
+  if(currentDay)await renderHome();
+};
+
+const __v1212StudentInit=init;
+init=async function(){await __v1212StudentInit();};
+
+/* ==================================================================
+   V12.13 — STUDENT VISIBILITY ENFORCEMENT
+   ================================================================== */
+function v1213DayAvailable(day){
+  if(!day||day.manual_lock===true)return false;
+  return day.manual_unlock===true||String(day.day_date||'')<=localDateKey();
+}
+function v1213TargetVisible(target,day){
+  if(day?.manual_lock===true)return false;
+  const mode=target?.visibility_mode||'auto';
+  if(mode==='hide')return false;
+  if(mode==='show')return true;
+  return v1213DayAvailable(day);
+}
+function v1213MaterialVisible(material){
+  if(material?.student_visible!==true)return false;
+  const day=material.schedule_days||null;
+  const target=material.daily_targets||null;
+  if(!v1213DayAvailable(day))return false;
+  if(target&&!v1213TargetVisible(target,day))return false;
+  return (target?.class_status||'scheduled')!=='cancelled';
+}
+
+loadFiveDayPreview=async function(){
+  const all=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');
+  const daysAll=all.data||[];let start=0;
+  if(currentDay){const idx=daysAll.findIndex(d=>String(d.id)===String(currentDay.id));start=idx<0?0:idx;}
+  else{const idx=daysAll.findIndex(d=>String(d.day_date||'')>=localDateKey());start=idx<0?Math.max(0,daysAll.length-5):idx;}
+  previewDays=daysAll.slice(start,start+5);if(!previewDays.length){previewTargets=[];return}
+  const r=await sb.from('daily_targets').select('*').in('schedule_day_id',previewDays.map(d=>d.id)).eq('status','published').order('target_order');
+  const dayMap=new Map(previewDays.map(d=>[String(d.id),d]));
+  previewTargets=(r.data||[]).filter(t=>v1213TargetVisible(t,dayMap.get(String(t.schedule_day_id)))&&(t.class_status||'scheduled')!=='cancelled');
+};
+
+loadCurrentDay=async function(){
+  const today=localDateKey();
+  const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).eq('manual_lock',false).or(`manual_unlock.eq.true,and(manual_unlock.eq.false,day_date.lte.${today})`).order('day_number',{ascending:false}).limit(1).maybeSingle();
+  currentDay=r.data;currentTargets=[];verificationRows=[];materials=[];tests=[];targetCompletionMap.clear();if(!currentDay)return;
+  const [tr,tc,vr,mr,te]=await Promise.all([
+    sb.from('daily_targets').select('*').eq('schedule_day_id',currentDay.id).eq('status','published').order('target_order'),
+    sb.from('target_completions').select('*').eq('user_id',user.id),
+    sb.from('verification_questions').select('*').eq('schedule_day_id',currentDay.id).eq('is_active',true).order('created_at'),
+    sb.from('study_materials').select('*').eq('schedule_day_id',currentDay.id).eq('status','published').eq('student_visible',true).order('created_at'),
+    sb.from('tests').select('*').eq('schedule_day_id',currentDay.id).eq('status','published').eq('student_visible',true).order('created_at')
+  ]);
+  currentTargets=(tr.data||[]).filter(t=>v1213TargetVisible(t,currentDay)&&(t.class_status||'scheduled')!=='cancelled');
+  const allowedTargetIds=new Set(currentTargets.map(t=>String(t.id)));
+  (tc.data||[]).forEach(x=>targetCompletionMap.set(x.target_id,x));
+  verificationRows=(vr.data||[]).filter(q=>!q.target_id||allowedTargetIds.has(String(q.target_id)));
+  materials=(mr.data||[]).filter(m=>!m.target_id||allowedTargetIds.has(String(m.target_id)));
+  tests=te.data||[];
+};
+
+getMaterialVerificationContext=async function(materialId){
+  const mat=await sb.from('study_materials').select('id,title,schedule_day_id,target_id,storage_path,requires_pdf_verification,pdf_verification_pass_percent,requires_class_verification,student_visible,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order,class_status,visibility_mode)').eq('id',materialId).eq('status','published').eq('student_visible',true).maybeSingle();
+  if(mat.error)throw mat.error;if(!mat.data||!v1213MaterialVisible(mat.data))return {material:null,targets:[],questions:[]};
+  const [tr,vr]=await Promise.all([
+    sb.from('daily_targets').select('*').eq('schedule_day_id',mat.data.schedule_day_id).eq('status','published').order('target_order'),
+    sb.from('verification_questions').select('*').eq('schedule_day_id',mat.data.schedule_day_id).eq('is_active',true).order('sort_order').order('created_at')
+  ]);
+  const allowed=(tr.data||[]).filter(t=>v1213TargetVisible(t,mat.data.schedule_days)&&(t.class_status||'scheduled')!=='cancelled');
+  const allowedIds=new Set(allowed.map(t=>String(t.id)));
+  return {material:mat.data,targets:allowed,questions:(vr.data||[]).filter(q=>!q.target_id||allowedIds.has(String(q.target_id)))};
+};
+
+loadPdfs=async function(){
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order,class_status,visibility_mode)').eq('status','published').eq('student_visible',true).order('created_at',{ascending:false});
+  const rows=(r.data||[]).filter(v1213MaterialVisible);materials=rows;
+  if(r.error){pdfList.innerHTML=`<div class="card text-error">${esc(r.error.message)}<br><small>Supabase में V12.13 SQL चलाएँ।</small></div>`;return}
+  pdfList.innerHTML=rows.map(m=>{const verifyRequired=m.requires_pdf_verification!==false,verifyPass=Number(m.pdf_verification_pass_percent||30);return `<div class="item pdf-read-card premium-pdf-card"><div class="row wrap"><div class="pdf-card-copy"><div class="pdf-title-row"><b>📄 ${esc(m.title)}</b><span class="badge badge-blue">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'}</span></div><div class="pdf-linked-class">${esc(m.daily_targets?.subject||'Legacy PDF')} • ${esc(m.daily_targets?.topic||'Class link not set')}</div><div class="pdf-step-list"><span>${verifyRequired?`🔐 पहले Class Verify करें: ${verifyPass}%`:'🔓 View: Direct'}</span><span>${m.access_mode==='test_required'?`📝 Download से पहले Mock Test: ${m.download_pass_percent}%`:m.access_mode==='direct_download'?'⬇ Download: Direct after view unlock':'👁 Read Only'}</span><span>${isR2PdfPath(m.storage_path)?'☁ Secure R2 Storage':'Legacy PDF'}</span></div></div><div class="row wrap pdf-card-actions"><button class="btn btn-blue" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.title||'PDF')})'>पहले Class Verify करें / PDF खोलें</button>${m.access_mode!=='read_only'?`<button class="btn btn-green" onclick='downloadPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.download_test_id||'')},${JSON.stringify(m.access_mode)},${Number(m.download_pass_percent||80)},${JSON.stringify(m.title||'study-material.pdf')})'>Download</button>`:''}</div></div></div>`}).join('')||'<div class="card">अभी कोई PDF उपलब्ध नहीं है।</div>';
+  if(currentDay)await renderHome();
+};
+
+loadTests=async function(){
+  let targetHtml='';
+  try{
+    const r=await sb.from('tests').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock)').eq('status','published').eq('student_visible',true).order('created_at',{ascending:false});
+    const rows=(r.data||[]).filter(t=>!t.schedule_day_id||v1213DayAvailable(t.schedule_days));
+    const standalone=rows.filter(t=>!t.is_final_daily&&!t.is_pdf_download_gate);
+    targetHtml=standalone.length?`<div class="card"><h3>Standalone Practice Tests</h3>${standalone.map(t=>`<div class="item"><div class="row wrap"><div><b>${esc(t.title||t.name||'Test')}</b><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent}%</div></div><a class="btn btn-blue" href="m7q2t9v4-x8k5r3p6-n1z7c4l8.html?id=${t.id}">Start Practice</a></div></div>`).join('')}</div>`:'<div class="card"><p class="muted">अभी कोई standalone practice test Show नहीं किया गया है।</p></div>';
+  }catch(_){targetHtml='<div class="card"><p class="muted">Tests load नहीं हुए।</p></div>'}
+  testsList.innerHTML=`<div class="card cbt-launch-card"><div class="row wrap"><div><h2>🖥 CBT Mock Test</h2><p class="muted">केवल Admin द्वारा Show किए गए Topics और Questions ही दिखाई देंगे।</p></div><a class="btn btn-purple" href="cbt-mock-test.html">START CBT MOCK TEST</a></div></div>${targetHtml}`;
+};
+
+const __v1213StudentInit=init;
+init=async function(){await __v1213StudentInit();};
+
 init();

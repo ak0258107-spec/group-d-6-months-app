@@ -743,6 +743,11 @@
             background: #fecaca;
         }
 
+    
+        .question-visibility-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border-radius:12px;background:#f8fafc;border:1px solid #dbeafe}
+        .question-visibility-toolbar span{font-size:12px;color:#64748b;margin-right:auto}
+        .question-visibility-actions{display:flex;flex-wrap:wrap;gap:7px;align-items:center;justify-content:flex-end}
+
     </style>
 </head>
 
@@ -785,7 +790,7 @@
                 <div class="fixed-catalog-note">
                     सभी Subjects और Topics पहले से fixed हैं। नया Subject Name, Subject Key या Topic list बनाने की जरूरत नहीं है।
                     पहले Subject चुनें, फिर उसके नीचे Topic चुनें और उसी Topic के Questions upload करें।
-                    Questions upload होने के बाद Topic Draft/Hidden रहेगा। Topic के सामने <b>Show to Students</b> टिक करके <b>Save</b> करने पर ही वह बच्चों के Mock Test में दिखाई देगा।
+                    Questions upload होने के बाद Questions Draft/Hidden रहेंगे। पहले Question Manager में Questions Show करें, फिर Topic के सामने <b>Show to Students</b> टिक करके <b>Save</b> करें।
                 </div>
 
                 <div class="catalog-step-title">1. Subject चुनें</div>
@@ -874,7 +879,7 @@
                     </div>
                     <div>
                         <label>Student Visibility</label>
-                        <div class="help">Questions upload होने के बाद Topic अपने-आप Live नहीं होगा। पहले Topic के सामने <b>Show to Students</b> टिक करें और <b>Save</b> दबाएँ।</div>
+                        <div class="help">Questions upload होने के बाद वे अपने-आप Live नहीं होंगे। Question Manager में Questions Show करें और फिर Topic के सामने <b>Show to Students</b> Save करें।</div>
                     </div>
                 </div>
 
@@ -940,6 +945,7 @@
         let lastValidation = null;
         let isUploading = false;
         let questionCountMap = {};
+        let visibleQuestionCountMap = {};
         let topicVisibilityMap = {};
         let totalQuestionsInDb = 0;
         let uploadedQuestionsForSelectedTopic = [];
@@ -1096,6 +1102,7 @@
             FIXED_SUBJECT_NAME = subject.subject_name;
             window.__selectedTopicKeys = [];
             questionCountMap = {};
+            visibleQuestionCountMap = {};
             topicVisibilityMap = {};
             totalQuestionsInDb = 0;
             lastValidation = null;
@@ -1184,7 +1191,7 @@
                 if(!silent)setStatus("Question counts refresh हो रहे हैं...","info");
                 const response=await fetch(`${API_BASE_URL}/admin/summary?subject_key=${encodeURIComponent(FIXED_SUBJECT_KEY)}`,{method:"GET",headers:adminHeaders()});
                 const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)throw new Error(data.message||data.error||"Question counts load नहीं हुए।");
-                questionCountMap={};topicVisibilityMap={};totalQuestionsInDb=Number(data.total_questions||0);(Array.isArray(data.by_topic)?data.by_topic:[]).forEach((row)=>{const key=clean(row.topic_key||"");if(key){questionCountMap[key]=Number(row.active_mcq_count||row.count||0);topicVisibilityMap[key]=Number(row.student_visible||0)===1;}});
+                questionCountMap={};visibleQuestionCountMap={};topicVisibilityMap={};totalQuestionsInDb=Number(data.total_questions||0);(Array.isArray(data.by_topic)?data.by_topic:[]).forEach((row)=>{const key=clean(row.topic_key||"");if(key){questionCountMap[key]=Number(row.active_mcq_count||row.count||0);visibleQuestionCountMap[key]=Number(row.visible_mcq_count||0);topicVisibilityMap[key]=Number(row.student_visible||0)===1;}});
                 renderTopics();updateSelectedTopicUI();renderQuestionCountBoard();if(!silent)setStatus(`Question Counts Refreshed ✅\n${FIXED_SUBJECT_NAME}: ${totalQuestionsInDb}`,"ok",true);
             }catch(error){setStatus("Count refresh error: "+error.message,"err",true);}
         }
@@ -1248,7 +1255,7 @@
                 return;
             }
 
-            questionManagerStatus.textContent = `${uploadedQuestionsForSelectedTopic.length} Questions loaded. Delete करने से पहले प्रश्न ध्यान से जाँच लें।`;
+            questionManagerStatus.innerHTML = `<div class="question-visibility-toolbar"><b>${uploadedQuestionsForSelectedTopic.length} Questions loaded</b><span>Upload के बाद Questions Draft/Hidden रहते हैं।</span><button type="button" class="visibility-save-btn" onclick="setAllTopicQuestionsVisibility(true)">Show All Questions</button><button type="button" class="mini-delete-btn" onclick="setAllTopicQuestionsVisibility(false)">Hide All Questions</button></div>`;
             uploadedQuestionList.innerHTML = uploadedQuestionsForSelectedTopic.map((question, index) => {
                 const options = [question.option_a, question.option_b, question.option_c, question.option_d];
                 const optionHtml = question.question_type === "mcq"
@@ -1265,8 +1272,13 @@
                                 <span class="chip">#${Number(question.id)}</span>
                                 <span class="chip">${escapeHtml(question.difficulty || "normal")}</span>
                                 <span class="chip">Answer: ${escapeHtml(answerLabelForQuestion(question))}</span>
+                                <span class="visibility-badge ${Number(question.student_visible||0)===1 ? "live" : "hidden-state"}">${Number(question.student_visible||0)===1 ? "✓ Student Visible" : "Draft / Hidden"}</span>
                             </div>
-                            <button type="button" class="mini-delete-btn" onclick="deleteOneUploadedQuestion(${Number(question.id)})">Delete This Question</button>
+                            <div class="question-visibility-actions">
+                                <label class="publish-check-label"><input id="qvis_${Number(question.id)}" type="checkbox" ${Number(question.student_visible||0)===1 ? "checked" : ""}> Show to Students</label>
+                                <button type="button" class="visibility-save-btn" onclick="saveQuestionVisibility(${Number(question.id)})">Save</button>
+                                <button type="button" class="mini-delete-btn" onclick="deleteOneUploadedQuestion(${Number(question.id)})">Delete</button>
+                            </div>
                         </div>
                         <div class="uploaded-question-text">${index + 1}. ${escapeHtml(question.question_text || "")}</div>
                         ${optionHtml}
@@ -1300,6 +1312,39 @@
 
         function toggleAllUploadedQuestionChecks(checked) {
             document.querySelectorAll(".uploaded-question-checkbox").forEach((box) => { box.checked = Boolean(checked); });
+        }
+
+
+        async function saveQuestionVisibility(questionId) {
+            const topic = getSelectedTopicsFull()[0] || null;
+            const checkbox = document.getElementById(`qvis_${questionId}`);
+            if (!topic || !checkbox) { setStatus("Question visibility control नहीं मिला।", "err", true); return; }
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/question-visibility`, {
+                    method: "POST", headers: adminHeaders(),
+                    body: JSON.stringify({subject_key: FIXED_SUBJECT_KEY, topic_key: topic.topic_key, question_ids: [Number(questionId)], visible: checkbox.checked})
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success) throw new Error(data.message || data.error || "Question visibility save failed.");
+                setStatus(checkbox.checked ? "Question अब Students को दिखाई देगा ✅" : "Question Draft/Hidden कर दिया गया।", "ok", true);
+                await loadUploadedQuestions(); await loadQuestionCounts(false);
+            } catch (error) { setStatus("Question visibility error: " + error.message, "err", true); }
+        }
+
+        async function setAllTopicQuestionsVisibility(visible) {
+            const topic = getSelectedTopicsFull()[0] || null;
+            if (!topic) { setStatus("पहले Topic चुनें।", "err", true); return; }
+            if (!confirm(`${topic.topic_name} के सभी active Questions ${visible ? "Students को Show" : "Hide"} करने हैं?`)) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/topic-question-visibility`, {
+                    method: "POST", headers: adminHeaders(),
+                    body: JSON.stringify({subject_key: FIXED_SUBJECT_KEY, topic_key: topic.topic_key, visible})
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success) throw new Error(data.message || data.error || "Bulk visibility failed.");
+                setStatus(`${data.updated_questions||0} Questions ${visible ? "Show" : "Hidden"} हो गए ✅`, "ok", true);
+                await loadUploadedQuestions(); await loadQuestionCounts(false);
+            } catch (error) { setStatus("Bulk visibility error: " + error.message, "err", true); }
         }
 
         async function deleteOneUploadedQuestion(questionId) {
@@ -1575,6 +1620,11 @@ Topic सुरक्षित है। अब आप इसी Topic में
             if (visible && count < 1) {
                 if (checkbox) checkbox.checked = false;
                 setStatus("इस Topic में Active MCQ नहीं है। पहले Questions upload करें।", "err", true);
+                return;
+            }
+            if (visible && Number(visibleQuestionCountMap[topicKey]||0) < 1) {
+                if (checkbox) checkbox.checked = false;
+                setStatus("पहले Question Manager में कम से कम एक Question को Show to Students करके Save करें।", "err", true);
                 return;
             }
 
@@ -2574,7 +2624,7 @@ Topic सुरक्षित है। अब आप इसी Topic में
                 await loadQuestionCounts(true);
 
                 setStatus(
-                    `Upload Complete ✅\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nInserted: ${totalInserted}\nDuplicate: ${totalDuplicate}\nDummy skipped: ${totalDummy}\nErrors: ${allErrors.length}\n\nQuestions Draft/Hidden में सुरक्षित हैं। Topic के सामने Show to Students टिक करके Save दबाएँ।`,
+                    `Upload Complete ✅\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nInserted: ${totalInserted}\nDuplicate: ${totalDuplicate}\nDummy skipped: ${totalDummy}\nErrors: ${allErrors.length}\n\nQuestions Draft/Hidden में सुरक्षित हैं। पहले Question Manager में Show करें, फिर Topic Visibility Save करें।`,
                     totalInserted > 0 ? "ok" : "err",
                     true
                 );

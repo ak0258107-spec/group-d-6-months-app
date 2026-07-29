@@ -1,19 +1,42 @@
-V12.10 FINAL PDF DOWNLOAD MOCK TEST OPTION
+GK BY PURUSHOTAM SIR — V12.13 FINAL DEPLOYMENT
 
-PDF Upload screen में अब साफ Yes / No विकल्प है:
-- Yes: Related PDF Download Gate Test और Passing % चुनना अनिवार्य है।
-- No: कोई Download Mock Test नहीं आएगा; Admin Direct Download या Read Only चुन सकता है।
+इस अपडेट में PDF, Mock Test, CBT Questions और Daily Targets के लिए Student Visibility Control जोड़ा गया है।
 
-बाकी V12.9 का Class-wise PDF Verification, अलग PDF Download Gate और Final Daily Target Test flow वैसा ही है।
+इसी क्रम में काम करें:
 
-Deploy:
-1. सभी 98 files GitHub repository root में upload/replace करें।
-2. Commit करें और Ctrl+Shift+R से refresh करें।
-3. Supabase, Cloudflare, Turso, R2 या SQL में कोई नया बदलाव नहीं है।
+1. BACKUP
+   पुरानी GitHub repository और Supabase का backup रखें।
 
+2. SUPABASE
+   Supabase → SQL Editor में केवल यह नई file एक बार Run करें:
+   RUN_THIS_V12_13_VISIBILITY_AND_ADVANCE_UPLOAD_ONCE.sql
 
-V12.11 PROFILE UPDATE
-1. Supabase SQL Editor में RUN_THIS_PROFILE_AVATAR_ONCE.sql एक बार Run करें।
-2. Complete ZIP की सभी files GitHub repository root में upload/replace करके Commit करें।
-3. Cloudflare, Turso, R2, PDF Worker और Mock Test Worker में कोई बदलाव नहीं करना।
-4. Deployment के बाद Ctrl + Shift + R करें।
+   नोट: V12.12 Flexible Timetable SQL पहले चल चुका है तो उसे दोबारा चलाने की जरूरत नहीं है।
+
+3. TURSO MOCK DATABASE
+   gk-mock-test-production database में यह file केवल एक बार Run करें:
+   RUN_THIS_TURSO_V12_13_QUESTION_VISIBILITY_ONCE.sql
+
+4. CLOUDFLARE MOCK WORKER
+   exam-arena-api-live Worker में CLOUDFLARE_MOCK_TEST_WORKER.js का पूरा code Replace करके Deploy करें।
+   PDF Worker group-d-pdf-api को बिल्कुल न बदलें।
+
+5. GITHUB
+   ZIP extract करके सभी 99 files repository के ROOT में Upload/Replace करें और Commit करें।
+
+6. REFRESH
+   GitHub Pages deployment complete होने के बाद App को Ctrl + Shift + R से refresh करें।
+   Installed PWA में पुरानी cache दिखे तो App बंद करके दोबारा खोलें; जरूरत पड़े तो reinstall करें।
+
+V12.13 में:
+• PDF upload default Draft/Hidden; Show to Students + Save से live
+• Mock Test upload default Draft/Hidden; Show to Students + Save से live
+• PDF और Tests पर Show All / Hide All
+• CBT Questions individual Show/Hide + Topic-wise Show All/Hide All
+• Topic और Question दोनों visible होने पर ही CBT में प्रश्न दिखेगा
+• Daily Target: Day 1–5 का preview तुरंत visible
+• Day 6 onward: निर्धारित तारीख पर automatic visibility
+• Admin किसी Target को Show Now, Automatic Date या Stop/Hide कर सकता है
+• Hidden PDF/Test direct link से भी नहीं खुलेगा
+• Class scheduling और timing system V12.12 जैसा ही रहेगा
+• R2 और PDF Worker में कोई बदलाव नहीं

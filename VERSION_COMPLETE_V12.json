@@ -1,12 +1,16 @@
 {
-  "version": "12.11.0",
+  "version": "12.13.0",
   "type": "complete-project",
-  "files_expected": 98,
+  "files_expected": 99,
   "changes": [
-    "Student Profile redesigned as a premium digital identity card and progress dashboard",
-    "Fixed Boy and Girl illustrated avatars; no personal photo upload or image storage",
-    "Avatar selection persists in profiles.avatar_type through a safe Supabase RPC",
-    "Today status, classes, PDFs, tests, average score, preparation level, achievements and account details are shown from existing app data",
-    "Existing PDF flow, Target Batch, CBT Turso, Cloudflare Workers, Auth and Admin systems remain unchanged"
+    "PDF uploads are Draft/Hidden by default with per-item and bulk Show/Hide controls",
+    "Supabase mock tests are Draft/Hidden by default with per-test and bulk Show/Hide controls",
+    "CBT questions have individual and topic-wide student visibility controls",
+    "CBT public catalog returns only questions whose Topic and Question visibility are both enabled",
+    "Daily targets support Show Now, Automatic Date and Stop/Hide modes",
+    "The first five batch days are visible immediately as a preview; later targets publish automatically by date",
+    "Hidden PDFs and tests are blocked from direct student links",
+    "Existing flexible class timing, carry-forward, PDF verification and final-test flow are retained",
+    "Cloudflare PDF Worker and R2 remain unchanged"
   ]
 }

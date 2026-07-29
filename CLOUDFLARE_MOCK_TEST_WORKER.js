@@ -1,4 +1,4 @@
-/* GK BY PURUSHOTAM SIR — Separate CBT Mock Test API (V12.7)
+/* GK BY PURUSHOTAM SIR — Separate CBT Mock Test API (V12.13)
    Required Worker secrets/variables:
    TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
    Optional: APP_ORIGIN (example https://ak0258107-spec.github.io)
@@ -14,7 +14,7 @@ export default {
 
     try {
       const url = new URL(request.url);
-      if (!url.pathname.startsWith("/api")) return json({ success: true, service: "GK CBT Mock Test API V12.7" }, 200, cors);
+      if (!url.pathname.startsWith("/api")) return json({ success: true, service: "GK CBT Mock Test API V12.13" }, 200, cors);
 
       const user = await verifyUser(request, env);
       const route = url.pathname.replace(/^\/api/, "") || "/";
@@ -33,6 +33,8 @@ export default {
         if (request.method === "POST" && route === "/admin/sync-topics") return handleSyncTopics(request, env, cors);
         if (request.method === "POST" && route === "/admin/upload-questions") return handleUploadQuestions(request, env, cors);
         if (request.method === "POST" && route === "/admin/topic-visibility") return handleTopicVisibility(request, env, cors);
+        if (request.method === "POST" && route === "/admin/question-visibility") return handleQuestionVisibility(request, env, cors);
+        if (request.method === "POST" && route === "/admin/topic-question-visibility") return handleTopicQuestionVisibility(request, env, cors);
         if (request.method === "GET" && route === "/admin/questions") return handleAdminQuestions(url, env, cors);
         if (request.method === "POST" && route === "/admin/delete-questions") return handleDeleteQuestions(request, env, cors);
         if (request.method === "POST" && route === "/admin/delete-empty-option-questions") return handleDeleteEmpty(request, env, cors);
@@ -147,7 +149,7 @@ async function handleCatalog(env, cors) {
         SELECT 1
         FROM cbt_topics t
         JOIN cbt_questions q ON q.subject_key=t.subject_key AND q.topic_key=t.topic_key
-        WHERE t.subject_key=s.subject_key AND t.active=1 AND q.active=1 AND q.question_type='mcq'
+        WHERE t.subject_key=s.subject_key AND t.active=1 AND q.active=1 AND q.student_visible=1 AND q.question_type='mcq'
       )
       ORDER BY s.display_order, s.subject_name` },
     { sql: `SELECT t.subject_key, t.topic_key, t.topic_name, t.display_order,
@@ -157,7 +159,7 @@ async function handleCatalog(env, cors) {
         SUM(CASE WHEN q.difficulty='tough' THEN 1 ELSE 0 END) tough
       FROM cbt_topics t
       JOIN cbt_questions q ON q.subject_key=t.subject_key AND q.topic_key=t.topic_key
-      WHERE t.active=1 AND q.active=1 AND q.question_type='mcq'
+      WHERE t.active=1 AND q.active=1 AND q.student_visible=1 AND q.question_type='mcq'
       GROUP BY t.subject_key, t.topic_key, t.topic_name, t.display_order
       HAVING COUNT(q.id) > 0
       ORDER BY t.subject_key, t.display_order, t.topic_name` }
@@ -185,7 +187,7 @@ async function handleCounts(url, env, cors) {
     SUM(CASE WHEN q.difficulty='tough' THEN 1 ELSE 0 END) tough
     FROM cbt_questions q
     JOIN cbt_topics t ON t.subject_key=q.subject_key AND t.topic_key=q.topic_key
-    WHERE q.active=1 AND q.question_type='mcq' AND t.active=1 AND q.subject_key=?
+    WHERE q.active=1 AND q.student_visible=1 AND q.question_type='mcq' AND t.active=1 AND q.subject_key=?
     GROUP BY q.topic_key, q.topic_name`, [subjectKey]);
   const topics = {};
   result.rows.forEach((row) => { topics[row.topic_key] = { topic_name: row.topic_name, total: Number(row.total || 0), easy: Number(row.easy || 0), normal: Number(row.normal || 0), tough: Number(row.tough || 0) }; });
@@ -203,7 +205,7 @@ async function handleQuestions(url, env, cors) {
   if (!published.rows.length || Number(published.rows[0].active || 0) !== 1) throw httpError("यह Topic अभी विद्यार्थियों के लिए प्रकाशित नहीं है।", 403);
   let sql = `SELECT id,subject_key,subject_name,topic_key,topic_name,difficulty,question_type,question_text AS question,
     option_a,option_b,option_c,option_d,answer_index,answer_text,explanation,image_key
-    FROM cbt_questions WHERE active=1 AND subject_key=? AND topic_key=? AND question_type=?`;
+    FROM cbt_questions WHERE active=1 AND student_visible=1 AND subject_key=? AND topic_key=? AND question_type=?`;
   const args = [subjectKey, topicKey, questionType === "one_liner" ? "one_liner" : "mcq"];
   if (difficulty && difficulty !== "all" && questionType !== "one_liner") { sql += " AND difficulty=?"; args.push(difficulty); }
   sql += " ORDER BY abs(random()) LIMIT ?"; args.push(limit);
@@ -246,7 +248,8 @@ async function handleAdminSummary(url, env, cors) {
     { sql: "SELECT COUNT(*) total FROM cbt_questions WHERE subject_key=? AND active=1 AND question_type='mcq'", args: [subjectKey] },
     { sql: `SELECT t.topic_key, t.topic_name, t.active AS student_visible,
         COUNT(q.id) count,
-        SUM(CASE WHEN q.active=1 AND q.question_type='mcq' THEN 1 ELSE 0 END) active_mcq_count
+        SUM(CASE WHEN q.active=1 AND q.question_type='mcq' THEN 1 ELSE 0 END) active_mcq_count,
+        SUM(CASE WHEN q.active=1 AND q.student_visible=1 AND q.question_type='mcq' THEN 1 ELSE 0 END) visible_mcq_count
       FROM cbt_topics t
       LEFT JOIN cbt_questions q ON q.subject_key=t.subject_key AND q.topic_key=t.topic_key
       WHERE t.subject_key=?
@@ -301,8 +304,8 @@ async function handleUploadQuestions(request, env, cors) {
   for (const question of parsed.slice(0, 100)) {
     const fingerprint = await sha256([subjectKey, topicKey, question.type, normalize(question.question), normalize(question.options.join("|")), normalize(question.answerText || String(question.answerIndex))].join("||"));
     statements.push({ sql: `INSERT OR IGNORE INTO cbt_questions
-      (subject_key,subject_name,topic_key,topic_name,difficulty,question_type,question_text,option_a,option_b,option_c,option_d,answer_index,answer_text,explanation,fingerprint,active)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)`, args: [subjectKey, subjectName, topicKey, topicName, difficulty, question.type, question.question, question.options[0] || "", question.options[1] || "", question.options[2] || "", question.options[3] || "", question.answerIndex, question.answerText || "", question.explanation || "", fingerprint] });
+      (subject_key,subject_name,topic_key,topic_name,difficulty,question_type,question_text,option_a,option_b,option_c,option_d,answer_index,answer_text,explanation,fingerprint,active,student_visible)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,0)`, args: [subjectKey, subjectName, topicKey, topicName, difficulty, question.type, question.question, question.options[0] || "", question.options[1] || "", question.options[2] || "", question.options[3] || "", question.answerIndex, question.answerText || "", question.explanation || "", fingerprint] });
   }
   const results = await pipeline(env, statements);
   const inserted = results.reduce((sum, item) => sum + item.affected, 0);
@@ -319,9 +322,9 @@ async function handleTopicVisibility(request, env, cors) {
   if (!subjectKey || !topicKey) throw httpError("Subject/Topic required");
 
   if (visible) {
-    const count = await query(env, "SELECT COUNT(*) total FROM cbt_questions WHERE subject_key=? AND topic_key=? AND active=1 AND question_type='mcq'", [subjectKey, topicKey]);
+    const count = await query(env, "SELECT COUNT(*) total FROM cbt_questions WHERE subject_key=? AND topic_key=? AND active=1 AND student_visible=1 AND question_type='mcq'", [subjectKey, topicKey]);
     const total = Number(count.rows[0]?.total || 0);
-    if (total < 1) throw httpError("इस Topic में Active MCQ नहीं है। पहले Questions upload करें, फिर Show करके Save करें।");
+    if (total < 1) throw httpError("इस Topic में Student Visible MCQ नहीं है। पहले Question Manager में Questions Show करें, फिर Topic Save करें।");
   }
 
   await pipeline(env, [
@@ -331,6 +334,38 @@ async function handleTopicVisibility(request, env, cors) {
       ON CONFLICT(subject_key,topic_key) DO UPDATE SET topic_name=COALESCE(NULLIF(excluded.topic_name,''),cbt_topics.topic_name),active=excluded.active`, args: [subjectKey, topicKey, topicName || topicKey, visible ? 1 : 0] }
   ]);
   return json({ success: true, subject_key: subjectKey, topic_key: topicKey, student_visible: visible }, 200, cors);
+}
+
+
+async function handleQuestionVisibility(request, env, cors) {
+  const body = await request.json().catch(() => ({}));
+  const subjectKey = safeKey(body.subject_key);
+  const topicKey = safeKey(body.topic_key);
+  const ids = [...new Set((Array.isArray(body.question_ids) ? body.question_ids : [body.question_id])
+    .map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0))].slice(0, 500);
+  const visible = body.visible === true || body.visible === 1 || String(body.visible).toLowerCase() === "true";
+  if (!subjectKey || !topicKey || !ids.length) throw httpError("Subject, Topic और Question IDs required");
+  const placeholders = ids.map(() => "?").join(",");
+  const [updated] = await pipeline(env, [{
+    sql: `UPDATE cbt_questions SET student_visible=?, updated_at=CURRENT_TIMESTAMP
+      WHERE subject_key=? AND topic_key=? AND active=1 AND id IN (${placeholders})`,
+    args: [visible ? 1 : 0, subjectKey, topicKey, ...ids]
+  }]);
+  return json({ success: true, updated_questions: updated.affected, student_visible: visible }, 200, cors);
+}
+
+async function handleTopicQuestionVisibility(request, env, cors) {
+  const body = await request.json().catch(() => ({}));
+  const subjectKey = safeKey(body.subject_key);
+  const topicKey = safeKey(body.topic_key);
+  const visible = body.visible === true || body.visible === 1 || String(body.visible).toLowerCase() === "true";
+  if (!subjectKey || !topicKey) throw httpError("Subject/Topic required");
+  const [updated] = await pipeline(env, [{
+    sql: `UPDATE cbt_questions SET student_visible=?, updated_at=CURRENT_TIMESTAMP
+      WHERE subject_key=? AND topic_key=? AND active=1 AND question_type='mcq'`,
+    args: [visible ? 1 : 0, subjectKey, topicKey]
+  }]);
+  return json({ success: true, updated_questions: updated.affected, student_visible: visible }, 200, cors);
 }
 
 async function handleAdminQuestions(url, env, cors) {
@@ -343,7 +378,7 @@ async function handleAdminQuestions(url, env, cors) {
   const [total, rows] = await pipeline(env, [
     { sql: `SELECT COUNT(*) total FROM cbt_questions WHERE subject_key=? AND topic_key=?`, args: [subjectKey, topicKey] },
     { sql: `SELECT id, difficulty, question_type, question_text, option_a, option_b, option_c, option_d,
-        answer_index, answer_text, explanation, active, created_at
+        answer_index, answer_text, explanation, active, student_visible, created_at
       FROM cbt_questions
       WHERE subject_key=? AND topic_key=?
       ORDER BY id DESC

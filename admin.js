@@ -236,7 +236,7 @@ await loadDaySetup();
 await loadVerificationManager();
 }
 async function loadStudents(){const r=await sb.from('profiles').select('*').eq('role','student').order('created_at',{ascending:false});students=r.data||[];renderStudents(students)}
-function renderStudents(list){studentsBody.innerHTML=list.map(s=>`<tr><td><b>${esc(s.full_name||'')}</b></td><td>${esc(s.phone||'')}</td><td>${s.total_completed_days||0}/125</td><td>${s.average_test_percentage||0}%</td><td>${s.current_streak||0}</td></tr>`).join('')}
+function renderStudents(list){studentsBody.innerHTML=list.map(s=>`<tr><td><b>${esc(s.full_name||'')}</b></td><td>${esc(s.phone||'')}</td><td>${s.total_completed_days||0}/151</td><td>${s.average_test_percentage||0}%</td><td>${s.current_streak||0}</td></tr>`).join('')}
 function filterStudents(){const q=studentSearch.value.toLowerCase();renderStudents(students.filter(s=>(s.full_name||'').toLowerCase().includes(q)||(s.phone||'').includes(q)))}
 async function loadDashboard(){const today=new Date().toISOString().slice(0,10),d=await sb.from('schedule_days').select('id').eq('day_date',today).maybeSingle();let p=[];if(d.data){const rr=await sb.from('daily_progress').select('*').eq('schedule_day_id',d.data.id);p=rr.data||[]}const c=p.filter(x=>x.status==='completed').length,partial=p.filter(x=>x.status==='partial').length,not=p.filter(x=>x.status==='not_started').length;kpis.innerHTML=`<div class="kpi-card kpi-blue span-4"><div class="muted">Total Students</div><div class="kpi">${students.length}</div></div><div class="kpi-card kpi-green span-4"><div class="muted">Today Complete</div><div class="kpi">${c}</div></div><div class="kpi-card kpi-red span-4"><div class="muted">Not Started</div><div class="kpi">${not}</div></div>`}
 async function loadDaySetup(){
@@ -476,7 +476,7 @@ async function loadBroadcasts(){
   const r=await sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(100);
   broadcastList.innerHTML=(r.data||[]).map(x=>`<div class="item notice-premium ${esc(x.message_type||'info')} broadcast-admin-item"><div class="broadcast-copy"><b>${esc(x.title)}</b><p>${esc(x.message)}</p><div class="small muted">${x.created_at?new Date(x.created_at).toLocaleString('hi-IN'):''}</div></div><button class="btn btn-red btn-mini" onclick="deleteBroadcast(${x.id})">🗑 Delete</button></div>`).join('')||'<div class="item">अभी कोई Broadcast नहीं है।</div>'
 }
-async function loadReports(){const top=[...students].sort((a,b)=>(b.total_completed_days||0)-(a.total_completed_days||0)||(b.average_test_percentage||0)-(a.average_test_percentage||0)).slice(0,5);reportCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed Days</div><div class="kpi">${students.reduce((a,s)=>a+(s.total_completed_days||0),0)}</div></div><div class="kpi-card kpi-blue span-4"><div class="muted">Students</div><div class="kpi">${students.length}</div></div><div class="kpi-card kpi-purple span-4"><div class="muted">Average Score</div><div class="kpi">${students.length?Math.round(students.reduce((a,s)=>a+(s.average_test_percentage||0),0)/students.length):0}%</div></div>`;topStudents.innerHTML=top.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.full_name||'')}</td><td>${s.total_completed_days||0}/125</td><td>${s.average_test_percentage||0}%</td></tr>`).join('')}
+async function loadReports(){const top=[...students].sort((a,b)=>(b.total_completed_days||0)-(a.total_completed_days||0)||(b.average_test_percentage||0)-(a.average_test_percentage||0)).slice(0,5);reportCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed Days</div><div class="kpi">${students.reduce((a,s)=>a+(s.total_completed_days||0),0)}</div></div><div class="kpi-card kpi-blue span-4"><div class="muted">Students</div><div class="kpi">${students.length}</div></div><div class="kpi-card kpi-purple span-4"><div class="muted">Average Score</div><div class="kpi">${students.length?Math.round(students.reduce((a,s)=>a+(s.average_test_percentage||0),0)/students.length):0}%</div></div>`;topStudents.innerHTML=top.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.full_name||'')}</td><td>${s.total_completed_days||0}/151</td><td>${s.average_test_percentage||0}%</td></tr>`).join('')}
 
 /* ===== REFINED ADMIN: SUBJECT/TOPIC CATALOG ===== */
 let adminOneLinerCatalog=[];
@@ -1220,6 +1220,273 @@ init=async function(){
   syncTestPurpose();
   syncPdfDownloadRule();
   await loadPdfTargetOptions();
+};
+
+
+
+/* ==================================================================
+   V12.12 — 5-MONTH PLAN + FLEXIBLE DAILY CLASS/TIMING PLANNER
+   ================================================================== */
+const FLEXIBLE_CLASS_SUBJECTS=['हरियाणा GK','भारतीय इतिहास','भारतीय राजव्यवस्था','भारतीय भूगोल','विज्ञान','हिंदी','Static GK','करंट अफेयर','पुनरावृत्ति'];
+
+function classSubjectOptions(selected){
+  return FLEXIBLE_CLASS_SUBJECTS.map(s=>`<option value="${esc(s)}" ${String(selected||'')===s?'selected':''}>${esc(s)}</option>`).join('');
+}
+function classTimeInputValue(v){return String(v||'').slice(0,5)}
+function classTimeLabel(start,end){
+  const fmt=v=>{if(!v)return'';const [h,m]=String(v).slice(0,5).split(':').map(Number);const ap=h>=12?'PM':'AM';const hh=(h%12)||12;return `${hh}:${String(m).padStart(2,'0')} ${ap}`};
+  if(start&&end)return `${fmt(start)} – ${fmt(end)}`;
+  if(start)return `${fmt(start)} से`;
+  return 'Timing अभी नहीं दी गई';
+}
+function futureDayOptions(currentDayId,selected){
+  const currentIndex=days.findIndex(d=>String(d.id)===String(currentDayId));
+  return days.slice(Math.max(0,currentIndex+1)).map(d=>`<option value="${d.id}" ${String(selected||'')===String(d.id)?'selected':''}>Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');
+}
+function validateClassTimes(start,end){
+  if(start&&end&&end<=start){toast('End Time, Start Time के बाद होना चाहिए।','error');return false}
+  return true;
+}
+
+async function addFlexibleDailyClass(){
+  const dayId=setupDay.value||'';
+  const subject=document.getElementById('newClassSubject')?.value||'';
+  const topic=document.getElementById('newClassTopic')?.value.trim()||'';
+  const start=document.getElementById('newClassStart')?.value||null;
+  const end=document.getElementById('newClassEnd')?.value||null;
+  const note=document.getElementById('newClassNote')?.value.trim()||null;
+  if(!dayId||!subject||!topic){toast('Subject और Topic दोनों लिखें।','error');return}
+  if(!validateClassTimes(start,end))return;
+  const r=await sb.rpc('admin_add_daily_class',{p_schedule_day_id:dayId,p_subject:subject,p_topic:topic,p_start_time:start,p_end_time:end,p_class_note:note,p_is_extra:true});
+  if(r.error){toast('Class add नहीं हुई: '+r.error.message,'error');return}
+  toast('नई Extra Class timetable में जुड़ गई।','success');
+  await Promise.all([loadDaySetup(),loadPdfTargetOptions()]);
+}
+
+async function saveFlexibleDailyClass(targetId){
+  const subject=document.getElementById('classSubject_'+targetId)?.value||'';
+  const topic=document.getElementById('classTopic_'+targetId)?.value.trim()||'';
+  const start=document.getElementById('classStart_'+targetId)?.value||null;
+  const end=document.getElementById('classEnd_'+targetId)?.value||null;
+  const note=document.getElementById('classNote_'+targetId)?.value.trim()||null;
+  const classStatus=document.getElementById('classStatus_'+targetId)?.value||'scheduled';
+  const youtube=document.getElementById('yt_'+targetId)?.value.trim()||null;
+  if(!subject||!topic){toast('Subject और Topic खाली नहीं रह सकते।','error');return}
+  if(!validateClassTimes(start,end))return;
+  const r=await sb.rpc('admin_update_daily_class',{p_target_id:targetId,p_subject:subject,p_topic:topic,p_start_time:start,p_end_time:end,p_class_note:note,p_class_status:classStatus,p_youtube_url:youtube});
+  if(r.error){toast('Class details save नहीं हुईं: '+r.error.message,'error');return}
+  toast('Class, Timing और Link save हो गए।','success');
+  await Promise.all([loadDaySetup(),loadPdfTargetOptions()]);
+}
+
+async function moveFlexibleDailyClass(targetId,direction){
+  const r=await sb.rpc('admin_move_daily_class',{p_target_id:targetId,p_direction:direction});
+  if(r.error){toast('Class क्रम नहीं बदला: '+r.error.message,'error');return}
+  await Promise.all([loadDaySetup(),loadPdfTargetOptions()]);
+}
+
+async function deleteFlexibleDailyClass(targetId){
+  if(!(await adminConfirmDelete('क्या आप यह Class timetable से delete करना चाहते हैं? Linked PDF delete नहीं होगी, केवल Class link हटेगी।')))return;
+  const r=await sb.rpc('admin_delete_daily_class',{p_target_id:targetId});
+  if(r.error){toast('Class delete नहीं हुई: '+r.error.message,'error');return}
+  toast('Class delete हो गई।','success');
+  await Promise.all([loadDaySetup(),loadPdfTargetOptions(),loadMaterials()]);
+}
+
+async function carryForwardFlexibleClass(targetId){
+  const destination=document.getElementById('carryDay_'+targetId)?.value||'';
+  if(!destination){toast('Carry Forward के लिए अगला Day चुनें।','error');return}
+  const r=await sb.rpc('admin_carry_forward_daily_class',{p_target_id:targetId,p_destination_day_id:destination,p_start_time:null,p_end_time:null});
+  if(r.error){toast('Class Carry Forward नहीं हुई: '+r.error.message,'error');return}
+  toast('अधूरी Class चुने हुए Day में Extra Class के रूप में जुड़ गई। वहाँ नई Timing भर दें।','success');
+}
+
+loadDaySetup=async function(){
+  const dayId=setupDay.value||days[0]?.id;if(!dayId)return;
+  const [t,v,m]=await Promise.all([
+    sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),
+    sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true).order('created_at'),
+    sb.from('study_materials').select('id,title,target_id,access_mode,download_test_id,status').eq('schedule_day_id',dayId).eq('status','published').order('created_at')
+  ]);
+  if(t.error){setupTargets.innerHTML=`<div class="item text-error">${esc(t.error.message)}<br><small>V12.12 SQL एक बार Run करें।</small></div>`;return}
+  allTargets=(t.data||[]).filter(x=>x.status==='published');
+  const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));
+  const mmap={};(m.data||[]).forEach(x=>(mmap[x.target_id]??=[]).push(x));
+  const addBox=`<div class="flexible-class-planner">
+    <div class="flex-planner-head"><div><span class="section-kicker">FLEXIBLE TIMETABLE</span><h3>इस Day में नई / तीसरी Class जोड़ें</h3><p>अधूरा Topic, Extra Class या Current Affairs class यहाँ से जोड़ें।</p></div><span class="badge badge-purple">${allTargets.length} Classes</span></div>
+    <div class="flex-class-grid"><div><label>Subject</label><select id="newClassSubject">${classSubjectOptions('हरियाणा GK')}</select></div><div class="flex-topic-field"><label>Topic</label><input id="newClassTopic" placeholder="जैसे: वर्णमाला Part 2"></div><div><label>Start Time</label><input id="newClassStart" type="time"></div><div><label>End Time</label><input id="newClassEnd" type="time"></div><div class="flex-note-field"><label>Note</label><input id="newClassNote" placeholder="Optional: पिछली अधूरी Class"></div><button class="btn btn-purple flex-add-class-btn" onclick="addFlexibleDailyClass()">＋ Extra Class जोड़ें</button></div>
+  </div>`;
+  const cards=allTargets.map((x,idx)=>{
+    const pdfs=mmap[x.id]||[],qs=vmap[x.id]||[];
+    const state=x.class_status||'scheduled';
+    const stateLabel=state==='partial'?'Partially Completed':state==='completed'?'Completed':state==='cancelled'?'Cancelled':'Scheduled';
+    return `<details class="target-setup-3d easy-class-flow flexible-class-card" ${idx===0?'open':''}>
+      <summary><div><span class="topic-chip">Class ${idx+1}</span><b>${esc(x.subject)} — ${esc(x.topic)}</b><div class="class-summary-meta"><span>🕒 ${esc(classTimeLabel(x.start_time,x.end_time))}</span>${x.is_extra_class?'<span class="extra-class-chip">Extra Class</span>':''}</div></div><span class="badge ${state==='completed'?'badge-green':state==='partial'?'badge-orange':state==='cancelled'?'badge-red':'badge-blue'}">${stateLabel}</span></summary>
+      <div class="target-setup-body">
+        <div class="class-edit-panel"><div class="class-edit-title"><h4>Class Details और Timing</h4><div class="row wrap"><button class="btn btn-light btn-mini" onclick="moveFlexibleDailyClass('${x.id}',-1)">↑ ऊपर</button><button class="btn btn-light btn-mini" onclick="moveFlexibleDailyClass('${x.id}',1)">↓ नीचे</button><button class="btn btn-red btn-mini" onclick="deleteFlexibleDailyClass('${x.id}')">🗑 Delete</button></div></div>
+          <div class="flex-class-grid edit-grid"><div><label>Subject</label><select id="classSubject_${x.id}">${classSubjectOptions(x.subject)}</select></div><div class="flex-topic-field"><label>Topic</label><input id="classTopic_${x.id}" value="${esc(x.topic||'')}"></div><div><label>Start Time</label><input id="classStart_${x.id}" type="time" value="${esc(classTimeInputValue(x.start_time))}"></div><div><label>End Time</label><input id="classEnd_${x.id}" type="time" value="${esc(classTimeInputValue(x.end_time))}"></div><div><label>Class Status</label><select id="classStatus_${x.id}"><option value="scheduled" ${state==='scheduled'?'selected':''}>Scheduled</option><option value="partial" ${state==='partial'?'selected':''}>Partially Completed</option><option value="completed" ${state==='completed'?'selected':''}>Completed</option><option value="cancelled" ${state==='cancelled'?'selected':''}>Cancelled</option></select></div><div class="flex-note-field"><label>Note / Part</label><input id="classNote_${x.id}" value="${esc(x.class_note||'')}" placeholder="जैसे: Part 2 / Continuation"></div></div>
+          <label>YouTube Class Link</label><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/...">
+          <div class="row wrap class-save-row"><button class="btn btn-green" onclick="saveFlexibleDailyClass('${x.id}')">Save Class + Timing + Link</button><div class="carry-forward-box"><select id="carryDay_${x.id}"><option value="">Carry Forward Day चुनें</option>${futureDayOptions(dayId,'')}</select><button class="btn btn-orange" onclick="carryForwardFlexibleClass('${x.id}')">अधूरी Class आगे जोड़ें</button></div></div>
+        </div>
+        <div class="easy-step-card"><span class="easy-step-no">2</span><div class="easy-step-content"><div class="row wrap" style="justify-content:space-between;align-items:center"><div><h4>इस Class की PDF Verification</h4><p>Question hide/show आप तय करेंगे।</p></div><div class="row wrap"><span class="badge badge-purple">${qs.length} Questions</span>${qs.length?`<button class="btn btn-red btn-mini" onclick="deleteTargetVerifications('${x.id}','${dayId}')">Delete Verification</button>`:''}</div></div><label>Question Visibility</label><select id="show_${x.id}"><option value="false">Hide Question — केवल Options दिखें</option><option value="true">Show Question — Question + Options दिखें</option></select><label>Verification Questions Paste करें</label><textarea class="verification-raw-box" id="vqraw_${x.id}" placeholder="प्रश्न 1. ........\n(A) ....\n(B) ....\n(C) ....\n(D) ....\nउत्तर: (A)\nव्याख्या: ...."></textarea><button class="btn btn-green" onclick="saveVerificationBatch('${x.id}','${dayId}')">Save Verification Questions</button></div></div>
+        <div class="easy-step-card"><span class="easy-step-no">3</span><div class="easy-step-content"><h4>इस Class की अलग PDF</h4>${pdfs.length?`<div class="linked-pdf-list">${pdfs.map(p=>`<span>📄 ${esc(p.title)}</span>`).join('')}</div>`:'<p class="muted">अभी इस Class से कोई PDF linked नहीं है।</p>'}<button class="btn btn-blue" onclick="openPdfUploadForTarget('${dayId}','${x.id}')">इस Class की PDF Upload करें</button></div></div>
+      </div>
+    </details>`;
+  }).join('');
+  setupTargets.innerHTML=addBox+(cards||'<div class="item">इस Day में अभी कोई Class नहीं है। ऊपर से नई Class जोड़ें।</div>');
+};
+
+const __v1212AdminInit=init;
+init=async function(){await __v1212AdminInit();};
+
+/* ==================================================================
+   V12.13 — ADVANCE UPLOAD + SHOW/HIDE FOR TARGETS, PDFS AND TESTS
+   ================================================================== */
+function v1213InjectAdminVisibilityControls(){
+  const pdfFileEl=document.getElementById('pdfFile');
+  if(pdfFileEl&&!document.getElementById('pdfShowNowWrap')){
+    pdfFileEl.insertAdjacentHTML('beforebegin',`<div id="pdfShowNowWrap" class="visibility-control-panel"><label class="visibility-check"><input id="pdfShowNow" type="checkbox"> Show to Students अभी</label><div class="small muted">Unchecked रहने पर PDF सुरक्षित Draft/Hidden रहेगी। बाद में नीचे से Show करके Save करें।</div></div>`);
+  }
+  const raw=document.getElementById('rawQuestions');
+  if(raw&&!document.getElementById('testShowNowWrap')){
+    raw.insertAdjacentHTML('afterend',`<div id="testShowNowWrap" class="visibility-control-panel"><label class="visibility-check"><input id="testShowNow" type="checkbox"> Show to Students अभी</label><div class="small muted">Unchecked रहने पर पूरा Mock Test Draft/Hidden रहेगा।</div></div>`);
+  }
+  const testsHost=document.getElementById('adminTests');
+  if(testsHost&&!document.getElementById('testBulkVisibility')){
+    testsHost.insertAdjacentHTML('beforebegin',`<div id="testBulkVisibility" class="visibility-bulk-toolbar"><b>Mock Test Visibility</b><button class="btn btn-green btn-mini" onclick="setAllTestsVisibility(true)">Show All</button><button class="btn btn-light btn-mini" onclick="setAllTestsVisibility(false)">Hide All</button></div>`);
+  }
+  const materialsHost=document.getElementById('materialsList');
+  if(materialsHost&&!document.getElementById('pdfBulkVisibility')){
+    materialsHost.insertAdjacentHTML('beforebegin',`<div id="pdfBulkVisibility" class="visibility-bulk-toolbar"><b>PDF Visibility</b><button class="btn btn-green btn-mini" onclick="setAllMaterialsVisibility(true)">Show All</button><button class="btn btn-light btn-mini" onclick="setAllMaterialsVisibility(false)">Hide All</button></div>`);
+  }
+}
+
+async function saveTargetVisibility(targetId){
+  const mode=document.getElementById('targetVisibility_'+targetId)?.value||'auto';
+  const r=await sb.rpc('admin_set_target_visibility',{p_target_id:targetId,p_mode:mode});
+  if(r.error){toast('Target visibility save नहीं हुई: '+r.error.message,'error');return}
+  toast(mode==='hide'?'यह Target Students से छिपा दिया गया।':mode==='show'?'यह Target Students को अभी दिखाई देगा।':'Target Automatic Date Mode पर है।','success');
+  await loadDaySetup();
+}
+async function setDayTargetVisibility(mode){
+  const dayId=document.getElementById('setupDay')?.value||'';
+  if(!dayId)return;
+  const r=await sb.rpc('admin_set_day_targets_visibility',{p_schedule_day_id:dayId,p_mode:mode});
+  if(r.error){toast(r.error.message,'error');return}
+  toast(`इस Day के ${Number(r.data||0)} Targets की visibility update हो गई।`,'success');
+  await loadDaySetup();
+}
+function v1213DecorateTargetVisibility(){
+  const host=document.getElementById('setupTargets');if(!host)return;
+  const planner=host.querySelector('.flexible-class-planner');
+  if(planner&&!document.getElementById('dayTargetVisibilityToolbar')){
+    planner.insertAdjacentHTML('afterend',`<div id="dayTargetVisibilityToolbar" class="visibility-bulk-toolbar target-visibility-toolbar"><b>इस Day के सभी Targets</b><button class="btn btn-green btn-mini" onclick="setDayTargetVisibility('show')">Show Now</button><button class="btn btn-light btn-mini" onclick="setDayTargetVisibility('auto')">Automatic Date</button><button class="btn btn-red btn-mini" onclick="setDayTargetVisibility('hide')">Stop / Hide</button></div>`);
+  }
+  const cards=[...host.querySelectorAll('.flexible-class-card')];
+  cards.forEach((card,index)=>{
+    const target=allTargets[index];if(!target)return;
+    const panel=card.querySelector('.class-edit-panel');
+    if(panel&&!document.getElementById('targetVisibility_'+target.id)){
+      const mode=target.visibility_mode||'auto';
+      panel.insertAdjacentHTML('beforeend',`<div class="visibility-control-panel target-visibility-control"><div><b>Daily Target — Show to Students</b><div class="small muted">पहले 5 दिन Show Now हैं; बाकी Automatic Date पर खुलेंगे।</div></div><select id="targetVisibility_${target.id}"><option value="show" ${mode==='show'?'selected':''}>Show Now</option><option value="auto" ${mode==='auto'?'selected':''}>Automatic on Date</option><option value="hide" ${mode==='hide'?'selected':''}>Stop / Hide</option></select><button class="btn btn-blue btn-mini" onclick="saveTargetVisibility('${target.id}')">Save Visibility</button></div>`);
+    }
+  });
+}
+
+const __v1213LoadDaySetup=loadDaySetup;
+loadDaySetup=async function(){await __v1213LoadDaySetup();v1213DecorateTargetVisibility();};
+
+publishRawTest=async function(){
+  syncTestPurpose();
+  const purpose=document.getElementById('testPurpose')?.value||'standalone';
+  if((purpose==='final_daily'||purpose==='pdf_gate')&&!testDay.value){toast('PDF Gate या Final Daily Test के लिए Schedule Day चुनना जरूरी है।','error');return}
+  const parsed=parseRawQuestions(rawQuestions.value);
+  if(!parsed.length){toast('Valid questions नहीं मिले। Format check करें।','error');return}
+  const visible=Boolean(document.getElementById('testShowNow')?.checked);
+  const tr=await sb.from('tests').insert({batch_id:APP_CONFIG.BATCH_ID,schedule_day_id:testDay.value||null,title:testName.value.trim()||'New Test',test_type:'daily',total_questions:parsed.length,total_marks:parsed.length,time_limit_minutes:+testTime.value||null,passing_percent:+testPass.value||0,is_final_daily:isFinalDaily.checked,is_pdf_download_gate:isPdfGate.checked,allow_unlimited_retries:true,status:'published',student_visible:visible,created_by:adminUser.id}).select().single();
+  if(tr.error){toast(tr.error.message,'error');return}
+  for(let i=0;i<parsed.length;i++){
+    const q=parsed[i],rr=await sb.from('test_questions').insert({test_id:tr.data.id,question_order:i+1,marks:1,difficulty:'normal',question_type:q.question_type,question_text:q.question_text,options:q.options}).select().single();
+    if(rr.error){toast('Q'+(i+1)+': '+rr.error.message,'error');return}
+    const kr=await sb.from('test_question_keys').insert({question_id:rr.data.id,correct_answer:q.correct_answer,explanation:q.explanation});
+    if(kr.error){toast('Q'+(i+1)+' answer key: '+kr.error.message,'error');return}
+  }
+  if(visible)await createGlobalNotification('📝 नया Mock Test',tr.data.title+' उपलब्ध है।','test',tr.data.id);
+  toast(visible?`${parsed.length} प्रश्नों का Test Students को Show हो गया।`:`${parsed.length} प्रश्नों का Test Draft/Hidden में save हो गया।`,'success');
+  rawQuestions.value='';if(document.getElementById('testShowNow'))document.getElementById('testShowNow').checked=false;await loadTests();
+};
+
+async function saveTestVisibility(testId){
+  const visible=Boolean(document.getElementById('testVisible_'+testId)?.checked);
+  const r=await sb.rpc('admin_set_test_visibility',{p_test_id:testId,p_visible:visible});
+  if(r.error){toast(r.error.message,'error');return}
+  if(visible){const t=publishedTests.find(x=>String(x.id)===String(testId));if(t)await createGlobalNotification('📝 Mock Test उपलब्ध',t.title+' अब विद्यार्थियों के लिए उपलब्ध है।','test',testId)}
+  toast(visible?'Mock Test Students को Show होगा।':'Mock Test Hidden कर दिया गया।','success');await loadTests();
+}
+async function setAllTestsVisibility(visible){
+  if(!confirm(`सभी Mock Tests ${visible?'Show':'Hide'} करने हैं?`))return;
+  const r=await sb.rpc('admin_set_all_test_visibility',{p_visible:visible});if(r.error){toast(r.error.message,'error');return}toast(`${Number(r.data||0)} Tests update हो गए।`,'success');await loadTests();
+}
+loadTests=async function(){
+  const r=await sb.from('tests').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('created_at',{ascending:false});
+  publishedTests=r.data||[];
+  const host=document.getElementById('adminTests');if(host)host.innerHTML=publishedTests.map(t=>`<div class="item visibility-list-item"><div class="visibility-item-main"><b>${esc(t.title)}</b><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent||0}% ${t.is_final_daily?'• Final Daily':''}${t.is_pdf_download_gate?' • PDF Gate':''}</div></div><div class="visibility-item-actions"><span class="badge ${t.student_visible?'badge-green':'badge-gray'}">${t.student_visible?'Student Visible':'Draft / Hidden'}</span><label class="visibility-check"><input id="testVisible_${t.id}" type="checkbox" ${t.student_visible?'checked':''}> Show to Students</label><button class="btn btn-blue btn-mini" onclick="saveTestVisibility('${t.id}')">Save</button></div></div>`).join('')||'<div class="item">अभी कोई Test नहीं है।</div>';
+  if(document.getElementById('pdfTest'))document.getElementById('pdfTest').innerHTML='<option value="">No Test</option>'+publishedTests.map(t=>`<option value="${t.id}">${esc(t.title)}${t.student_visible?'':' — Hidden'}</option>`).join('');
+};
+
+uploadPdf=async function(){
+  const f=pdfFile.files[0];const targetId=document.getElementById('pdfTarget')?.value||'';
+  if(!targetId){toast('पहले Class / Topic चुनें।','error');return}if(!f){toast('PDF चुनें','error');return}
+  if(f.type&&f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
+  const downloadMockRequired=document.getElementById('pdfDownloadMockRequired')?.value==='yes';
+  const access=downloadMockRequired?'test_required':(document.getElementById('pdfAccess')?.value||'direct_download');
+  if(downloadMockRequired&&!pdfTest.value){toast('Related PDF Download Gate Test चुनें।','error');return}
+  const downloadPass=downloadMockRequired?Math.max(0,Math.min(100,Number(document.getElementById('pdfPass')?.value||80))):0;
+  const verifyRequired=document.getElementById('pdfVerificationRequired')?.value!=='false';const verifyPass=Math.max(0,Math.min(100,Number(document.getElementById('pdfVerifyPass')?.value||30)));
+  const visible=Boolean(document.getElementById('pdfShowNow')?.checked);
+  const btn=document.querySelector('#pdfsTab button[onclick="uploadPdf()"]')||document.querySelector('button[onclick="uploadPdf()"]');const oldText=btn?.textContent||'Upload PDF';if(btn){btn.disabled=true;btn.textContent='Uploading securely to R2...';}
+  let uploadedKey=null;
+  try{
+    const uploadRes=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(f.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f});
+    if(!uploadRes.ok)throw new Error(await r2ErrorMessage(uploadRes,'R2 upload failed'));
+    uploadedKey=(await uploadRes.json()).key;if(!uploadedKey)throw new Error('R2 file key नहीं मिला।');
+    const ins=await sb.from('study_materials').insert({schedule_day_id:pdfDay.value,target_id:targetId,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:uploadedKey,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',student_visible:visible,access_mode:access,download_test_id:downloadMockRequired?(pdfTest.value||null):null,download_pass_percent:downloadPass,requires_pdf_verification:verifyRequired,pdf_verification_pass_percent:verifyPass,requires_class_verification:false,uploaded_by:adminUser.id,published_at:new Date().toISOString()}).select().single();
+    if(ins.error){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(uploadedKey)}`,{method:'DELETE'})}catch(_){}throw new Error(ins.error.message)}
+    if(visible)await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);
+    pdfTitle.value='';pdfFile.value='';if(document.getElementById('pdfShowNow'))document.getElementById('pdfShowNow').checked=false;
+    toast(visible?'PDF upload होकर Students को Show हो गई।':'PDF upload होकर Draft/Hidden में सुरक्षित है।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
+  }catch(e){console.error(e);toast(e.message||'PDF upload नहीं हो पाई।','error')}
+  finally{if(btn){btn.disabled=false;btn.textContent=oldText;}}
+};
+
+async function saveMaterialVisibility(materialId){
+  const visible=Boolean(document.getElementById('materialVisible_'+materialId)?.checked);
+  const r=await sb.rpc('admin_set_material_visibility',{p_material_id:materialId,p_visible:visible});if(r.error){toast(r.error.message,'error');return}
+  toast(visible?'PDF Students को Show होगी।':'PDF Hidden कर दी गई।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
+}
+async function setAllMaterialsVisibility(visible){
+  if(!confirm(`सभी PDFs ${visible?'Show':'Hide'} करनी हैं?`))return;
+  const r=await sb.rpc('admin_set_all_material_visibility',{p_visible:visible});if(r.error){toast(r.error.message,'error');return}toast(`${Number(r.data||0)} PDFs update हो गईं।`,'success');await loadMaterials();
+}
+loadMaterials=async function(){
+  const [r,t]=await Promise.all([
+    sb.from('study_materials').select('*,schedule_days(day_number,day_date),daily_targets(subject,topic,target_order)').order('created_at',{ascending:false}),
+    sb.from('daily_targets').select('id,schedule_day_id,subject,topic,target_order,status').eq('status','published').order('target_order')
+  ]);
+  const rows=r.data||[],targets=t.data||[],host=document.getElementById('materialsList');if(!host)return;
+  if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>V12.13 SQL चलाएँ।</small></div>`;return}
+  host.innerHTML=rows.map(m=>{
+    const dayTargets=targets.filter(x=>String(x.schedule_day_id)===String(m.schedule_day_id));
+    const options='<option value="">Class / Topic चुनें</option>'+dayTargets.map(x=>`<option value="${x.id}" ${String(x.id)===String(m.target_id)?'selected':''}>Class ${x.target_order||'-'} — ${esc(x.subject||'')} • ${esc(x.topic||'')}</option>`).join('');
+    return `<div class="item admin-delete-group visibility-list-item"><div class="visibility-item-main"><b>📄 ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'} — ${esc(m.daily_targets?.subject||'Unlinked')} • ${esc(m.daily_targets?.topic||'Class चुनना बाकी')}</div><div class="small">${m.requires_pdf_verification===false?'Verification: नहीं':`Verification: ${Number(m.pdf_verification_pass_percent||30)}%`} • ${m.access_mode==='test_required'?`Download Test: ${Number(m.download_pass_percent||80)}%`:m.access_mode==='direct_download'?'Direct Download':'Read Only'}</div><div class="existing-pdf-linker"><select id="materialTarget_${m.id}">${options}</select><button class="btn btn-blue btn-mini" onclick="linkExistingPdfToTarget('${m.id}','${m.schedule_day_id}')">Save Class Link</button></div></div><div class="visibility-item-actions"><span class="badge ${m.student_visible?'badge-green':'badge-gray'}">${m.student_visible?'Student Visible':'Draft / Hidden'}</span><label class="visibility-check"><input id="materialVisible_${m.id}" type="checkbox" ${m.student_visible?'checked':''}> Show to Students</label><button class="btn btn-blue btn-mini" onclick="saveMaterialVisibility('${m.id}')">Save</button><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>🗑 Delete</button></div></div>`;
+  }).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
+};
+
+const __v1213AdminInit=init;
+init=async function(){
+  await __v1213AdminInit();
+  v1213InjectAdminVisibilityControls();
+  await Promise.all([loadTests(),loadMaterials(),loadDaySetup()]);
 };
 
 init();

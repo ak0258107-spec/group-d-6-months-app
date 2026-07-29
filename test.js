@@ -33,4 +33,22 @@ async function submitTest(auto=false){
   if(test.schedule_day_id)await sb.rpc('refresh_daily_progress',{p_user_id:user.id,p_schedule_day_id:test.schedule_day_id});
 }
 async function load(){user=await requireAuth();if(!user)return;const tr=await sb.from('tests').select('*').eq('id',testId).single();if(tr.error){toast(tr.error.message,'error');return}test=tr.data;const qr=await sb.from('test_questions').select('*').eq('test_id',testId).order('question_order');if(qr.error){toast(qr.error.message,'error');return}questions=qr.data||[];startTitle.textContent=test.title;startMeta.textContent=`${questions.length} Questions • ${test.time_limit_minutes||'No timer'} min • Pass ${test.passing_percent||0}%`}
+/* V12.13 — direct-link visibility enforcement */
+async function v1213TestDayAvailable(day){
+  if(!day)return true;if(day.manual_lock===true)return false;if(day.manual_unlock===true)return true;
+  const now=new Date();const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  return String(day.day_date||'')<=today;
+}
+load=async function(){
+  user=await requireAuth();if(!user)return;
+  const tr=await sb.from('tests').select('*,schedule_days(day_date,manual_lock,manual_unlock)').eq('id',testId).eq('status','published').eq('student_visible',true).maybeSingle();
+  if(tr.error||!tr.data){toast('यह Mock Test अभी Students के लिए Show नहीं किया गया है।','error');return}
+  if(tr.data.schedule_day_id&&!await v1213TestDayAvailable(tr.data.schedule_days)){toast('यह Mock Test निर्धारित तारीख पर उपलब्ध होगा।','error');return}
+  test=tr.data;
+  const qr=await sb.from('test_questions').select('*').eq('test_id',testId).order('question_order');
+  if(qr.error){toast(qr.error.message,'error');return}
+  questions=qr.data||[];
+  if(!questions.length){toast('इस Test में अभी Questions उपलब्ध नहीं हैं।','error');return}
+  startTitle.textContent=test.title;startMeta.textContent=`${questions.length} Questions • ${test.time_limit_minutes||'No timer'} min • Pass ${test.passing_percent||0}%`;
+};
 load();

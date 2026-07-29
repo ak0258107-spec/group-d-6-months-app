@@ -21,3 +21,10 @@ CODE-LEVEL AUDIT CHECKED:
 EXTERNAL LIVE ITEMS:
 - Actual email delivery depends on Supabase Email Auth configuration.
 - Live database/network behavior cannot be executed from this offline build environment.
+
+V12.13 VISIBILITY AUDIT
+- JavaScript syntax checked: admin.js, student.js, test.js, common.js, final-fix.js, cbt-mock-test.js, CLOUDFLARE_MOCK_TEST_WORKER.js.
+- Inline cbt-admin script syntax checked.
+- Supabase visibility migration and Turso one-time migration included.
+- Service Worker cache bumped to v12.13.
+- Cloudflare PDF Worker and R2 code unchanged.

@@ -117,6 +117,12 @@ async function loadCatalog() {
             throw new Error(data.error || data.message || "Mock Test catalog load नहीं हुआ।");
         }
 
+        const localCatalog = (window.topicsData && typeof window.topicsData === "object") ? window.topicsData : {};
+        const allowedCatalog = new Map(Object.entries(localCatalog).map(([subjectKey, subject]) => [
+            clean(subjectKey),
+            new Set((Array.isArray(subject.topics) ? subject.topics : []).map((topic) => clean(typeof topic === "string" ? topic : (topic.key || topic.topic_key || topic.name))))
+        ]));
+
         catalogSubjects = data.subjects.map((subject, subjectIndex) => {
             const subjectKey = clean(subject.subject_key || subject.key);
             const topics = (Array.isArray(subject.topics) ? subject.topics : []).map((topic, topicIndex) => {
@@ -134,7 +140,7 @@ async function loadCatalog() {
                     name: clean(topic.topic_name || topic.name || topicKey),
                     display_order: Number(topic.display_order || topicIndex + 1)
                 };
-            }).filter((topic) => topic.key && topic.name && getTopicTotal(subjectKey, topic.key, "all") > 0);
+            }).filter((topic) => topic.key && topic.name && getTopicTotal(subjectKey, topic.key, "all") > 0 && allowedCatalog.has(subjectKey) && allowedCatalog.get(subjectKey).has(topic.key));
 
             return {
                 key: subjectKey,
@@ -142,7 +148,7 @@ async function loadCatalog() {
                 display_order: Number(subject.display_order || subjectIndex + 1),
                 topics
             };
-        }).filter((subject) => subject.key && subject.name && subject.topics.length > 0)
+        }).filter((subject) => subject.key && subject.name && allowedCatalog.has(subject.key) && subject.topics.length > 0)
           .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
 
         countsLoaded = true;

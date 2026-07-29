@@ -37,3 +37,19 @@ V12.4 OFFICIAL CHANNEL LOGO/LINK FIX:
 - YouTube link updated to the user-supplied official channel URL.
 - YouTube and Telegram buttons now show clear logo SVGs; plane/play text symbols removed.
 - Existing Target, PDF, CBT, Turso, Supabase and Cloudflare systems unchanged.
+
+
+V12.12.0
+- Exact approved 5-month GS plan added.
+- Flexible class planner, timing and carry-forward added.
+- Student timing/live status added.
+- GS-only exact 215-topic CBT catalog added.
+
+V12.13.0 — Advance Upload & Student Visibility
+- PDF and Supabase Mock Test uploads default to Draft/Hidden.
+- Added per-item and bulk Show/Hide controls for PDFs and Tests.
+- Added individual and topic-wide visibility for Turso CBT Questions.
+- CBT students receive only Questions where both Topic and Question are visible.
+- Daily Targets support Show Now, Automatic Date and Stop/Hide.
+- First five batch days are immediately visible in preview; later targets auto-publish by date.
+- Hidden PDF/Test direct access is blocked in Student UI and PDF access RPCs.

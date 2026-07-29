@@ -8,7 +8,7 @@ window.APP_CONFIG = Object.freeze({
   MOCK_TEST_API_URL: "https://exam-arena-api-live.ak0258107.workers.dev/api",
   R2_PDF_API_URL: "https://group-d-pdf-api.ak0258107.workers.dev",
   BATCH_START: "2026-08-03",
-  BATCH_END: "2027-02-28",
+  BATCH_END: "2027-01-31",
   TELEGRAM_URL: "https://t.me/gkbypurushotamsir",
   YOUTUBE_URL: "https://youtube.com/@gkbypurushotamsir007?si=_0OqQKcPhURoTLIE",
   ADMIN_SESSION_IDLE_MINUTES: 20
