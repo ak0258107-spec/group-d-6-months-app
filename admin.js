@@ -1474,7 +1474,7 @@ loadMaterials=async function(){
     sb.from('daily_targets').select('id,schedule_day_id,subject,topic,target_order,status').eq('status','published').order('target_order')
   ]);
   const rows=r.data||[],targets=t.data||[],host=document.getElementById('materialsList');if(!host)return;
-  if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>V12.13 SQL चलाएँ।</small></div>`;return}
+  if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>V12.14 Complete SQL चलाएँ।</small></div>`;return}
   host.innerHTML=rows.map(m=>{
     const dayTargets=targets.filter(x=>String(x.schedule_day_id)===String(m.schedule_day_id));
     const options='<option value="">Class / Topic चुनें</option>'+dayTargets.map(x=>`<option value="${x.id}" ${String(x.id)===String(m.target_id)?'selected':''}>Class ${x.target_order||'-'} — ${esc(x.subject||'')} • ${esc(x.topic||'')}</option>`).join('');

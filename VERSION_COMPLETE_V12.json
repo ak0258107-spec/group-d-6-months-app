@@ -1,16 +1,14 @@
 {
-  "version": "12.13.0",
+  "version": "12.14.0",
   "type": "complete-project",
   "files_expected": 99,
   "changes": [
-    "PDF uploads are Draft/Hidden by default with per-item and bulk Show/Hide controls",
-    "Supabase mock tests are Draft/Hidden by default with per-test and bulk Show/Hide controls",
-    "CBT questions have individual and topic-wide student visibility controls",
-    "CBT public catalog returns only questions whose Topic and Question visibility are both enabled",
-    "Daily targets support Show Now, Automatic Date and Stop/Hide modes",
-    "The first five batch days are visible immediately as a preview; later targets publish automatically by date",
-    "Hidden PDFs and tests are blocked from direct student links",
-    "Existing flexible class timing, carry-forward, PDF verification and final-test flow are retained",
+    "Replaced separate V12.12 and V12.13 Supabase migrations with one idempotent V12.14 complete setup",
+    "Removed temporary-table dependency that caused tmp_gs_5month_plan relation errors in Supabase SQL Editor",
+    "The new SQL safely handles partially failed older runs and creates class_status before visibility functions",
+    "Exact 3 Aug–31 Dec 2026 target plan, flexible classes, timing and carry-forward are retained",
+    "PDF, test, CBT question and daily-target student visibility controls are retained",
+    "First five batch days show immediately; later targets remain automatic by date",
     "Cloudflare PDF Worker and R2 remain unchanged"
   ]
 }

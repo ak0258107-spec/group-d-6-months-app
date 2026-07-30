@@ -1,10 +1,11 @@
-/* GK BY PURUSHOTAM SIR — Separate CBT Mock Test API (V12.13)
+/* GK BY PURUSHOTAM SIR — Separate CBT Mock Test API (V12.14)
    Required Worker secrets/variables:
    TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
    Optional: APP_ORIGIN (example https://ak0258107-spec.github.io)
 */
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=UTF-8" };
+let schemaReadyPromise = null;
 
 export default {
   async fetch(request, env) {
@@ -14,7 +15,8 @@ export default {
 
     try {
       const url = new URL(request.url);
-      if (!url.pathname.startsWith("/api")) return json({ success: true, service: "GK CBT Mock Test API V12.13" }, 200, cors);
+      await ensureQuestionVisibilitySchema(env);
+      if (!url.pathname.startsWith("/api")) return json({ success: true, service: "GK CBT Mock Test API V12.14" }, 200, cors);
 
       const user = await verifyUser(request, env);
       const route = url.pathname.replace(/^\/api/, "") || "/";
@@ -140,6 +142,44 @@ function decodeCell(cell) {
 }
 
 async function query(env, sql, args = []) { return (await pipeline(env, [{ sql, args }]))[0]; }
+
+
+async function ensureQuestionVisibilitySchema(env) {
+  if (!schemaReadyPromise) {
+    schemaReadyPromise = (async () => {
+      let info = await query(env, "PRAGMA table_info(cbt_questions)");
+      let hasColumn = info.rows.some((row) => String(row.name || "") === "student_visible");
+
+      if (!hasColumn) {
+        try {
+          await query(env, "ALTER TABLE cbt_questions ADD COLUMN student_visible INTEGER NOT NULL DEFAULT 0");
+        } catch (error) {
+          // Another Worker isolate may have added the column at the same moment.
+          info = await query(env, "PRAGMA table_info(cbt_questions)");
+          hasColumn = info.rows.some((row) => String(row.name || "") === "student_visible");
+          if (!hasColumn) throw error;
+        }
+
+        await query(env, `UPDATE cbt_questions
+          SET student_visible = CASE
+            WHEN active=1 AND EXISTS(
+              SELECT 1 FROM cbt_topics t
+              WHERE t.subject_key=cbt_questions.subject_key
+                AND t.topic_key=cbt_questions.topic_key
+                AND t.active=1
+            ) THEN 1 ELSE 0 END`);
+      }
+
+      await query(env, `CREATE INDEX IF NOT EXISTS idx_cbt_questions_student_visible
+        ON cbt_questions(subject_key,topic_key,active,student_visible,question_type)`);
+      return true;
+    })().catch((error) => {
+      schemaReadyPromise = null;
+      throw error;
+    });
+  }
+  return schemaReadyPromise;
+}
 
 async function handleCatalog(env, cors) {
   const [subjects, topics] = await pipeline(env, [

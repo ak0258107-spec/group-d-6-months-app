@@ -28,3 +28,11 @@ V12.13 VISIBILITY AUDIT
 - Supabase visibility migration and Turso one-time migration included.
 - Service Worker cache bumped to v12.13.
 - Cloudflare PDF Worker and R2 code unchanged.
+
+
+V12.14 SQL FIX AUDIT
+- Old temporary staging table removed.
+- Permanent staging relation is created, used and dropped in the same idempotent setup.
+- class_status is created before any function references it.
+- Old V12.12/V12.13 Supabase scripts removed from the package to prevent incorrect execution order.
+- Mock Worker V12.14 now self-checks and creates the Turso student_visible column/index; separate Turso migration is not required.

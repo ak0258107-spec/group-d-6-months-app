@@ -1,0 +1,9 @@
+V12.14 में Turso के लिए अलग SQL Run करने की जरूरत नहीं है।
+
+CLOUDFLARE_MOCK_TEST_WORKER.js को exam-arena-api-live Worker में Deploy करते ही Worker:
+• cbt_questions में student_visible column check करेगा
+• column नहीं होगा तो स्वयं बनाएगा
+• पुराने live Topic के Questions को visible रखेगा
+• visibility index स्वयं बनाएगा
+
+इसलिए Turso console में कोई migration paste न करें।

@@ -53,3 +53,10 @@ V12.13.0 — Advance Upload & Student Visibility
 - Daily Targets support Show Now, Automatic Date and Stop/Hide.
 - First five batch days are immediately visible in preview; later targets auto-publish by date.
 - Hidden PDF/Test direct access is blocked in Student UI and PDF access RPCs.
+
+
+V12.14 CORRECTED SQL PACKAGE
+- One combined Supabase migration replaces old V12.12/V12.13 migrations.
+- No temporary table is used.
+- Safe rerun after class_status or tmp_gs_5month_plan failures.
+- Mock Worker now performs an idempotent Turso visibility-schema check automatically.
