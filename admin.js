@@ -456,7 +456,36 @@ async function publishOneLiners(){
 async function loadOneLinersAdmin(){const r=await sb.from('one_liners').select('*').order('created_at',{ascending:false}).limit(100);adminOneLiners.innerHTML=(r.data||[]).map(x=>`<div class="item"><span class="topic-chip">${esc(x.subject||'General')} • ${esc(x.topic||'General')}</span><p><b>${esc(x.question)}</b></p><p>${esc(x.answer)}</p></div>`).join('')||'<div class="item">अभी कोई One-Liner नहीं है।</div>'}
 async function uploadPdf(){const f=pdfFile.files[0];if(!f){toast('PDF चुनें','error');return}if(f.size>25*1024*1024){toast('PDF 25 MB से बड़ी है','error');return}const path=`${pdfDay.value}/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,up=await sb.storage.from('study-pdfs').upload(path,f,{contentType:'application/pdf'});if(up.error){toast(up.error.message,'error');return}const ins=await sb.from('study_materials').insert({schedule_day_id:pdfDay.value,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:path,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',access_mode:pdfAccess.value,download_test_id:pdfTest.value||null,download_pass_percent:+pdfPass.value||80,requires_class_verification:true,uploaded_by:adminUser.id,published_at:new Date().toISOString()}).select().single();if(ins.error){toast(ins.error.message,'error');return}await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);toast('PDF upload हो गई','success');loadMaterials()}
 async function loadMaterials(){const r=await sb.from('study_materials').select('*,schedule_days(day_number)').order('created_at',{ascending:false});materialsList.innerHTML=(r.data||[]).map(m=>`<div class="item"><b>${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${m.access_mode||'read_only'} ${m.access_mode==='test_required'?`• ${m.download_pass_percent}%`:''}</div></div>`).join('')}
-async function createGlobalNotification(title,message,relatedType,relatedId){await sb.from('app_notifications').insert({title,message,notification_type:'info',related_type:relatedType||null,related_id:String(relatedId||'')||null,is_active:true})}
+function adminLocalDateKey(){const d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
+function adminDayAvailable(day){return Boolean(day)&&day.manual_lock!==true&&(day.manual_unlock===true||String(day.day_date||'')<=adminLocalDateKey())}
+function adminTargetAvailable(target,day){const mode=target?.visibility_mode||'auto';return target?.class_status!=='cancelled'&&mode!=='hide'&&(mode==='show'||adminDayAvailable(day))}
+async function shouldCreatePublicNotification(relatedType,relatedId){
+  const type=String(relatedType||'').toLowerCase();
+  if(!relatedId||!['pdf','test','target','class'].includes(type))return true;
+  try{
+    if(type==='pdf'){
+      const q=await sb.from('study_materials').select('student_visible,schedule_days(day_date,manual_lock,manual_unlock),daily_targets(visibility_mode,class_status)').eq('id',relatedId).maybeSingle();
+      if(q.error||!q.data||q.data.student_visible!==true)return false;
+      return adminDayAvailable(q.data.schedule_days)&&(!q.data.daily_targets||adminTargetAvailable(q.data.daily_targets,q.data.schedule_days));
+    }
+    if(type==='test'){
+      const q=await sb.from('tests').select('student_visible,schedule_day_id,schedule_days(day_date,manual_lock,manual_unlock)').eq('id',relatedId).maybeSingle();
+      if(q.error||!q.data||q.data.student_visible!==true)return false;
+      return !q.data.schedule_day_id||adminDayAvailable(q.data.schedule_days);
+    }
+    const q=await sb.from('daily_targets').select('visibility_mode,class_status,schedule_days(day_date,manual_lock,manual_unlock)').eq('id',relatedId).maybeSingle();
+    if(q.error||!q.data)return false;
+    return adminTargetAvailable(q.data,q.data.schedule_days);
+  }catch(error){console.warn('Notification visibility check:',error);return false}
+}
+async function createGlobalNotification(title,message,relatedType,relatedId){
+  if(!(await shouldCreatePublicNotification(relatedType,relatedId)))return {ok:true,skipped:true};
+  const row={title,message,notification_type:'info',related_type:relatedType||null,related_id:String(relatedId||'')||null,is_active:true};
+  const rr=await sb.from('app_notifications').insert(row).select().single();
+  if(rr.error){console.warn('In-app notification save failed:',rr.error);return {ok:false,error:rr.error}}
+  const push=await sendPushNotification(title,message,relatedType,rr.data?.id,relatedId);
+  return {ok:true,data:rr.data,push};
+}
 async function sendBroadcast(){const title=broadcastTitle.value.trim(),message=broadcastMessage.value.trim();if(!title||!message){toast('Title और Message लिखें।','error');return}const rr=await sb.from('broadcast_messages').insert({title,message,message_type:broadcastType.value,is_active:true}).select().single();if(rr.error){toast(rr.error.message,'error');return}await createGlobalNotification(title,message,'broadcast',rr.data.id);broadcastTitle.value='';broadcastMessage.value='';toast('संदेश सभी विद्यार्थियों को भेज दिया गया।','success');loadBroadcasts()}
 async function deleteBroadcast(id){
   if(!(await adminConfirmDelete('क्या आप यह पुराना Message delete करना चाहते हैं?')))return;
@@ -1259,6 +1288,7 @@ async function addFlexibleDailyClass(){
   if(!validateClassTimes(start,end))return;
   const r=await sb.rpc('admin_add_daily_class',{p_schedule_day_id:dayId,p_subject:subject,p_topic:topic,p_start_time:start,p_end_time:end,p_class_note:note,p_is_extra:true});
   if(r.error){toast('Class add नहीं हुई: '+r.error.message,'error');return}
+  await createGlobalNotification('➕ नई Class जोड़ी गई',`${subject} — ${topic}${start?` • ${classTimeLabel(start,end)}`:''}`,'class',r.data?.id||'');
   toast('नई Extra Class timetable में जुड़ गई।','success');
   await Promise.all([loadDaySetup(),loadPdfTargetOptions()]);
 }
@@ -1275,6 +1305,7 @@ async function saveFlexibleDailyClass(targetId){
   if(!validateClassTimes(start,end))return;
   const r=await sb.rpc('admin_update_daily_class',{p_target_id:targetId,p_subject:subject,p_topic:topic,p_start_time:start,p_end_time:end,p_class_note:note,p_class_status:classStatus,p_youtube_url:youtube});
   if(r.error){toast('Class details save नहीं हुईं: '+r.error.message,'error');return}
+  if(classStatus!=='cancelled')await createGlobalNotification('🕒 Class Update',`${subject} — ${topic}${start?` • ${classTimeLabel(start,end)}`:''}`,'class',targetId);
   toast('Class, Timing और Link save हो गए।','success');
   await Promise.all([loadDaySetup(),loadPdfTargetOptions()]);
 }
@@ -1298,6 +1329,8 @@ async function carryForwardFlexibleClass(targetId){
   if(!destination){toast('Carry Forward के लिए अगला Day चुनें।','error');return}
   const r=await sb.rpc('admin_carry_forward_daily_class',{p_target_id:targetId,p_destination_day_id:destination,p_start_time:null,p_end_time:null});
   if(r.error){toast('Class Carry Forward नहीं हुई: '+r.error.message,'error');return}
+  const source=allTargets.find(x=>String(x.id)===String(targetId));
+  await createGlobalNotification('↪ Class Carry Forward',`${source?.subject||'Class'} — ${source?.topic||'अधूरा Topic'} अगले चुने हुए Day में जोड़ी गई।`,'class',r.data?.id||targetId);
   toast('अधूरी Class चुने हुए Day में Extra Class के रूप में जुड़ गई। वहाँ नई Timing भर दें।','success');
 }
 
@@ -1363,8 +1396,10 @@ function v1213InjectAdminVisibilityControls(){
 
 async function saveTargetVisibility(targetId){
   const mode=document.getElementById('targetVisibility_'+targetId)?.value||'auto';
+  const target=allTargets.find(x=>String(x.id)===String(targetId));
   const r=await sb.rpc('admin_set_target_visibility',{p_target_id:targetId,p_mode:mode});
   if(r.error){toast('Target visibility save नहीं हुई: '+r.error.message,'error');return}
+  if(mode==='show')await createGlobalNotification('🎯 Daily Target उपलब्ध',`${target?.subject||'आज का Target'} — ${target?.topic||'नई Class'} अब उपलब्ध है।`,'target',targetId);
   toast(mode==='hide'?'यह Target Students से छिपा दिया गया।':mode==='show'?'यह Target Students को अभी दिखाई देगा।':'Target Automatic Date Mode पर है।','success');
   await loadDaySetup();
 }
@@ -1373,6 +1408,7 @@ async function setDayTargetVisibility(mode){
   if(!dayId)return;
   const r=await sb.rpc('admin_set_day_targets_visibility',{p_schedule_day_id:dayId,p_mode:mode});
   if(r.error){toast(r.error.message,'error');return}
+  if(mode==='show')await createGlobalNotification('🎯 आज के Targets उपलब्ध',`इस Day के ${Number(r.data||0)} Targets अब विद्यार्थियों के लिए उपलब्ध हैं।`,'notice',dayId);
   toast(`इस Day के ${Number(r.data||0)} Targets की visibility update हो गई।`,'success');
   await loadDaySetup();
 }
@@ -1425,7 +1461,9 @@ async function saveTestVisibility(testId){
 }
 async function setAllTestsVisibility(visible){
   if(!confirm(`सभी Mock Tests ${visible?'Show':'Hide'} करने हैं?`))return;
-  const r=await sb.rpc('admin_set_all_test_visibility',{p_visible:visible});if(r.error){toast(r.error.message,'error');return}toast(`${Number(r.data||0)} Tests update हो गए।`,'success');await loadTests();
+  const r=await sb.rpc('admin_set_all_test_visibility',{p_visible:visible});if(r.error){toast(r.error.message,'error');return}
+  if(visible)await createGlobalNotification('📝 Mock Tests उपलब्ध',`${Number(r.data||0)} Mock Tests विद्यार्थियों के लिए उपलब्ध किए गए हैं।`,'notice','bulk-tests');
+  toast(`${Number(r.data||0)} Tests update हो गए।`,'success');await loadTests();
 }
 loadTests=async function(){
   const r=await sb.from('tests').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('created_at',{ascending:false});
@@ -1461,12 +1499,20 @@ uploadPdf=async function(){
 
 async function saveMaterialVisibility(materialId){
   const visible=Boolean(document.getElementById('materialVisible_'+materialId)?.checked);
+  const material=null;
   const r=await sb.rpc('admin_set_material_visibility',{p_material_id:materialId,p_visible:visible});if(r.error){toast(r.error.message,'error');return}
+  if(visible){
+    let title=material?.title||'';
+    if(!title){const q=await sb.from('study_materials').select('title').eq('id',materialId).maybeSingle();title=q.data?.title||'नई PDF';}
+    await createGlobalNotification('📄 PDF उपलब्ध',title+' अब विद्यार्थियों के लिए उपलब्ध है।','pdf',materialId);
+  }
   toast(visible?'PDF Students को Show होगी।':'PDF Hidden कर दी गई।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
 }
 async function setAllMaterialsVisibility(visible){
   if(!confirm(`सभी PDFs ${visible?'Show':'Hide'} करनी हैं?`))return;
-  const r=await sb.rpc('admin_set_all_material_visibility',{p_visible:visible});if(r.error){toast(r.error.message,'error');return}toast(`${Number(r.data||0)} PDFs update हो गईं।`,'success');await loadMaterials();
+  const r=await sb.rpc('admin_set_all_material_visibility',{p_visible:visible});if(r.error){toast(r.error.message,'error');return}
+  if(visible)await createGlobalNotification('📄 नई PDFs उपलब्ध',`${Number(r.data||0)} PDFs विद्यार्थियों के लिए उपलब्ध की गई हैं।`,'notice','bulk-pdfs');
+  toast(`${Number(r.data||0)} PDFs update हो गईं।`,'success');await loadMaterials();
 }
 loadMaterials=async function(){
   const [r,t]=await Promise.all([

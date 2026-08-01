@@ -1,0 +1,21 @@
+V12.15.1 — INSTALL BUTTON + PUSH NOTIFICATION
+
+पुराने App features में कोई बदलाव नहीं किया गया है। केवल Install Button और Notification system जोड़ा गया है।
+
+1. Supabase SQL Editor में RUN_ONLY_THIS_V12_15_PUSH_NOTIFICATION_SETUP_ONCE.sql Run करें।
+2. Cloudflare Worker group-d-push-notification-api में CLOUDFLARE_PUSH_NOTIFICATION_WORKER.js का पूरा code paste करके Deploy करें।
+3. Worker Settings > Variables and Secrets में:
+   APP_ORIGIN = https://ak0258107-spec.github.io
+   SUPABASE_URL = https://gjxhjvdspedjsmdxlfgz.supabase.co
+   SUPABASE_ANON_KEY = config.js वाली Publishable Key
+   SUPABASE_SERVICE_ROLE_KEY = Supabase Service Role Key (Secret)
+   VAPID_PUBLIC_KEY = Generated Public Key
+   VAPID_PRIVATE_KEY = Generated Private Key (Secret)
+   VAPID_SUBJECT = mailto:jangra1432@gmail.com
+4. GitHub repository root में ZIP की सभी files Replace/Upload करें।
+5. Ctrl + Shift + R करें।
+6. Student App में Bell या “Notifications चालू करें” दबाकर permission Allow करें।
+
+Install Button link पर दिखाई देगा और app install होते ही अपने-आप छिप जाएगा।
+
+RECHECK FIX: Install सफल होते ही button उसी browser page में भी तुरंत hide होगा। Student role redirect और first-time onboarding guard सुरक्षित रखे गए हैं।

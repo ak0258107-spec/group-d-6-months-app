@@ -6,9 +6,9 @@
     <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=12.8.0"></script>
-    <script src="common.js?v=12.8.0"></script>
-    <script src="cbt-topics-data.js?v=12.8.0"></script>
+    <script src="config.js?v=12.15.1"></script>
+    <script src="common.js?v=12.15.1"></script>
+    <script src="cbt-topics-data.js?v=12.15.1"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -1315,6 +1315,14 @@
         }
 
 
+        async function createCbtPublishNotification(title,message,relatedId='') {
+            try {
+                const rr=await sb.from('app_notifications').insert({title,message,notification_type:'info',related_type:'cbt',related_id:String(relatedId||'')||null,is_active:true}).select().single();
+                if(rr.error)throw rr.error;
+                await sendPushNotification(title,message,'cbt',rr.data?.id,relatedId);
+            } catch(error) { console.warn('CBT notification:',error); }
+        }
+
         async function saveQuestionVisibility(questionId) {
             const topic = getSelectedTopicsFull()[0] || null;
             const checkbox = document.getElementById(`qvis_${questionId}`);
@@ -1326,6 +1334,7 @@
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data.success) throw new Error(data.message || data.error || "Question visibility save failed.");
+                if(checkbox.checked)await createCbtPublishNotification('❓ नया Mock Question',`${FIXED_SUBJECT_NAME} → ${topic.topic_name} में नया Question उपलब्ध है।`,questionId);
                 setStatus(checkbox.checked ? "Question अब Students को दिखाई देगा ✅" : "Question Draft/Hidden कर दिया गया।", "ok", true);
                 await loadUploadedQuestions(); await loadQuestionCounts(false);
             } catch (error) { setStatus("Question visibility error: " + error.message, "err", true); }
@@ -1342,6 +1351,7 @@
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data.success) throw new Error(data.message || data.error || "Bulk visibility failed.");
+                if(visible)await createCbtPublishNotification('📝 Mock Questions उपलब्ध',`${FIXED_SUBJECT_NAME} → ${topic.topic_name} के ${data.updated_questions||0} Questions उपलब्ध हैं।`,topic.topic_key);
                 setStatus(`${data.updated_questions||0} Questions ${visible ? "Show" : "Hidden"} हो गए ✅`, "ok", true);
                 await loadUploadedQuestions(); await loadQuestionCounts(false);
             } catch (error) { setStatus("Bulk visibility error: " + error.message, "err", true); }
@@ -1644,6 +1654,7 @@ Topic सुरक्षित है। अब आप इसी Topic में
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data.success) throw new Error(data.message || data.error || "Visibility save failed.");
                 topicVisibilityMap[topicKey] = visible;
+                if(visible)await createCbtPublishNotification('🖥 CBT Topic उपलब्ध',`${FIXED_SUBJECT_NAME} → ${topic.topic_name} अब Mock Test में उपलब्ध है।`,topicKey);
                 renderTopics();
                 updateSelectedTopicUI();
                 renderQuestionCountBoard();

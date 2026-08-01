@@ -214,10 +214,49 @@ async function renderProfile(){
     <section class="profile-panel profile-actions-panel"><div class="profile-panel-title"><div><span>07</span><b>Quick Actions</b></div></div><div class="profile-actions"><button class="profile-action" onclick="sendProfilePasswordReset()"><span>🔐</span><b>Password Reset</b></button><button class="profile-action" onclick="toggleProfileRules()"><span>📜</span><b>App Rules</b></button><a class="profile-action" href="https://t.me/gkbypurushotamsir" target="_blank" rel="noopener"><span>💬</span><b>Help & Support</b></a><button class="profile-action danger" onclick="logout()"><span>↪</span><b>Logout</b></button></div><div id="profileRulesPanel" class="profile-rules hidden"><b>App Rules</b><p>अपना Login, Password, PDF link या protected content किसी अन्य व्यक्ति के साथ share न करें। Daily Target ईमानदारी से पूरा करें और Tests स्वयं attempt करें।</p></div></section>
   </div>`;
 }
-let notificationRows=[];async function loadNotifications(){const [br,ar,reads]=await Promise.all([sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(50),sb.from('app_notifications').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(50),sb.from('student_notification_reads').select('broadcast_id').eq('student_id',user.id)]);const readSet=new Set((reads.data||[]).map(x=>String(x.broadcast_id)));const broadcasts=(br.data||[]).map(x=>({id:'b_'+x.id,rawId:x.id,title:x.title,message:x.message,type:x.message_type||'info',created_at:x.created_at,unread:!readSet.has(String(x.id)),isBroadcast:true}));const auto=(ar.data||[]).filter(x=>x.related_type!=='broadcast').map(x=>({id:'a_'+x.id,title:x.title,message:x.message,type:x.notification_type||'info',created_at:x.created_at,unread:false,isBroadcast:false}));notificationRows=[...broadcasts,...auto].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));const unread=notificationRows.filter(x=>x.unread).length,b=document.getElementById('notificationBadge');if(b){b.textContent=unread;b.classList.toggle('hidden',!unread)}renderNotifications()}
-function renderNotifications(){notificationsList.innerHTML=notificationRows.map(x=>`<div class="item notice-premium ${esc(x.type)}"><div class="row"><b>${esc(x.title)}</b>${x.unread?'<span class="badge badge-red">NEW</span>':''}</div><p>${esc(x.message)}</p><div class="small muted">${new Date(x.created_at).toLocaleString('en-IN')}</div></div>`).join('')||'<div class="card">अभी कोई Notification नहीं है।</div>'}
-function openNotifications(){tab('notifications');markAllNotificationsRead()}
-async function markAllNotificationsRead(){for(const x of notificationRows.filter(x=>x.unread&&x.isBroadcast)){await sb.from('student_notification_reads').upsert({student_id:user.id,broadcast_id:x.rawId},{onConflict:'student_id,broadcast_id'})}await loadNotifications()}
+let notificationRows=[];
+let notificationPollingStarted=false;
+function relatedNotificationTab(type=''){
+  return ({pdf:'pdfs',test:'tests',mock:'tests',question:'tests',cbt:'tests',oneliner:'oneliners',target:'targets',class:'targets',broadcast:'notifications'})[String(type).toLowerCase()]||'notifications';
+}
+async function loadNotifications(){
+  const [br,ar,broadcastReads,appReads]=await Promise.all([
+    sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(50),
+    sb.from('app_notifications').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(50),
+    sb.from('student_notification_reads').select('broadcast_id').eq('student_id',user.id),
+    sb.from('student_app_notification_reads').select('notification_id').eq('student_id',user.id)
+  ]);
+  const broadcastReadSet=new Set((broadcastReads.data||[]).map(x=>String(x.broadcast_id)));
+  const appReadSet=new Set((appReads.data||[]).map(x=>String(x.notification_id)));
+  const broadcasts=(br.data||[]).map(x=>({id:'b_'+x.id,rawId:x.id,title:x.title,message:x.message,type:x.message_type||'info',relatedType:'broadcast',created_at:x.created_at,unread:!broadcastReadSet.has(String(x.id)),isBroadcast:true}));
+  const auto=(ar.data||[]).filter(x=>x.related_type!=='broadcast').map(x=>({id:'a_'+x.id,rawId:x.id,title:x.title,message:x.message,type:x.notification_type||'info',relatedType:x.related_type||'',relatedId:x.related_id||'',created_at:x.created_at,unread:!appReadSet.has(String(x.id)),isBroadcast:false}));
+  notificationRows=[...broadcasts,...auto].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const unread=notificationRows.filter(x=>x.unread).length,b=document.getElementById('notificationBadge');
+  if(b){b.textContent=unread;b.classList.toggle('hidden',!unread)}
+  renderNotifications();
+}
+function renderNotifications(){
+  notificationsList.innerHTML=notificationRows.map(x=>`<div class="item notice-premium ${esc(x.type)} ${x.unread?'notification-unread':''}" onclick="openRelatedNotification('${esc(x.relatedType||'')}')"><div class="row"><b>${esc(x.title)}</b>${x.unread?'<span class="badge badge-red">NEW</span>':''}</div><p>${esc(x.message)}</p><div class="small muted">${new Date(x.created_at).toLocaleString('en-IN')}</div></div>`).join('')||'<div class="card">अभी कोई Notification नहीं है।</div>';
+}
+function openRelatedNotification(type){const target=relatedNotificationTab(type);if(target!=='notifications')tab(target,null)}
+async function openNotifications(){
+  if(typeof Notification!=='undefined'&&Notification.permission==='default')await enablePushNotifications();
+  tab('notifications');
+  await markAllNotificationsRead();
+}
+async function markAllNotificationsRead(){
+  const broadcastRows=notificationRows.filter(x=>x.unread&&x.isBroadcast).map(x=>({student_id:user.id,broadcast_id:x.rawId}));
+  const appRows=notificationRows.filter(x=>x.unread&&!x.isBroadcast).map(x=>({student_id:user.id,notification_id:x.rawId}));
+  if(broadcastRows.length)await sb.from('student_notification_reads').upsert(broadcastRows,{onConflict:'student_id,broadcast_id'});
+  if(appRows.length)await sb.from('student_app_notification_reads').upsert(appRows,{onConflict:'student_id,notification_id'});
+  await loadNotifications();
+}
+function startNotificationPolling(){
+  if(notificationPollingStarted)return;notificationPollingStarted=true;
+  setInterval(()=>{if(document.visibilityState==='visible'&&user?.id)loadNotifications().catch(()=>{})},30000);
+  window.addEventListener('focus',()=>{if(user?.id)loadNotifications().catch(()=>{})});
+  navigator.serviceWorker?.addEventListener?.('message',event=>{if(event.data?.type==='PUSH_NOTIFICATION_RECEIVED')loadNotifications().catch(()=>{})});
+}
 
 /* ===== REFINED STUDENT FLOW ===== */
 let previewDays=[],previewTargets=[],oneLinerPage=1;
@@ -339,10 +378,14 @@ async function downloadPdf(id,path,testId,mode,passPercent){
 
 const __oldStudentInit=init;
 init=async function(){
-  registerSW();
-  initInstallUI('studentInstallBtn');
+  await registerSW();
+  await initInstallUI('studentInstallBtn');
   user=await requireAuth();if(!user)return;
   profile=await getProfile(user.id);
+  if(String(profile?.role||'').toLowerCase()==='admin'){location.replace('q9v3x7k2-r8m4p6t1-z5n7c2w9.html');return}
+  if(!studentOnboardingComplete(user.id)){location.replace('index.html?onboarding=1');return}
+  await initPushNotifications();
+  startNotificationPolling();
   await loadCurrentDay();
   await loadFiveDayPreview();
   await Promise.all([renderHome(),renderTargets(),loadTests(),loadOneLiners(),loadPdfs(),loadNotifications(),renderProfile()]);
