@@ -1,4 +1,4 @@
-<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Panel | GK BY PURUSHOTAM SIR</title><link rel="stylesheet" href="styles.css?v=12.15.1"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=12.15.1"></script><script src="common.js?v=12.15.1"></script><link rel="manifest" href="manifest.json">
+<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Panel | GK BY PURUSHOTAM SIR</title><link rel="stylesheet" href="styles.css?v=12.16.0"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=12.16.0"></script><script src="common.js?v=12.16.0"></script><link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 <meta name="theme-color" content="#9f0000">
@@ -115,7 +115,7 @@ body.admin-security-pending .admin-mfa-qr img,body.admin-security-pending .admin
         <div class="poster-card-icon upload">⬆</div>
         <div>
           <h2>नया Poster Publish करें</h2>
-          <p>Best size: 1080 × 540 px (2:1)</p>
+          <p>16:9, A4 Portrait, A4 Landscape, Square या Original—किसी भी आकार का poster पूरा दिखेगा</p>
         </div>
       </div>
 
@@ -127,8 +127,36 @@ body.admin-security-pending .admin-mfa-qr img,body.admin-security-pending .admin
 
         <div class="poster-field full">
           <label for="posterFile">Poster Image</label>
-          <input id="posterFile" type="file" accept="image/png,image/jpeg,image/webp">
-          <div class="poster-help">JPG, PNG या WEBP • बेहतर speed के लिए 2 MB से कम रखें</div>
+          <input id="posterFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewPosterFile()">
+          <div class="poster-help">JPG, PNG या WEBP • अधिकतम 5 MB • चुना हुआ format नीचे preview में दिखेगा</div>
+        </div>
+
+        <div class="poster-field">
+          <label for="posterFormat">Poster Format</label>
+          <select id="posterFormat" onchange="refreshPosterUploadPreview()">
+            <option value="ratio_16_9">16:9 Landscape</option>
+            <option value="a4_portrait">A4 Portrait (खड़ा)</option>
+            <option value="a4_landscape">A4 Landscape (चौड़ा)</option>
+            <option value="square">Square 1:1</option>
+            <option value="original">Original / Auto Size</option>
+          </select>
+        </div>
+
+        <div class="poster-field">
+          <label for="posterFit">Image Display</label>
+          <select id="posterFit" onchange="refreshPosterUploadPreview()">
+            <option value="contain">Full Image — बिना कटे</option>
+            <option value="cover">Fill Box — किनारे कट सकते हैं</option>
+          </select>
+        </div>
+
+        <div class="poster-field full">
+          <label>Poster Preview</label>
+          <div id="posterUploadPreview" class="poster-upload-preview poster-format-ratio-16-9">
+            <div id="posterUploadPreviewEmpty" class="poster-upload-preview-empty">Poster चुनते ही यहाँ पूरा preview दिखाई देगा</div>
+            <img id="posterUploadPreviewImage" alt="Poster preview" class="poster-fit-contain hidden">
+          </div>
+          <div class="poster-help">सुझाव: कटने से बचाने के लिए “Full Image — बिना कटे” रखें।</div>
         </div>
 
         <div class="poster-field full">
@@ -176,5 +204,5 @@ body.admin-security-pending .admin-mfa-qr img,body.admin-security-pending .admin
     </div>
   </div>
 </section>
-</main></div><script src="admin.js?v=12.15.1"></script><script src="final-fix.js"></script>
+</main></div><script src="admin.js?v=12.16.0"></script><script src="final-fix.js"></script>
 </body></html>

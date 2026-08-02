@@ -936,7 +936,32 @@ readPdf=async function(id,path,title){
 
 /* ===== HOME POSTER / BANNER SLIDER ===== */
 let homePosterUrls=[],homePosterIndex=0,homePosterTimer=null,homePosterRows=[];
+const STUDENT_POSTER_FORMATS=['ratio_16_9','a4_portrait','a4_landscape','square','original'];
 function clearHomePosterUrls(){homePosterUrls.forEach(u=>URL.revokeObjectURL(u));homePosterUrls=[]}
+function studentPosterFormat(value){return STUDENT_POSTER_FORMATS.includes(value)?value:'original'}
+function studentPosterFit(value){return value==='cover'?'cover':'contain'}
+function studentPosterRatio(p){
+  const f=studentPosterFormat(p?.poster_format);
+  if(f==='a4_portrait')return {css:'210 / 297',numeric:210/297};
+  if(f==='a4_landscape')return {css:'297 / 210',numeric:297/210};
+  if(f==='square')return {css:'1 / 1',numeric:1};
+  if(f==='ratio_16_9')return {css:'16 / 9',numeric:16/9};
+  const w=Math.max(1,Number(p?._naturalWidth||16)),h=Math.max(1,Number(p?._naturalHeight||9));
+  return {css:`${w} / ${h}`,numeric:w/h};
+}
+function posterImageSize(url){return new Promise(resolve=>{const image=new Image();image.onload=()=>resolve({width:image.naturalWidth||16,height:image.naturalHeight||9});image.onerror=()=>resolve({width:16,height:9});image.src=url})}
+
+function applyHomePosterLayout(index){
+  const section=document.getElementById('homePosterSection');
+  const slider=document.getElementById('homePosterSlider');
+  const p=homePosterRows[index];
+  if(!section||!slider||!p)return;
+  const ratio=studentPosterRatio(p);
+  slider.style.aspectRatio=ratio.css;
+  section.classList.toggle('poster-section-portrait',ratio.numeric<0.9);
+  section.classList.toggle('poster-section-square',ratio.numeric>=0.9&&ratio.numeric<=1.12);
+  section.classList.toggle('poster-section-landscape',ratio.numeric>1.12);
+}
 
 async function loadHomePosters(){
   const section=document.getElementById('homePosterSection');
@@ -960,16 +985,18 @@ async function loadHomePosters(){
       if(!res.ok)continue;
       const blob=await res.blob();
       const url=URL.createObjectURL(blob);
+      const size=await posterImageSize(url);
       homePosterUrls.push(url);
-      homePosterRows.push({...p,_url:url});
+      homePosterRows.push({...p,_url:url,_naturalWidth:size.width,_naturalHeight:size.height});
     }catch(_){}
   }
 
   if(!homePosterRows.length){section.style.display='none';return}
   section.style.display='block';
-  slider.innerHTML=homePosterRows.map((p,i)=>`<button class="home-poster-slide ${i===0?'active':''}" onclick='openPosterLink(${i})'><img src="${p._url}" alt="${esc(p.title||'Poster')}"></button>`).join('');
-  dots.innerHTML=homePosterRows.map((_,i)=>`<button class="${i===0?'active':''}" onclick="showPosterSlide(${i})"></button>`).join('');
+  slider.innerHTML=homePosterRows.map((p,i)=>`<button class="home-poster-slide ${i===0?'active':''}" onclick='openPosterViewer(${i})' aria-label="${esc(p.title||'Poster')} पूरा देखें"><img src="${p._url}" class="poster-fit-${studentPosterFit(p.fit_mode)}" alt="${esc(p.title||'Poster')}"><span class="poster-fullscreen-hint">⛶ पूरा देखें</span></button>`).join('');
+  dots.innerHTML=homePosterRows.map((_,i)=>`<button class="${i===0?'active':''}" onclick="showPosterSlide(${i})" aria-label="Poster ${i+1}"></button>`).join('');
   homePosterIndex=0;
+  applyHomePosterLayout(0);
   if(homePosterRows.length>1)homePosterTimer=setInterval(()=>showPosterSlide((homePosterIndex+1)%homePosterRows.length),5000);
 }
 
@@ -980,15 +1007,48 @@ function showPosterSlide(index){
   homePosterIndex=(index+slides.length)%slides.length;
   slides.forEach((x,i)=>x.classList.toggle('active',i===homePosterIndex));
   dotButtons.forEach((x,i)=>x.classList.toggle('active',i===homePosterIndex));
+  applyHomePosterLayout(homePosterIndex);
 }
 
-function openPosterLink(index){
+function ensurePosterViewer(){
+  let modal=document.getElementById('posterFullscreenModal');
+  if(modal)return modal;
+  modal=document.createElement('div');
+  modal.id='posterFullscreenModal';
+  modal.className='poster-fullscreen-modal hidden';
+  modal.innerHTML=`<div class="poster-fullscreen-backdrop" onclick="closePosterViewer()"></div><div class="poster-fullscreen-card" role="dialog" aria-modal="true" aria-label="Poster full screen"><div class="poster-fullscreen-toolbar"><div><b id="posterFullscreenTitle">Poster</b><small>Full image — बिना कटे</small></div><button type="button" class="poster-fullscreen-close" onclick="closePosterViewer()" aria-label="Close">×</button></div><div class="poster-fullscreen-image-wrap"><img id="posterFullscreenImage" alt="Poster"></div><div id="posterFullscreenActions" class="poster-fullscreen-actions"></div></div>`;
+  document.body.appendChild(modal);
+  if(!window.__posterEscapeBound){window.__posterEscapeBound=true;document.addEventListener('keydown',event=>{if(event.key==='Escape')closePosterViewer()})}
+  return modal;
+}
+
+function openPosterViewer(index){
+  const p=homePosterRows[index];
+  if(!p)return;
+  const modal=ensurePosterViewer();
+  document.getElementById('posterFullscreenTitle').textContent=p.title||'Poster';
+  document.getElementById('posterFullscreenImage').src=p._url;
+  const actions=document.getElementById('posterFullscreenActions');
+  actions.innerHTML=p.click_url?`<button class="btn btn-blue poster-open-link-btn" onclick="openPosterDestination(${index})">🔗 संबंधित लिंक खोलें</button>`:'';
+  modal.classList.remove('hidden');
+  document.body.classList.add('poster-viewer-open');
+}
+
+function closePosterViewer(){
+  document.getElementById('posterFullscreenModal')?.classList.add('hidden');
+  document.body.classList.remove('poster-viewer-open');
+}
+
+function openPosterDestination(index){
   const p=homePosterRows[index];
   if(!p?.click_url)return;
   const url=String(p.click_url);
   if(url.startsWith('http://')||url.startsWith('https://'))window.open(url,'_blank','noopener');
   else location.href=url;
 }
+
+/* पुराने onclick नाम के साथ compatibility */
+function openPosterLink(index){openPosterViewer(index)}
 
 const __baseStudentInitForPoster=init;
 init=async function(){

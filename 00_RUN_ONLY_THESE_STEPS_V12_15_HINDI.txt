@@ -1,21 +1,14 @@
-V12.15.1 — INSTALL BUTTON + PUSH NOTIFICATION
+V12.16 COMPLETE APP — DEPLOYMENT ORDER
 
-पुराने App features में कोई बदलाव नहीं किया गया है। केवल Install Button और Notification system जोड़ा गया है।
+1. Supabase SQL Editor में RUN_THIS_POSTER_SYSTEM_ONCE.sql पूरा Run करें।
+2. Success message देखें: V12.16 POSTER FORMAT SETUP SUCCESS
+3. ZIP की सभी 99 files GitHub repository root में Upload/Replace करके Commit करें।
+4. Hard refresh करें / installed PWA बंद करके दोबारा खोलें।
 
-1. Supabase SQL Editor में RUN_ONLY_THIS_V12_15_PUSH_NOTIFICATION_SETUP_ONCE.sql Run करें।
-2. Cloudflare Worker group-d-push-notification-api में CLOUDFLARE_PUSH_NOTIFICATION_WORKER.js का पूरा code paste करके Deploy करें।
-3. Worker Settings > Variables and Secrets में:
-   APP_ORIGIN = https://ak0258107-spec.github.io
-   SUPABASE_URL = https://gjxhjvdspedjsmdxlfgz.supabase.co
-   SUPABASE_ANON_KEY = config.js वाली Publishable Key
-   SUPABASE_SERVICE_ROLE_KEY = Supabase Service Role Key (Secret)
-   VAPID_PUBLIC_KEY = Generated Public Key
-   VAPID_PRIVATE_KEY = Generated Private Key (Secret)
-   VAPID_SUBJECT = mailto:jangra1432@gmail.com
-4. GitHub repository root में ZIP की सभी files Replace/Upload करें।
-5. Ctrl + Shift + R करें।
-6. Student App में Bell या “Notifications चालू करें” दबाकर permission Allow करें।
+नया Poster Panel:
+- 16:9, A4 Portrait, A4 Landscape, Square और Original/Auto
+- “Full Image — बिना कटे” default
+- पुराने poster को re-upload किए बिना Save Size से ठीक करें
+- Student poster पर tap करके Full Screen
 
-Install Button link पर दिखाई देगा और app install होते ही अपने-आप छिप जाएगा।
-
-RECHECK FIX: Install सफल होते ही button उसी browser page में भी तुरंत hide होगा। Student role redirect और first-time onboarding guard सुरक्षित रखे गए हैं।
+Push Worker/Cloudflare/R2/Turso में कोई नया बदलाव नहीं। V12.15.1 की notifications और install button सुरक्षित हैं।

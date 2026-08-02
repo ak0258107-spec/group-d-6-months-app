@@ -842,7 +842,52 @@ loadMaterials=async function(){
 
 /* ===== POSTER / BANNER MANAGEMENT ===== */
 let posterObjectUrls=[];
+let posterUploadPreviewUrl='';
+const POSTER_FORMATS=['ratio_16_9','a4_portrait','a4_landscape','square','original'];
+const POSTER_FITS=['contain','cover'];
+
 function clearPosterObjectUrls(){posterObjectUrls.forEach(u=>URL.revokeObjectURL(u));posterObjectUrls=[]}
+function normalizePosterFormat(value){return POSTER_FORMATS.includes(value)?value:'original'}
+function normalizePosterFit(value){return POSTER_FITS.includes(value)?value:'contain'}
+function posterFormatClass(value){return 'poster-format-'+normalizePosterFormat(value).replaceAll('_','-')}
+function posterFormatLabel(value){return ({ratio_16_9:'16:9 Landscape',a4_portrait:'A4 Portrait',a4_landscape:'A4 Landscape',square:'Square 1:1',original:'Original / Auto'})[normalizePosterFormat(value)]}
+function posterFormatOptions(selected){return POSTER_FORMATS.map(v=>`<option value="${v}" ${normalizePosterFormat(selected)===v?'selected':''}>${posterFormatLabel(v)}</option>`).join('')}
+function posterFitOptions(selected){const fit=normalizePosterFit(selected);return `<option value="contain" ${fit==='contain'?'selected':''}>Full Image — बिना कटे</option><option value="cover" ${fit==='cover'?'selected':''}>Fill Box — Crop</option>`}
+
+function posterRatioForFormat(format,naturalWidth=16,naturalHeight=9){
+  const f=normalizePosterFormat(format);
+  if(f==='a4_portrait')return '210 / 297';
+  if(f==='a4_landscape')return '297 / 210';
+  if(f==='square')return '1 / 1';
+  if(f==='ratio_16_9')return '16 / 9';
+  return `${Math.max(1,naturalWidth)} / ${Math.max(1,naturalHeight)}`;
+}
+
+function refreshPosterUploadPreview(){
+  const box=document.getElementById('posterUploadPreview');
+  const img=document.getElementById('posterUploadPreviewImage');
+  if(!box||!img)return;
+  const format=normalizePosterFormat(document.getElementById('posterFormat')?.value);
+  const fit=normalizePosterFit(document.getElementById('posterFit')?.value);
+  const width=Number(img.dataset.naturalWidth||16),height=Number(img.dataset.naturalHeight||9);
+  box.className=`poster-upload-preview ${posterFormatClass(format)}`;
+  box.style.aspectRatio=posterRatioForFormat(format,width,height);
+  img.className=`poster-fit-${fit}${img.src?'':' hidden'}`;
+}
+
+function previewPosterFile(){
+  const file=document.getElementById('posterFile')?.files?.[0];
+  const img=document.getElementById('posterUploadPreviewImage');
+  const empty=document.getElementById('posterUploadPreviewEmpty');
+  if(!img||!empty)return;
+  if(posterUploadPreviewUrl){URL.revokeObjectURL(posterUploadPreviewUrl);posterUploadPreviewUrl=''}
+  img.removeAttribute('src');img.dataset.naturalWidth='16';img.dataset.naturalHeight='9';
+  if(!file){empty.classList.remove('hidden');refreshPosterUploadPreview();return}
+  if(!file.type.startsWith('image/')){toast('केवल image file चुनें','error');return}
+  posterUploadPreviewUrl=URL.createObjectURL(file);
+  img.onload=()=>{img.dataset.naturalWidth=String(img.naturalWidth||16);img.dataset.naturalHeight=String(img.naturalHeight||9);empty.classList.add('hidden');refreshPosterUploadPreview()};
+  img.src=posterUploadPreviewUrl;
+}
 
 async function posterPreviewUrl(key){
   const res=await r2ApiFetch(`/poster?key=${encodeURIComponent(key)}`);
@@ -865,6 +910,8 @@ async function publishPoster(){
   const end=document.getElementById('posterEnd').value||null;
   const active=document.getElementById('posterActive').value==='true';
   const order=Number(document.getElementById('posterOrder').value||0);
+  const posterFormat=normalizePosterFormat(document.getElementById('posterFormat')?.value);
+  const fitMode=normalizePosterFit(document.getElementById('posterFit')?.value);
 
   let key=null;
   try{
@@ -880,7 +927,8 @@ async function publishPoster(){
       title:title,image_key:key,click_url:link,
       start_at:start?new Date(start).toISOString():null,
       end_at:end?new Date(end).toISOString():null,
-      is_active:active,sort_order:order,created_by:adminUser.id
+      is_active:active,sort_order:order,created_by:adminUser.id,
+      poster_format:posterFormat,fit_mode:fitMode
     });
     if(ins.error){
       try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(_){}
@@ -890,6 +938,9 @@ async function publishPoster(){
     ['posterTitle','posterLink','posterStart','posterEnd'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
     document.getElementById('posterFile').value='';
     document.getElementById('posterOrder').value='0';
+    document.getElementById('posterFormat').value='ratio_16_9';
+    document.getElementById('posterFit').value='contain';
+    previewPosterFile();
     toast('Poster publish हो गया।','success');
     await loadPosters();
   }catch(e){
@@ -923,6 +974,16 @@ async function deleteAllPosters(){
 async function togglePoster(id,current){
   const up=await sb.from('app_posters').update({is_active:!current}).eq('id',id);
   if(up.error){toast(up.error.message,'error');return}
+  toast(!current?'Poster students को दिखेगा।':'Poster hide कर दिया गया।','success');
+  await loadPosters();
+}
+
+async function updatePosterDisplay(id){
+  const format=normalizePosterFormat(document.getElementById('poster_format_'+id)?.value);
+  const fit=normalizePosterFit(document.getElementById('poster_fit_'+id)?.value);
+  const up=await sb.from('app_posters').update({poster_format:format,fit_mode:fit}).eq('id',id);
+  if(up.error){toast(up.error.message,'error');return}
+  toast('Poster size/display update हो गया।','success');
   await loadPosters();
 }
 
@@ -940,12 +1001,19 @@ async function loadPosters(){
   for(const p of rows){
     let img='';
     try{img=await posterPreviewUrl(p.image_key)}catch(_){}
+    const format=normalizePosterFormat(p.poster_format);
+    const fit=normalizePosterFit(p.fit_mode);
     cards.push(`<div class="item admin-delete-group">
       <div class="poster-admin-card">
-        ${img?`<img src="${img}" class="poster-admin-thumb" alt="">`:''}
+        ${img?`<div class="poster-admin-thumb-frame ${posterFormatClass(format)}"><img src="${img}" class="poster-admin-thumb poster-fit-${fit}" alt=""></div>`:''}
         <div class="poster-admin-info">
           <b>${esc(p.title||'Poster')}</b>
-          <div class="small muted">${p.is_active?'Active':'Inactive'} • Order ${p.sort_order||0}</div>
+          <div class="small muted">${p.is_active?'Active':'Inactive'} • Order ${p.sort_order||0} • ${posterFormatLabel(format)} • ${fit==='contain'?'Full Image':'Fill/Crop'}</div>
+          <div class="poster-admin-display-controls">
+            <label>Format<select id="poster_format_${p.id}">${posterFormatOptions(format)}</select></label>
+            <label>Display<select id="poster_fit_${p.id}">${posterFitOptions(fit)}</select></label>
+            <button class="btn btn-green btn-mini" onclick='updatePosterDisplay(${JSON.stringify(p.id)})'>💾 Save Size</button>
+          </div>
           <div class="row wrap" style="margin-top:8px">
             <button class="btn btn-blue btn-mini" onclick='togglePoster(${JSON.stringify(p.id)},${p.is_active})'>${p.is_active?'Deactivate':'Activate'}</button>
             <button class="btn btn-red btn-mini" onclick='deletePoster(${JSON.stringify(p.id)},${JSON.stringify(p.image_key)})'>🗑 Delete</button>

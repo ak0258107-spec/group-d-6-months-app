@@ -1,38 +1,24 @@
-GK BY PURUSHOTAM SIR — POSTER + APP ICON FINAL
+V12.16 POSTER SIZE / FULL IMAGE FIX — केवल ये काम करें
 
-APP ICON
-- Approved logo applied to icon-192.png, icon-512.png, apple-touch-icon.png and favicon.png.
-- Installed PWA name: GK BY PURUSHOTAM SIR.
+समस्या:
+पुराना poster box 2:1 और object-fit: cover था। इसलिए 16:9, A4 या portrait poster ऊपर/नीचे अथवा किनारों से कटता था।
 
-POSTER SYSTEM
-Admin > Posters:
-- Upload poster
-- Title
-- Optional click link
-- Optional start/end date
-- Active/Inactive
-- Sort order
-- Delete
+नया सिस्टम:
+1. Admin Poster panel में Poster Format चुनें:
+   - 16:9 Landscape
+   - A4 Portrait
+   - A4 Landscape
+   - Square 1:1
+   - Original / Auto Size
+2. Image Display में “Full Image — बिना कटे” default है।
+3. पुराने uploaded poster के सामने भी Format/Display बदलकर “Save Size” कर सकते हैं। दोबारा upload जरूरी नहीं।
+4. Student Home पर चुने हुए ratio में पूरा poster दिखेगा।
+5. Poster दबाने पर Full Screen खुलेगा; optional link अलग button से खुलेगा।
 
-Student Home:
-- Active posters appear in an automatic slider.
-- Poster click opens the optional link.
-- No poster means the section stays hidden.
-- Poster files are stored privately in Cloudflare R2.
+DEPLOYMENT:
+A. Supabase SQL Editor में updated RUN_THIS_POSTER_SYSTEM_ONCE.sql पूरा Run करें।
+   Success: V12.16 POSTER FORMAT SETUP SUCCESS
+B. फिर इस ZIP की सभी 99 files GitHub repository root में Upload/Replace करके Commit करें।
+C. App को hard refresh करें या installed PWA पूरी तरह बंद करके दोबारा खोलें।
 
-BEST POSTER SIZE
-Recommended: 1080 × 540 px (2:1)
-Also accepted: 1200 × 600 or 1600 × 800
-Minimum suggested: 800 × 400
-Format: JPG / PNG / WEBP
-Recommended file size: under 2 MB
-Maximum accepted by app: 5 MB
-
-SETUP
-1. Extract this ZIP and upload/replace all files in GitHub. Commit changes.
-2. In Supabase SQL Editor, run RUN_THIS_POSTER_SYSTEM_ONCE.sql once.
-3. In Cloudflare Worker group-d-pdf-api, replace code with CLOUDFLARE_WORKER_FINAL.js and Deploy.
-4. Ctrl+F5 after GitHub deployment.
-5. If Android still shows the old app icon, uninstall the old PWA and install it again.
-
-Existing PDF, verification, test, one-liner, delete and target systems are preserved.
+Cloudflare Worker, R2, Turso, Push Worker या Supabase Auth में कोई बदलाव नहीं करना है।

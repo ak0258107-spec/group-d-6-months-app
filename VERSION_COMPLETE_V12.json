@@ -1,13 +1,13 @@
 {
-  "version": "12.15.1",
+  "version": "12.16.0",
   "type": "complete-project",
   "files_expected": 99,
   "changes": [
-    "Install button is shown before installation and hidden immediately after successful PWA installation",
-    "Push notifications for public PDF, Mock Test, CBT Question/Topic, Daily Target, Class, One-Liner and Broadcast publish events",
-    "In-app notification unread count for automatic notifications",
-    "Student role redirect and first-time onboarding checks are preserved",
-    "Existing login, timetable, PDF verification, visibility and mock-test systems preserved"
+    "Admin-selectable poster formats: 16:9, A4 portrait, A4 landscape, square and original/auto",
+    "Full-image contain mode is the default so posters are not cropped",
+    "Existing posters can be resized from Admin without re-uploading",
+    "Student poster frame follows the selected ratio and opens a full-screen viewer",
+    "Existing login, push notifications, timetable, PDF verification, visibility and mock-test systems preserved"
   ],
-  "name": "Install Button and Push Notification Integration — Rechecked"
+  "name": "Responsive Poster Formats and Full-Screen Viewer"
 }
