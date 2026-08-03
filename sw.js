@@ -1,4 +1,4 @@
-const CACHE="group-d-6m-v12-20-simple-final";
+const CACHE="group-d-6m-v12-21-student-cbt-target-fix";
 const ASSETS=[
   "./","./index.html","./l4x8m2r7-k9v3t5n1-z6c4p8q2.html","./q9v3x7k2-r8m4p6t1-z5n7c2w9.html",
   "./r6p1w9k4-z8x2m7q5-v3n6c1t9.html","./admin-recovery.js","./s4n8v2k7-r1p6x9m3-c5t8q4z2.html","./student-recovery.js",

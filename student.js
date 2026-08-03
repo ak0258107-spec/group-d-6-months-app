@@ -1,7 +1,7 @@
 /* GK BY PURUSHOTAM SIR — V12.20 SIMPLE STUDENT APP */
-let user=null,profile=null,classes=[],materials=[],announcements=[],notificationRows=[],posterRows=[];
+let user=null,profile=null,classes=[],materials=[],announcements=[],notificationRows=[],posterRows=[],fiveDayTargets=[];
 let posterUrls=[],posterTimer=null,currentPoster=0;
-const STUDENT_TABS=['home','classes','classpdfs','otherpdfs','cbt','announcements','notifications','profile'];
+const STUDENT_TABS=['home','targets','classes','classpdfs','otherpdfs','cbt','announcements','notifications','profile'];
 function byId(id){return document.getElementById(id)}
 function localDateKey(date=new Date()){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return `${y}-${m}-${d}`}
 function tab(name,el){
@@ -34,11 +34,32 @@ async function init(){
   if(String(profile?.role||'student').toLowerCase()==='admin'){location.href='q9v3x7k2-r8m4p6t1-z5n7c2w9.html';return}
   if(profile?.is_active===false){await sb.auth.signOut();alert('आपका Student account Admin ने अभी Inactive किया हुआ है।');location.href='index.html';return}
   registerSW();initInstallUI('studentInstallBtn');initPushNotifications();
-  await Promise.all([loadClasses(),loadMaterials(),loadAnnouncements(),loadNotifications(),loadPosters()]);
+  await Promise.all([loadFiveDayTargets(),loadClasses(),loadMaterials(),loadAnnouncements(),loadNotifications(),loadPosters()]);
   renderProfile();renderHome();
   const requested=new URLSearchParams(location.search).get('tab');if(STUDENT_TABS.includes(requested))tab(requested);else tab('home');
   setInterval(()=>{renderClasses();renderHome()},60000);
   setInterval(()=>{if(document.visibilityState==='visible')loadNotifications()},30000);
+}
+
+async function loadFiveDayTargets(){
+  const host=byId('targetsBox');
+  const r=await sb.rpc('student_list_first_five_targets');
+  if(r.error){console.warn(r.error);fiveDayTargets=[];if(host)host.innerHTML=`<div class="student-empty">5-Day Target load नहीं हुआ: ${esc(r.error.message)}</div>`;return}
+  fiveDayTargets=r.data||[];renderFiveDayTargets();
+}
+function groupFiveDayTargets(){
+  const map=new Map();
+  fiveDayTargets.forEach(row=>{
+    const key=String(row.day_number||'');
+    if(!map.has(key))map.set(key,{day_number:row.day_number,day_date:row.day_date,items:[]});
+    if(row.target_id)map.get(key).items.push(row);
+  });
+  return [...map.values()].sort((a,b)=>Number(a.day_number)-Number(b.day_number));
+}
+function renderFiveDayTargets(){
+  const host=byId('targetsBox');if(!host)return;
+  const days=groupFiveDayTargets();
+  host.innerHTML=days.map(day=>`<article class="five-day-card"><div class="five-day-head"><span>DAY ${Number(day.day_number||0)}</span><b>${esc(fmtDate(day.day_date||''))}</b></div>${day.items.length?day.items.map(item=>`<div class="five-day-item"><div><b>${esc(item.subject||'Target')}</b><span>${esc(item.topic||item.class_title||'')}</span></div>${item.youtube_url?`<a class="btn btn-blue btn-mini" href="${esc(item.youtube_url)}" target="_blank" rel="noopener">Class</a>`:''}</div>`).join(''):'<div class="student-empty compact">इस Day का content अभी नहीं जोड़ा गया है।</div>'}</article>`).join('')||'<div class="student-empty">पहले 5 दिनों का Target अभी उपलब्ध नहीं है।</div>';
 }
 
 async function loadClasses(){
@@ -133,7 +154,8 @@ function renderHome(){
   const latestPdfs=materials.slice(0,4),latestMessage=announcements[0];
   byId('homeBox').innerHTML=`
     ${latestMessage?`<div class="home-important-message"><b>📣 ${esc(latestMessage.title)}</b><p>${esc(latestMessage.message)}</p><button class="btn btn-light btn-mini" onclick="tab('announcements')">सभी संदेश देखें</button></div>`:''}
-    <div class="home-quick-grid"><button onclick="tab('classes')"><span>▶</span><b>Classes</b><small>${classes.length} available</small></button><button onclick="tab('classpdfs')"><span>📘</span><b>Class PDFs</b><small>${materials.filter(x=>(x.pdf_type||'class')==='class').length} PDFs</small></button><button onclick="tab('otherpdfs')"><span>📄</span><b>Other PDFs</b><small>${materials.filter(x=>x.pdf_type==='direct').length} PDFs</small></button><button onclick="tab('cbt')"><span>🖥</span><b>CBT Tests</b><small>Start Test</small></button></div>
+    <div class="home-quick-grid"><button onclick="tab('targets')"><span>🎯</span><b>5-Day Target</b><small>${groupFiveDayTargets().length} Days</small></button><button onclick="tab('classes')"><span>▶</span><b>Classes</b><small>${classes.length} available</small></button><button onclick="tab('classpdfs')"><span>📘</span><b>Class PDFs</b><small>${materials.filter(x=>(x.pdf_type||'class')==='class').length} PDFs</small></button><button onclick="tab('otherpdfs')"><span>📄</span><b>Other PDFs</b><small>${materials.filter(x=>x.pdf_type==='direct').length} PDFs</small></button><button onclick="tab('cbt')"><span>🖥</span><b>CBT Tests</b><small>Start Test</small></button></div>
+    <div class="home-block"><div class="home-block-head"><h2>पहले 5 दिनों का Target</h2><button onclick="tab('targets')">View All</button></div>${groupFiveDayTargets().slice(0,5).map(day=>`<div class="home-row"><div><b>Day ${Number(day.day_number||0)}</b><small>${esc(fmtDate(day.day_date||''))} • ${day.items.length} Target</small></div><span class="badge badge-green">Available</span></div>`).join('')||'<div class="student-empty compact">Target अभी उपलब्ध नहीं है।</div>'}</div>
     <div class="home-block"><div class="home-block-head"><h2>आने वाली Classes</h2><button onclick="tab('classes')">View All</button></div>${upcoming.length?upcoming.map(x=>{const s=effectiveClassStatus(x),dt=classDateTime(x);return `<div class="home-row"><div><b>${esc(x.class_title||x.topic)}</b><small>${esc(fmtDate(dt.date))} • ${esc(dt.time)}</small></div><span class="badge ${classBadge(s)}">${esc(statusLabel(s))}</span></div>`}).join(''):'<div class="student-empty compact">अभी कोई upcoming Class नहीं है।</div>'}</div>
     <div class="home-block"><div class="home-block-head"><h2>नई PDFs</h2></div>${latestPdfs.length?latestPdfs.map(x=>`<div class="home-row"><div><b>${esc(x.title)}</b><small>${(x.pdf_type||'class')==='class'?'Class PDF':'Other PDF'}</small></div><button class="btn btn-blue btn-mini" onclick='readPdf(${JSON.stringify(x.id)},${JSON.stringify(x.storage_path||"")},${JSON.stringify(x.title||"PDF")})'>Open</button></div>`).join(''):'<div class="student-empty compact">अभी कोई PDF नहीं है।</div>'}</div>`;
 }
