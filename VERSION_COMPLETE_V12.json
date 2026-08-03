@@ -1,14 +1,17 @@
 {
-  "version": "12.17.0",
+  "version": "12.18.0",
   "type": "complete-project",
-  "files_expected": 99,
+  "release_name": "Clean Class PDF Flow, Direct PDF Tab and CBT One-Click Publish",
   "changes": [
-    "CBT parser no longer counts correct-answer lines as separate one-liner questions",
-    "Ten MCQ layouts including matching, statement, assertion-reason, code and chronology are parsed safely",
-    "Student difficulty is strict: Easy, Normal or Tough never auto-falls back to mixed/all",
-    "Student PDF library uses explicit study_materials target foreign-key relation",
-    "Student-facing database/SQL error instructions removed",
-    "Previous V12.16 poster, push, visibility, timetable and verification systems preserved"
+    "CBT Topic Show to Students now automatically shows all active questions in that topic",
+    "Removed the requirement to publish at least one question separately before publishing a CBT topic",
+    "Class setup now has explicit PDF Verification Yes/No, question count and passing percentage controls",
+    "Class PDFs fail closed when verification is enabled but the configured number of questions is not ready",
+    "Class PDF upload copies the saved class verification setup and keeps PDF download mock test optional",
+    "Added a separate Direct PDF tab for PDFs without class verification or mock test",
+    "Student PDF Library is separated into Class PDFs and Direct PDFs",
+    "Direct PDFs are excluded from daily target completion logic",
+    "R2 PDF download checks verification before reporting a mock-test lock"
   ],
-  "name": "CBT Ten-Format Parser, Strict Difficulty and Student PDF Relation Fix"
+  "required_migration": "RUN_ONLY_THIS_V12_18_FINAL_PDF_AND_CBT_FIX_ONCE.sql"
 }

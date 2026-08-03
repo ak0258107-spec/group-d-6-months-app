@@ -6,9 +6,9 @@
     <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=12.16.0"></script>
-    <script src="common.js?v=12.16.0"></script>
-    <script src="cbt-topics-data.js?v=12.16.0"></script>
+    <script src="config.js?v=12.18.0"></script>
+    <script src="common.js?v=12.18.0"></script>
+    <script src="cbt-topics-data.js?v=12.18.0"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -790,7 +790,7 @@
                 <div class="fixed-catalog-note">
                     सभी Subjects और Topics पहले से fixed हैं। नया Subject Name, Subject Key या Topic list बनाने की जरूरत नहीं है।
                     पहले Subject चुनें, फिर उसके नीचे Topic चुनें और उसी Topic के Questions upload करें।
-                    Questions upload होने के बाद Questions Draft/Hidden रहेंगे। पहले Question Manager में Questions Show करें, फिर Topic के सामने <b>Show to Students</b> टिक करके <b>Save</b> करें।
+                    Questions upload होने के बाद वे Draft/Hidden रहेंगे। Topic के सामने <b>Show to Students</b> टिक करके <b>Save</b> करते ही उस Topic के सभी active Questions अपने-आप Students को उपलब्ध हो जाएँगे।
                 </div>
 
                 <div class="catalog-step-title">1. Subject चुनें</div>
@@ -879,7 +879,7 @@
                     </div>
                     <div>
                         <label>Student Visibility</label>
-                        <div class="help">Questions upload होने के बाद वे अपने-आप Live नहीं होंगे। Question Manager में Questions Show करें और फिर Topic के सामने <b>Show to Students</b> Save करें।</div>
+                        <div class="help">Questions upload होने के बाद Topic के सामने <b>Show to Students</b> टिक करके <b>Save</b> करें। उसी समय उस Topic के सभी active Questions अपने-आप Live हो जाएँगे।</div>
                     </div>
                 </div>
 
@@ -902,7 +902,7 @@
                 <br>
 
                 <textarea id="questionsBox" placeholder="यहाँ selected Subject/Topic के questions paste करें..."></textarea>
-                <div class="help" style="margin-top:10px">10 MCQ formats accepted (V12.17 parser): सामान्य MCQ, क/ख/ग/घ, कथन–निष्कर्ष, कथन-1/2, Assertion–Reason, मिलान, सही कूट, कालानुक्रम, रिक्त स्थान और Odd One Out। सभी में 4 options और सही उत्तर जरूरी हैं।</div>
+                <div class="help" style="margin-top:10px">10 MCQ formats accepted: सामान्य MCQ, क/ख/ग/घ, कथन–निष्कर्ष, कथन-1/2, Assertion–Reason, मिलान, सही कूट, कालानुक्रम, रिक्त स्थान और Odd One Out। सभी में 4 options और सही उत्तर जरूरी हैं।</div>
 
                 <div class="btn-row">
                     <button type="button" class="blue" onclick="validateQuestions()">Validate Questions</button>
@@ -1632,12 +1632,6 @@ Topic सुरक्षित है। अब आप इसी Topic में
                 setStatus("इस Topic में Active MCQ नहीं है। पहले Questions upload करें।", "err", true);
                 return;
             }
-            if (visible && Number(visibleQuestionCountMap[topicKey]||0) < 1) {
-                if (checkbox) checkbox.checked = false;
-                setStatus("पहले Question Manager में कम से कम एक Question को Show to Students करके Save करें।", "err", true);
-                return;
-            }
-
             try {
                 setStatus(`${topic.topic_name}: Visibility save हो रही है...`, "info", true);
                 const response = await fetch(`${API_BASE_URL}/admin/topic-visibility`, {
@@ -1654,13 +1648,14 @@ Topic सुरक्षित है। अब आप इसी Topic में
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data.success) throw new Error(data.message || data.error || "Visibility save failed.");
                 topicVisibilityMap[topicKey] = visible;
+                visibleQuestionCountMap[topicKey] = visible ? count : 0;
                 if(visible)await createCbtPublishNotification('🖥 CBT Topic उपलब्ध',`${FIXED_SUBJECT_NAME} → ${topic.topic_name} अब Mock Test में उपलब्ध है।`,topicKey);
                 renderTopics();
                 updateSelectedTopicUI();
                 renderQuestionCountBoard();
                 setStatus(
                     visible
-                        ? `${FIXED_SUBJECT_NAME} → ${topic.topic_name} अब बच्चों के Mock Test में दिखाई देगा ✅`
+                        ? `${FIXED_SUBJECT_NAME} → ${topic.topic_name} अब बच्चों के Mock Test में दिखाई देगा ✅\nसभी active Questions अपने-आप Show हो गए।`
                         : `${FIXED_SUBJECT_NAME} → ${topic.topic_name} अब Draft/Hidden है। बच्चों को नहीं दिखेगा।`,
                     "ok",
                     true
@@ -1739,131 +1734,115 @@ Topic सुरक्षित है। अब आप इसी Topic में
 
         function insertSampleFormat() {
             questionsBox.value =
-`प्रश्न 1. भारत की राजधानी क्या है?
-(A) दिल्ली
-(B) मुंबई
-(C) जयपुर
-(D) पटना
+`प्रश्न 1. हरियाणा राज्य का गठन कब हुआ?
+(A) 1 नवम्बर 1966
+(B) 1 नवम्बर 1967
+(C) 15 अगस्त 1947
+(D) 26 जनवरी 1950
 सही उत्तर: (A)
-व्याख्या: नई दिल्ली भारत की राजधानी है।
+व्याख्या: सही विकल्प A है।
 
----
-
-प्रश्न 2. हरियाणा का गठन कब हुआ?
-(क) 1 नवंबर 1966
-(ख) 1 नवंबर 1956
-(ग) 26 जनवरी 1950
-(घ) 15 अगस्त 1947
-उत्तर: क
-व्याख्या: हरियाणा 1 नवंबर 1966 को बना।
-
----
-
-प्रश्न 3. कथन: सभी A, B हैं। कुछ B, C हैं।
-निष्कर्ष-I: कुछ A, C हैं।
-निष्कर्ष-II: कुछ C, B हैं।
-(A) केवल I
-(B) केवल II
-(C) I और II
-(D) कोई नहीं
-सही उत्तर: (B)
-व्याख्या: दूसरा निष्कर्ष कथन से सीधे सिद्ध है।
-
----
-
-प्रश्न 4. कथन-1: पृथ्वी सूर्य की परिक्रमा करती है।
-कथन-2: पृथ्वी अपने अक्ष पर घूमती है।
-(A) केवल कथन-1 सही
-(B) केवल कथन-2 सही
-(C) दोनों सही
-(D) दोनों गलत
-उत्तर: C
-व्याख्या: दोनों कथन सही हैं।
-
----
-
-प्रश्न 5. अभिकथन (A): पौधे प्रकाश संश्लेषण करते हैं।
-कारण (R): उनमें क्लोरोफिल होता है।
-(A) A और R सही तथा R सही व्याख्या है
-(B) A और R सही, पर R सही व्याख्या नहीं
-(C) A सही, R गलत
-(D) A गलत, R सही
-सही उत्तर: A
-व्याख्या: क्लोरोफिल प्रकाश ऊर्जा ग्रहण करता है।
-
----
-
-प्रश्न 6. सूची-I को सूची-II से मिलाइए—
-सूची-I
-1. ऋग्वेद
-2. सामवेद
-3. यजुर्वेद
-4. अथर्ववेद
-सूची-II
-a. मंत्र
-b. संगीत
-c. यज्ञ
-d. उपचार
-सही कूट चुनिए—
-(A) 1-a, 2-b, 3-c, 4-d
-(B) 1-b, 2-a, 3-d, 4-c
-(C) 1-c, 2-d, 3-a, 4-b
-(D) 1-d, 2-c, 3-b, 4-a
-सही उत्तर: (A) 1-a, 2-b, 3-c, 4-d
-व्याख्या: यही सही मिलान है।
-
----
-
-प्रश्न 7. नीचे दिए गए कूट से सही उत्तर चुनिए।
-1. कथन एक सही है।
-2. कथन दो सही है।
-(A) केवल 1
-(B) केवल 2
-(C) 1 और 2
-(D) कोई नहीं
-उत्तर: C
-व्याख्या: दोनों कथन सही हैं।
-
----
-
-प्रश्न 8. निम्न घटनाओं का सही कालानुक्रम चुनिए।
-1. घटना A
-2. घटना B
-3. घटना C
-4. घटना D
-(A) 1-2-3-4
-(B) 2-1-4-3
-(C) 3-2-1-4
-(D) 4-3-2-1
-सही उत्तर: A
-व्याख्या: घटनाओं का क्रम 1-2-3-4 है।
-
----
-
-प्रश्न 9. हरियाणा की राजधानी ______ है।
-(A) चंडीगढ़
-(B) गुरुग्राम
-(C) रोहतक
-(D) हिसार
-उत्तर: A
+प्रश्न 2. हरियाणा की राजधानी कौन-सी है?
+(क) चंडीगढ़
+(ख) रोहतक
+(ग) हिसार
+(घ) करनाल
+उत्तर: (क)
 व्याख्या: चंडीगढ़ हरियाणा की राजधानी है।
 
----
+प्रश्न 3. कथन पर विचार कीजिए।
+कथन 1: हरियाणा का गठन 1966 में हुआ।
+कथन 2: चंडीगढ़ इसकी राजधानी है।
+(A) केवल कथन 1 सही है
+(B) केवल कथन 2 सही है
+(C) दोनों कथन सही हैं
+(D) दोनों कथन गलत हैं
+सही उत्तर: (C)
+व्याख्या: दोनों कथन सही हैं।
 
-प्रश्न 10. निम्न में से असंगत चुनिए।
-(A) आम
-(B) केला
-(C) आलू
-(D) सेब
-सही उत्तर: C
-व्याख्या: आलू सब्जी है, बाकी फल हैं।`;
+प्रश्न 4. नीचे दिए कथन और निष्कर्ष पर विचार कीजिए।
+कथन: सभी जिलों का प्रशासन जिला स्तर पर संचालित होता है।
+निष्कर्ष I: प्रत्येक जिले का प्रशासनिक महत्त्व है।
+निष्कर्ष II: सभी जिले क्षेत्रफल में समान हैं।
+(A) केवल निष्कर्ष I निकलता है
+(B) केवल निष्कर्ष II निकलता है
+(C) दोनों निकलते हैं
+(D) कोई नहीं निकलता
+उत्तर: A
+व्याख्या: केवल निष्कर्ष I उचित है।
+
+प्रश्न 5. अभिकथन (A): हरियाणा कृषि प्रधान राज्य है।
+कारण (R): राज्य में सिंचाई के साधन उपलब्ध हैं।
+(A) A और R दोनों सही हैं तथा R, A की सही व्याख्या है
+(B) A और R दोनों सही हैं, पर R सही व्याख्या नहीं है
+(C) A सही है, R गलत है
+(D) A गलत है, R सही है
+सही उत्तर: (B)
+व्याख्या: दोनों सही हैं, पर कारण पूर्ण व्याख्या नहीं है।
+
+प्रश्न 6. सूची-I का सूची-II से मिलान कीजिए-
+सूची-I
+1. कुरुक्षेत्र
+2. पानीपत
+3. हिसार
+4. रोहतक
+सूची-II
+a. ऐतिहासिक युद्ध
+b. धार्मिक क्षेत्र
+c. पश्चिमी हरियाणा
+ d. मध्य हरियाणा
+सही कूट चुनिए-
+(A) 1-b, 2-a, 3-c, 4-d
+(B) 1-a, 2-b, 3-d, 4-c
+(C) 1-c, 2-d, 3-a, 4-b
+(D) 1-d, 2-c, 3-b, 4-a
+सही उत्तर: (A) 1-b, 2-a, 3-c, 4-d
+व्याख्या: यही सही मिलान है।
+
+प्रश्न 7. निम्न घटनाओं को कालानुक्रम में लगाइए-
+1. प्रथम पानीपत युद्ध
+2. द्वितीय पानीपत युद्ध
+3. तृतीय पानीपत युद्ध
+4. हरियाणा राज्य गठन
+(A) 1-2-3-4
+(B) 2-1-3-4
+(C) 3-2-1-4
+(D) 4-1-2-3
+उत्तर: (A)
+व्याख्या: यही सही कालक्रम है।
+
+प्रश्न 8. हरियाणा का गठन ____ को हुआ।
+(A) 1 नवम्बर 1966
+(B) 1 नवम्बर 1965
+(C) 1 नवम्बर 1967
+(D) 1 नवम्बर 1968
+सही उत्तर: A
+व्याख्या: रिक्त स्थान में 1 नवम्बर 1966 आएगा।
+
+प्रश्न 9. नीचे दिए कूट की सहायता से सही विकल्प चुनिए-
+कथन 1: हरियाणा उत्तर भारत में स्थित है।
+कथन 2: हरियाणा की समुद्री सीमा है।
+(A) केवल 1 सही
+(B) केवल 2 सही
+(C) दोनों सही
+(D) दोनों गलत
+उत्तर: (A)
+व्याख्या: केवल पहला कथन सही है।
+
+प्रश्न 10. निम्न में से विषम चुनिए-
+(A) गुरुग्राम
+(B) फरीदाबाद
+(C) हिसार
+(D) दिल्ली
+सही उत्तर: (D) दिल्ली
+व्याख्या: दिल्ली हरियाणा का जिला नहीं है।`;
 
             lastValidation = null;
             setStats({ found: 0, valid: 0, inserted: 0, duplicate: 0, errors: 0, dummy: 0 });
             showErrors([]);
             hidePreview();
             refreshUploadButton();
-            setStatus("10 MCQ formats का tested sample डाल दिया गया है। पहले Validate करें।", "info");
+            setStatus("10 MCQ formats का sample डाल दिया गया है। पहले Validate करें।", "info");
         }
 
         function clearBox() {
@@ -2003,8 +1982,10 @@ d. उपचार
         function isQuestionStartLine(line, currentLines, currentHasAnswer) {
             const text = clean(line);
 
+            // Explicit प्रश्न/Q marker always means a new real question.
+            // This prevents a missing/invalid answer in one question from merging the next question into it.
             if (/^(प्रश्न|Question|Que|Q)\s*[\d०-९]*\s*[\.\):：\-]?\s*/i.test(text)) {
-                return currentLines.length === 0 || currentHasAnswer;
+                return true;
             }
 
             if (/^\d+\s*[\.\)]\s+/.test(text)) {
@@ -2155,13 +2136,14 @@ d. उपचार
         }
 
         function splitInlineOneLiner(line) {
-            const raw = clean(line);
+            const original = clean(line);
 
-            // Answer / explanation lines belong to the previous MCQ.
-            // Earlier "सही उत्तर: (B)..." was incorrectly counted as a new one-liner.
-            if (!raw || isAnswerLine(raw) || isExplanationLine(raw)) return null;
+            // Answer/explanation/option/statement lines must never become a separate one-liner question.
+            if (!original || isAnswerLine(original) || isExplanationLine(original) || getOptionMatch(original) || isProtectedStatementLine(original)) {
+                return null;
+            }
 
-            const text = cleanQuestionStart(raw);
+            const text = cleanQuestionStart(original);
             const match = text.match(/^(.+?)\s*(?:—|-|–|:)?\s*(?:उत्तर|Answer|Ans|जवाब)\s*[:：\-]\s*(.+)$/i);
 
             if (!match || !clean(match[1]) || !clean(match[2])) return null;
@@ -2214,28 +2196,30 @@ d. उपचार
                     return;
                 }
 
-                // IMPORTANT FIX:
-                // Inline one-liners such as
-                // 1. प्रश्न? — उत्तर: जवाब
-                // must be counted line-by-line. Earlier they were merging together,
-                // so 150 one-liners could show only 12 found/valid.
-                if (splitInlineOneLiner(text)) {
-                    pushBlock();
-                    blocks.push([text]);
-                    current = [];
-                    currentHasAnswer = false;
+                // Answer lines belong to the current MCQ. They must be checked before
+                // inline one-liners; otherwise "सही उत्तर: (B)..." was counted as a new question.
+                if (isAnswerLine(text)) {
+                    current.push(text);
+                    currentHasAnswer = true;
                     return;
                 }
 
-                if (isQuestionStartLine(text, current, currentHasAnswer) && current.length > 0 && currentHasAnswer) {
+                // Inline one-liners such as "1. प्रश्न? — उत्तर: जवाब" are counted line-by-line.
+                const inlineOneLiner = splitInlineOneLiner(text);
+                if (inlineOneLiner) {
+                    pushBlock();
+                    blocks.push([text]);
+                    return;
+                }
+
+                // An explicit प्रश्न/Q marker starts the next question even when the previous
+                // question has an answer-format error. Numbered sub-lists inside matching questions
+                // do not use this explicit marker, so they remain inside the same block.
+                if (isQuestionStartLine(text, current, currentHasAnswer) && current.length > 0) {
                     pushBlock();
                 }
 
                 current.push(text);
-
-                if (isAnswerLine(text)) {
-                    currentHasAnswer = true;
-                }
             });
 
             pushBlock();
@@ -2245,13 +2229,21 @@ d. उपचार
         function parseOneQuestionBlock(lines, number) {
             const questionLines = [];
             const options = ["", "", "", ""];
+
+            // In matching questions, List-II is often written as a./b./c./d. and the actual
+            // answer choices later appear as (A)/(B)/(C)/(D) or क/ख/ग/घ. Preserve the lower-case
+            // list inside the question instead of wrongly treating it as the four MCQ options.
+            const explicitUpperOrHindiOptionCount = lines.filter((line) => {
+                const text = clean(line);
+                return /^(?:\(\s*[A-D]\s*\)|[A-D]\s*[\.\):：\-]|\(\s*[कखगघ]\s*\)|[कखगघ]\s*[\.\):：\-])\s*/.test(text);
+            }).length;
+            const hasSeparateMatchingCodeOptions = explicitUpperOrHindiOptionCount >= 4;
             const errors = [];
             let answerRaw = "";
             let answerIndex = -1;
             let explanationLines = [];
             let mode = "question";
             let oneLinerDetected = false;
-            let inMatchingList = false;
 
             lines.forEach(line => {
                 const text = clean(line);
@@ -2276,26 +2268,6 @@ d. उपचार
                     return;
                 }
 
-                if (/^(?:सूची|List)\s*[-–—]?\s*(?:I|II|1|2|१|२)\b/i.test(text)) {
-                    inMatchingList = true;
-                    questionLines.push(text);
-                    mode = "question";
-                    return;
-                }
-
-                if (inMatchingList && /^(?:सही\s*कूट|कूट\s*चुनिए|नीचे\s*दिए\s*गए\s*कूट|Select\s+the\s+correct\s+code)/i.test(text)) {
-                    inMatchingList = false;
-                    questionLines.push(text);
-                    mode = "question";
-                    return;
-                }
-
-                if (inMatchingList && /^(?:[1-9०-९]+|[a-d])\s*[\.\)\-:]\s*.+/i.test(text)) {
-                    questionLines.push(text);
-                    mode = "question";
-                    return;
-                }
-
                 if (isExplanationLine(text)) {
                     const expText = text.replace(
                         new RegExp("^\\s*" + EXPLANATION_PREFIX_PATTERN + "\\s*[:：\\-\\.]\\s*", "i"),
@@ -2307,6 +2279,13 @@ d. उपचार
                     }
 
                     mode = "explanation";
+                    return;
+                }
+
+                // Preserve a./b./c./d. matching-list entries when a separate A-D/क-घ code set exists.
+                if (hasSeparateMatchingCodeOptions && /^[a-d]\s*[\.\):：\-]\s*/.test(text)) {
+                    questionLines.push(text);
+                    mode = "question";
                     return;
                 }
 
@@ -2434,6 +2413,8 @@ d. उपचार
                    text.includes("चौथा विकल्प");
         }
 
+        const CBT_PARSER_VERSION = "12.18.0-10-format-strict";
+
         function parseQuestionsFromBox() {
             const rawText = questionsBox.value;
             const blocks = splitIntoQuestionBlocks(rawText);
@@ -2444,9 +2425,7 @@ d. उपचार
             let dummy = 0;
 
             blocks.forEach((block, index) => {
-                const sourceLabelMatch = clean(block[0] || "").match(/^(?:प्रश्न|Question|Que|Q)?\s*([0-9०-९]+)\s*[\.\):：\-]?/i);
-                const sourceLabel = sourceLabelMatch ? sourceLabelMatch[1] : String(index + 1);
-                const parsed = parseOneQuestionBlock(block, sourceLabel);
+                const parsed = parseOneQuestionBlock(block, index + 1);
 
                 if (!parsed.ok) {
                     errors.push(...parsed.errors);
@@ -2742,7 +2721,7 @@ d. उपचार
                 await loadQuestionCounts(true);
 
                 setStatus(
-                    `Upload Complete ✅\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nInserted: ${totalInserted}\nDuplicate: ${totalDuplicate}\nDummy skipped: ${totalDummy}\nErrors: ${allErrors.length}\n\nQuestions Draft/Hidden में सुरक्षित हैं। पहले Question Manager में Show करें, फिर Topic Visibility Save करें।`,
+                    `Upload Complete ✅\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nInserted: ${totalInserted}\nDuplicate: ${totalDuplicate}\nDummy skipped: ${totalDummy}\nErrors: ${allErrors.length}\n\nQuestions Draft/Hidden में सुरक्षित हैं। Students को भेजने के लिए Topic के सामने Show to Students टिक करके Save करें।`,
                     totalInserted > 0 ? "ok" : "err",
                     true
                 );

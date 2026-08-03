@@ -1,126 +1,44 @@
-GK BY PURUSHOTAM SIR — V12.17 CBT PARSER + PDF FIX
+GK BY PURUSHOTAM SIR — FINAL AUDITED ADMIN LOGIN FIX
 
-मुख्य सुधार
-1. 300 प्रश्न अब लगभग 600 Found नहीं दिखाएँगे। "सही उत्तर:" line उसी प्रश्न का उत्तर मानी जाएगी।
-2. मिलान प्रश्न में सूची-II की a/b/c/d lines विकल्प नहीं मानी जाएँगी।
-3. Student PDF query में explicit foreign-key relation इस्तेमाल की गई है; बच्चों को SQL error नहीं दिखेगा।
-4. Mock Test difficulty strict है: Easy चुनने पर केवल Easy, Normal पर केवल Normal, Tough पर केवल Tough। कोई automatic All/fallback नहीं।
+इस ZIP में:
+- Hidden Admin URL बना रहेगा:
+  vault-gk-6m-q7v9x2p4-k8r3.html
+- Admin Login अब Mobile Number स्वीकार नहीं करेगा।
+- केवल Supabase Authentication में registered पूरा Admin Email स्वीकार होगा।
+- Login के बाद profiles.role = admin check होगा।
+- उसके बाद Extra Cloudflare ADMIN_PANEL_PASSWORD पूछा जाएगा।
+- Verification Questions Admin Panel में दिखेंगे।
+- Single Question, Target के सभी Questions और All Verification delete controls रहेंगे।
+- Poster delete, Broadcast delete और red Logout वाला system सुरक्षित रहेगा।
 
-10 SUPPORTED UPLOAD FORMATS
+ADMIN LOGIN का सही क्रम:
+1. Hidden Admin URL खोलें।
+2. Supabase में registered Admin Email डालें।
+3. उसी Admin account का Supabase Login Password डालें।
+4. Continue दबाएँ।
+5. फिर Cloudflare वाला Extra Admin Panel Password डालें।
+6. Admin Panel खुलेगा।
 
-1) सामान्य MCQ
-प्रश्न 1. भारत की राजधानी क्या है?
-(A) दिल्ली
-(B) मुंबई
-(C) जयपुर
-(D) पटना
-सही उत्तर: (A)
-व्याख्या: नई दिल्ली भारत की राजधानी है।
+SUPABASE में केवल यह नई SQL file एक बार Run करें:
+RUN_ONLY_THIS_FINAL_FIX_ONCE.sql
 
-2) क/ख/ग/घ
-प्रश्न 2. हरियाणा का गठन कब हुआ?
-(क) 1 नवंबर 1966
-(ख) 1 नवंबर 1956
-(ग) 26 जनवरी 1950
-(घ) 15 अगस्त 1947
-उत्तर: क
-व्याख्या: हरियाणा 1 नवंबर 1966 को बना।
+पुरानी SQL files दोबारा Run नहीं करनी हैं।
 
-3) कथन–निष्कर्ष
-प्रश्न 3. कथन: सभी A, B हैं। कुछ B, C हैं।
-निष्कर्ष-I: कुछ A, C हैं।
-निष्कर्ष-II: कुछ C, B हैं।
-(A) केवल I
-(B) केवल II
-(C) I और II
-(D) कोई नहीं
-सही उत्तर: (B)
-व्याख्या: दूसरा निष्कर्ष कथन से सीधे सिद्ध है।
+CLOUDFLARE:
+- यदि नया CLOUDFLARE_WORKER_FINAL.js पहले ही Deploy कर चुके हैं और
+  ADMIN_PANEL_PASSWORD secret मौजूद है, तो Worker दोबारा बदलने की जरूरत नहीं।
+- /admin/panel-login route और ADMIN_PANEL_PASSWORD इस ZIP में मौजूद हैं।
 
-4) कथन 1/2
-प्रश्न 4. कथन-1: पृथ्वी सूर्य की परिक्रमा करती है।
-कथन-2: पृथ्वी अपने अक्ष पर घूमती है।
-(A) केवल कथन-1 सही
-(B) केवल कथन-2 सही
-(C) दोनों सही
-(D) दोनों गलत
-उत्तर: C
-व्याख्या: दोनों कथन सही हैं।
+GITHUB:
+1. ZIP Extract करें।
+2. सभी files repository root में replace/upload करें।
+3. Commit करें।
+4. 2–3 मिनट बाद Ctrl+F5 करें।
+5. Installed PWA पुरानी cache दिखाए तो app/browser बंद करके दोबारा खोलें।
 
-5) Assertion–Reason
-प्रश्न 5. अभिकथन (A): पौधे प्रकाश संश्लेषण करते हैं।
-कारण (R): उनमें क्लोरोफिल होता है।
-(A) A और R सही तथा R सही व्याख्या है
-(B) A और R सही, पर R सही व्याख्या नहीं
-(C) A सही, R गलत
-(D) A गलत, R सही
-सही उत्तर: A
-व्याख्या: क्लोरोफिल प्रकाश ऊर्जा ग्रहण करता है।
+ADMIN CHECK:
+Supabase -> Authentication -> Users:
+- आपका Admin Email मौजूद होना चाहिए।
 
-6) मिलान
-प्रश्न 6. सूची-I को सूची-II से मिलाइए—
-सूची-I
-1. ऋग्वेद
-2. सामवेद
-3. यजुर्वेद
-4. अथर्ववेद
-सूची-II
-a. मंत्र
-b. संगीत
-c. यज्ञ
-d. उपचार
-सही कूट चुनिए—
-(A) 1-a, 2-b, 3-c, 4-d
-(B) 1-b, 2-a, 3-d, 4-c
-(C) 1-c, 2-d, 3-a, 4-b
-(D) 1-d, 2-c, 3-b, 4-a
-सही उत्तर: (A) 1-a, 2-b, 3-c, 4-d
-व्याख्या: यही सही मिलान है।
-
-7) Code-based / सही कूट
-प्रश्न 7. नीचे दिए गए कूट से सही उत्तर चुनिए।
-1. कथन एक सही है।
-2. कथन दो सही है।
-(A) केवल 1
-(B) केवल 2
-(C) 1 और 2
-(D) कोई नहीं
-उत्तर: C
-व्याख्या: दोनों कथन सही हैं।
-
-8) कालानुक्रम
-प्रश्न 8. निम्न घटनाओं का सही कालानुक्रम चुनिए।
-1. घटना A
-2. घटना B
-3. घटना C
-4. घटना D
-(A) 1-2-3-4
-(B) 2-1-4-3
-(C) 3-2-1-4
-(D) 4-3-2-1
-सही उत्तर: A
-व्याख्या: घटनाओं का क्रम 1-2-3-4 है।
-
-9) रिक्त स्थान
-प्रश्न 9. हरियाणा की राजधानी ______ है।
-(A) चंडीगढ़
-(B) गुरुग्राम
-(C) रोहतक
-(D) हिसार
-उत्तर: A
-व्याख्या: चंडीगढ़ हरियाणा की राजधानी है।
-
-10) Odd One Out
-प्रश्न 10. निम्न में से असंगत चुनिए।
-(A) आम
-(B) केला
-(C) आलू
-(D) सेब
-सही उत्तर: C
-व्याख्या: आलू सब्जी है, बाकी फल हैं।
-
-महत्वपूर्ण
-- एक batch upload पर Admin में चुनी गई Difficulty सभी प्रश्नों में save होगी।
-- Upload के बाद Questions hidden रहेंगे; Show to Students करने पर ही बच्चे देखेंगे।
-- Cloudflare में केवल CLOUDFLARE_MOCK_TEST_WORKER.js replace करके Deploy करें।
-- Supabase में इस version के लिए कोई नई SQL जरूरी नहीं है।
+Supabase -> Table Editor -> profiles:
+- उसी user id की row में role = admin होना चाहिए।

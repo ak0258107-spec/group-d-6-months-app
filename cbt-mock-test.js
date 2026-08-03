@@ -1,3 +1,4 @@
+const CBT_DIFFICULTY_FILTER_VERSION = "12.18.0-strict";
 // V12.6: Student dropdown shows only Admin-published topics that contain active MCQ questions.
 const API_BASE_URL = String((window.APP_CONFIG && window.APP_CONFIG.MOCK_TEST_API_URL) || "https://exam-arena-api-live.ak0258107.workers.dev/api").replace(/\/+$/, "");
 
@@ -463,7 +464,7 @@ function renderTopics() {
 
 function getSelectedDifficulty() {
     const select = byId("difficultySelect");
-    return select ? clean(select.value || "all") : "all";
+    return select ? clean(select.value || "") : "";
 }
 
 function getSelectedTopicKeysForDifficulty() {
@@ -477,45 +478,48 @@ function getSelectedDifficultyTotal(difficulty) {
 
 function renderDifficultyOptions() {
     const select = byId("difficultySelect");
-
     if (!select) return;
 
-    const oldValue = clean(select.value || "normal");
+    const oldValue = clean(select.value || "");
     const hasSelectedTopic = getSelectedTopicKeysForDifficulty().length > 0;
-
-    const difficultyItems = [
+    const allDifficulties = [
         { value: "easy", name: "Easy" },
         { value: "normal", name: "Normal" },
         { value: "tough", name: "Tough" }
-    ].map((item) => {
-        const count = hasSelectedTopic && countsLoaded ? getSelectedDifficultyTotal(item.value) : 0;
-        return { ...item, count };
-    });
+    ];
 
-    let nextValue = oldValue;
+    // Students must see only those difficulty levels that actually contain visible questions
+    // for every selected topic. Zero-question levels are removed, not merely disabled.
+    let availableItems = allDifficulties.map((item) => ({
+        ...item,
+        count: hasSelectedTopic && countsLoaded ? getSelectedDifficultyTotal(item.value) : 0,
+        availableForEveryTopic: hasSelectedTopic && countsLoaded
+            ? getSelectedTopicKeysForDifficulty().every((unit) => getTopicTotal(unit.subjectKey, unit.topicKey, item.value) > 0)
+            : true
+    }));
 
     if (hasSelectedTopic && countsLoaded) {
-        const oldItem = difficultyItems.find((item) => item.value === oldValue);
-
-        if (!oldItem || Number(oldItem.count || 0) <= 0) {
-            const availableItem=difficultyItems.find(item=>Number(item.count||0)>0);
-            nextValue=availableItem?availableItem.value:"normal";
-        }
-    } else if (!["easy", "normal", "tough"].includes(nextValue)) {
-        nextValue = "normal";
+        availableItems = availableItems.filter((item) => item.count > 0 && item.availableForEveryTopic);
     }
 
-    select.innerHTML = difficultyItems.map((item) => {
+    if (!availableItems.length) {
+        select.innerHTML = '<option value="">इस Topic में कोई Difficulty उपलब्ध नहीं</option>';
+        select.value = "";
+        select.disabled = true;
+        return;
+    }
+
+    select.disabled = false;
+    const nextValue = availableItems.some((item) => item.value === oldValue)
+        ? oldValue
+        : availableItems[0].value;
+
+    select.innerHTML = availableItems.map((item) => {
         const countText = hasSelectedTopic && countsLoaded ? ` — ${item.count} Q` : "";
-        const disabled = hasSelectedTopic && countsLoaded && Number(item.count || 0) <= 0 ? "disabled" : "";
         const selected = item.value === nextValue ? "selected" : "";
-
-        return `<option value="${item.value}" ${selected} ${disabled}>${item.name}${countText}</option>`;
+        return `<option value="${item.value}" ${selected}>${item.name}${countText}</option>`;
     }).join("");
-
-    if (select.value !== nextValue && (!hasSelectedTopic || !countsLoaded || getSelectedDifficultyTotal(nextValue) > 0)) {
-        select.value = nextValue;
-    }
+    select.value = nextValue;
 }
 
 function getSelectedLimit() {
@@ -587,6 +591,10 @@ function buildDistribution(topics, totalLimit) {
 
 function validateTestSetup() {
     let difficulty = getSelectedDifficulty();
+    if (!difficulty || !["easy", "normal", "tough"].includes(difficulty)) {
+        alert("इस Topic में अभी कोई उपलब्ध Difficulty नहीं है। Admin से questions publish करवाएँ।");
+        return null;
+    }
     let topics = collectSelectedTopics(difficulty);
     const limit = getSelectedLimit();
     if (!currentAuthUser || !currentProfile) { alert("Student login required है।"); return null; }

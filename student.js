@@ -1249,7 +1249,7 @@ loadTests = async function(){
    V12.9 — CLASS-WISE PDF VERIFICATION + FINAL TARGET SUBMIT BUTTON
    ================================================================== */
 getMaterialVerificationContext=async function(materialId){
-  const mat=await sb.from('study_materials').select('id,title,schedule_day_id,target_id,storage_path,requires_pdf_verification,pdf_verification_pass_percent,daily_targets!study_materials_target_id_fkey(subject,topic,target_order)').eq('id',materialId).maybeSingle();
+  const mat=await sb.from('study_materials').select('id,title,schedule_day_id,target_id,storage_path,requires_pdf_verification,pdf_verification_pass_percent,daily_targets(subject,topic,target_order)').eq('id',materialId).maybeSingle();
   if(mat.error)throw mat.error;
   if(!mat.data)return {material:null,targets:[],questions:[]};
   let tq=sb.from('daily_targets').select('*');
@@ -1295,7 +1295,7 @@ renderTargets=async function(){
 };
 
 loadPdfs=async function(){
-  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets!study_materials_target_id_fkey(subject,topic,target_order)').eq('status','published').order('created_at',{ascending:false});
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order)').eq('status','published').order('created_at',{ascending:false});
   const rows=r.data||[];materials=rows;
   if(r.error){pdfList.innerHTML=`<div class="card text-error">${esc(r.error.message)}<br><small>Supabase में updated RUN_THIS_FINAL_PDF_FLOW_ONCE.sql चलाएँ।</small></div>`;return}
   pdfList.innerHTML=rows.map(m=>{const verifyRequired=m.requires_pdf_verification!==false,verifyPass=Number(m.pdf_verification_pass_percent||30);return `<div class="item pdf-read-card premium-pdf-card"><div class="row wrap"><div class="pdf-card-copy"><div class="pdf-title-row"><b>📄 ${esc(m.title)}</b><span class="badge badge-blue">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'}</span></div><div class="pdf-linked-class">${esc(m.daily_targets?.subject||'Legacy PDF')} • ${esc(m.daily_targets?.topic||'Class link not set')}</div><div class="pdf-step-list"><span>${verifyRequired?`🔐 पहले Class Verify करें: ${verifyPass}%`:'🔓 View: Direct'}</span><span>${m.access_mode==='test_required'?`📝 Download से पहले Mock Test: ${m.download_pass_percent}%`:m.access_mode==='direct_download'?'⬇ Download: Direct after view unlock':'👁 Read Only'}</span><span>${isR2PdfPath(m.storage_path)?'☁ Secure R2 Storage':'Legacy PDF'}</span></div></div><div class="row wrap pdf-card-actions"><button class="btn btn-blue" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")},${JSON.stringify(m.title||"PDF")})'>पहले Class Verify करें / PDF खोलें</button>${m.access_mode!=='read_only'?`<button class="btn btn-green" onclick='downloadPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")},${JSON.stringify(m.download_test_id||"")},${JSON.stringify(m.access_mode)},${Number(m.download_pass_percent||80)},${JSON.stringify(m.title||"study-material.pdf")})'>Download</button>`:''}</div></div></div>`}).join('')||'<div class="card">अभी कोई PDF नहीं है।</div>';
@@ -1393,7 +1393,7 @@ renderHome=async function(){
 };
 
 loadPdfs=async function(){
-  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets!study_materials_target_id_fkey(subject,topic,target_order,class_status)').eq('status','published').order('created_at',{ascending:false});
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order,class_status)').eq('status','published').order('created_at',{ascending:false});
   const rows=(r.data||[]).filter(m=>(m.daily_targets?.class_status||'scheduled')!=='cancelled');materials=rows;
   if(r.error){pdfList.innerHTML=`<div class="card text-error">${esc(r.error.message)}<br><small>Supabase में V12.12 SQL चलाएँ।</small></div>`;return}
   pdfList.innerHTML=rows.map(m=>{const verifyRequired=m.requires_pdf_verification!==false,verifyPass=Number(m.pdf_verification_pass_percent||30);return `<div class="item pdf-read-card premium-pdf-card"><div class="row wrap"><div class="pdf-card-copy"><div class="pdf-title-row"><b>📄 ${esc(m.title)}</b><span class="badge badge-blue">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'}</span></div><div class="pdf-linked-class">${esc(m.daily_targets?.subject||'Legacy PDF')} • ${esc(m.daily_targets?.topic||'Class link not set')}</div><div class="pdf-step-list"><span>${verifyRequired?`🔐 पहले Class Verify करें: ${verifyPass}%`:'🔓 View: Direct'}</span><span>${m.access_mode==='test_required'?`📝 Download से पहले Mock Test: ${m.download_pass_percent}%`:m.access_mode==='direct_download'?'⬇ Download: Direct after view unlock':'👁 Read Only'}</span><span>${isR2PdfPath(m.storage_path)?'☁ Secure R2 Storage':'Legacy PDF'}</span></div></div><div class="row wrap pdf-card-actions"><button class="btn btn-blue" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.title||'PDF')})'>पहले Class Verify करें / PDF खोलें</button>${m.access_mode!=='read_only'?`<button class="btn btn-green" onclick='downloadPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.download_test_id||'')},${JSON.stringify(m.access_mode)},${Number(m.download_pass_percent||80)},${JSON.stringify(m.title||'study-material.pdf')})'>Download</button>`:''}</div></div></div>`}).join('')||'<div class="card">अभी कोई PDF नहीं है।</div>';
@@ -1424,23 +1424,6 @@ function v1213MaterialVisible(material){
   if(!v1213DayAvailable(day))return false;
   if(target&&!v1213TargetVisible(target,day))return false;
   return (target?.class_status||'scheduled')!=='cancelled';
-}
-
-// V12.17: Load PDF relations separately. This avoids PostgREST ambiguity when an
-// older database contains more than one relationship between the same tables.
-async function v1217HydrateMaterials(rows){
-  const list=Array.isArray(rows)?rows:[];
-  const dayIds=[...new Set(list.map(x=>x.schedule_day_id).filter(Boolean))];
-  const targetIds=[...new Set(list.map(x=>x.target_id).filter(Boolean))];
-  const [daysResult,targetsResult]=await Promise.all([
-    dayIds.length?sb.from('schedule_days').select('id,day_number,day_date,manual_lock,manual_unlock').in('id',dayIds):Promise.resolve({data:[],error:null}),
-    targetIds.length?sb.from('daily_targets').select('id,subject,topic,target_order,class_status,visibility_mode').in('id',targetIds):Promise.resolve({data:[],error:null})
-  ]);
-  if(daysResult.error)throw daysResult.error;
-  if(targetsResult.error)throw targetsResult.error;
-  const dayMap=new Map((daysResult.data||[]).map(x=>[String(x.id),x]));
-  const targetMap=new Map((targetsResult.data||[]).map(x=>[String(x.id),x]));
-  return list.map(x=>({...x,schedule_days:dayMap.get(String(x.schedule_day_id))||null,daily_targets:targetMap.get(String(x.target_id))||null}));
 }
 
 loadFiveDayPreview=async function(){
@@ -1474,25 +1457,21 @@ loadCurrentDay=async function(){
 };
 
 getMaterialVerificationContext=async function(materialId){
-  const mat=await sb.from('study_materials').select('*').eq('id',materialId).eq('status','published').eq('student_visible',true).maybeSingle();
-  if(mat.error)throw mat.error;
-  const hydrated=(await v1217HydrateMaterials(mat.data?[mat.data]:[]))[0]||null;
-  if(!hydrated||!v1213MaterialVisible(hydrated))return {material:null,targets:[],questions:[]};
+  const mat=await sb.from('study_materials').select('id,title,schedule_day_id,target_id,storage_path,requires_pdf_verification,pdf_verification_pass_percent,requires_class_verification,student_visible,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order,class_status,visibility_mode)').eq('id',materialId).eq('status','published').eq('student_visible',true).maybeSingle();
+  if(mat.error)throw mat.error;if(!mat.data||!v1213MaterialVisible(mat.data))return {material:null,targets:[],questions:[]};
   const [tr,vr]=await Promise.all([
-    sb.from('daily_targets').select('*').eq('schedule_day_id',hydrated.schedule_day_id).eq('status','published').order('target_order'),
-    sb.from('verification_questions').select('*').eq('schedule_day_id',hydrated.schedule_day_id).eq('is_active',true).order('sort_order').order('created_at')
+    sb.from('daily_targets').select('*').eq('schedule_day_id',mat.data.schedule_day_id).eq('status','published').order('target_order'),
+    sb.from('verification_questions').select('*').eq('schedule_day_id',mat.data.schedule_day_id).eq('is_active',true).order('sort_order').order('created_at')
   ]);
-  const allowed=(tr.data||[]).filter(t=>v1213TargetVisible(t,hydrated.schedule_days)&&(t.class_status||'scheduled')!=='cancelled');
+  const allowed=(tr.data||[]).filter(t=>v1213TargetVisible(t,mat.data.schedule_days)&&(t.class_status||'scheduled')!=='cancelled');
   const allowedIds=new Set(allowed.map(t=>String(t.id)));
-  return {material:hydrated,targets:allowed,questions:(vr.data||[]).filter(q=>!q.target_id||allowedIds.has(String(q.target_id)))};
+  return {material:mat.data,targets:allowed,questions:(vr.data||[]).filter(q=>!q.target_id||allowedIds.has(String(q.target_id)))};
 };
 
 loadPdfs=async function(){
-  const r=await sb.from('study_materials').select('*').eq('status','published').eq('student_visible',true).order('created_at',{ascending:false});
-  if(r.error){console.error('PDF library load failed',r.error);pdfList.innerHTML='<div class="card text-error">PDF अभी load नहीं हो पाई। कृपया थोड़ी देर बाद दोबारा खोलें।</div>';return}
-  let hydrated=[];
-  try{hydrated=await v1217HydrateMaterials(r.data||[])}catch(error){console.error('PDF relation load failed',error);pdfList.innerHTML='<div class="card text-error">PDF अभी load नहीं हो पाई। कृपया थोड़ी देर बाद दोबारा खोलें।</div>';return}
-  const rows=hydrated.filter(v1213MaterialVisible);materials=rows;
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order,class_status,visibility_mode)').eq('status','published').eq('student_visible',true).order('created_at',{ascending:false});
+  const rows=(r.data||[]).filter(v1213MaterialVisible);materials=rows;
+  if(r.error){pdfList.innerHTML=`<div class="card text-error">${esc(r.error.message)}<br><small>Supabase में V12.14 Complete SQL चलाएँ।</small></div>`;return}
   pdfList.innerHTML=rows.map(m=>{const verifyRequired=m.requires_pdf_verification!==false,verifyPass=Number(m.pdf_verification_pass_percent||30);return `<div class="item pdf-read-card premium-pdf-card"><div class="row wrap"><div class="pdf-card-copy"><div class="pdf-title-row"><b>📄 ${esc(m.title)}</b><span class="badge badge-blue">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'}</span></div><div class="pdf-linked-class">${esc(m.daily_targets?.subject||'Legacy PDF')} • ${esc(m.daily_targets?.topic||'Class link not set')}</div><div class="pdf-step-list"><span>${verifyRequired?`🔐 पहले Class Verify करें: ${verifyPass}%`:'🔓 View: Direct'}</span><span>${m.access_mode==='test_required'?`📝 Download से पहले Mock Test: ${m.download_pass_percent}%`:m.access_mode==='direct_download'?'⬇ Download: Direct after view unlock':'👁 Read Only'}</span><span>${isR2PdfPath(m.storage_path)?'☁ Secure R2 Storage':'Legacy PDF'}</span></div></div><div class="row wrap pdf-card-actions"><button class="btn btn-blue" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.title||'PDF')})'>पहले Class Verify करें / PDF खोलें</button>${m.access_mode!=='read_only'?`<button class="btn btn-green" onclick='downloadPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.download_test_id||'')},${JSON.stringify(m.access_mode)},${Number(m.download_pass_percent||80)},${JSON.stringify(m.title||'study-material.pdf')})'>Download</button>`:''}</div></div></div>`}).join('')||'<div class="card">अभी कोई PDF उपलब्ध नहीं है।</div>';
   if(currentDay)await renderHome();
 };
@@ -1510,5 +1489,87 @@ loadTests=async function(){
 
 const __v1213StudentInit=init;
 init=async function(){await __v1213StudentInit();};
+
+/* ==================================================================
+   V12.18 — STUDENT CLASS PDF / DIRECT PDF SEPARATION
+   ================================================================== */
+let studentPdfType='class';
+
+function switchStudentPdfType(type){
+  studentPdfType=type==='direct'?'direct':'class';
+  document.getElementById('studentClassPdfPanel')?.classList.toggle('hidden',studentPdfType!=='class');
+  document.getElementById('studentDirectPdfPanel')?.classList.toggle('hidden',studentPdfType!=='direct');
+  document.getElementById('studentClassPdfTabBtn')?.classList.toggle('active',studentPdfType==='class');
+  document.getElementById('studentDirectPdfTabBtn')?.classList.toggle('active',studentPdfType==='direct');
+}
+
+function v1218MaterialVisible(material){
+  if(material?.student_visible!==true)return false;
+  if((material?.pdf_type||'class')==='direct')return true;
+  const day=material.schedule_days||null,target=material.daily_targets||null;
+  if(!v1213DayAvailable(day))return false;
+  if(!target||!v1213TargetVisible(target,day))return false;
+  return (target.class_status||'scheduled')!=='cancelled';
+}
+v1213MaterialVisible=v1218MaterialVisible;
+
+currentDayMaterials=function(){
+  if(!currentDay)return [];
+  return (materials||[]).filter(m=>(m.pdf_type||'class')!=='direct'&&String(m.schedule_day_id||'')===String(currentDay.id)&&v1218MaterialVisible(m));
+};
+
+getMaterialVerificationContext=async function(materialId){
+  const mat=await sb.from('study_materials').select('id,title,schedule_day_id,target_id,storage_path,pdf_type,requires_pdf_verification,verification_question_count,pdf_verification_pass_percent,requires_class_verification,student_visible,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order,class_status,visibility_mode)').eq('id',materialId).eq('status','published').eq('student_visible',true).maybeSingle();
+  if(mat.error)throw mat.error;
+  if(!mat.data||!v1218MaterialVisible(mat.data))return {material:null,targets:[],questions:[],configurationIncomplete:false};
+  const material=mat.data;
+  if((material.pdf_type||'class')==='direct'||material.requires_pdf_verification===false){
+    return {material,targets:material.daily_targets?[material.daily_targets]:[],questions:[],configurationIncomplete:false};
+  }
+  const expected=Math.max(1,Number(material.verification_question_count||0));
+  if(!material.target_id||expected<1)return {material,targets:[],questions:[],configurationIncomplete:true,expected,available:0};
+  const [tr,vr]=await Promise.all([
+    sb.from('daily_targets').select('*').eq('id',material.target_id).eq('status','published').maybeSingle(),
+    sb.from('verification_questions').select('*').eq('target_id',material.target_id).eq('is_active',true).order('sort_order').order('created_at').limit(expected)
+  ]);
+  const questions=vr.data||[];
+  return {material,targets:tr.data?[tr.data]:[],questions,configurationIncomplete:questions.length<expected,expected,available:questions.length};
+};
+
+openVerificationForMaterial=async function(materialId){
+  try{
+    const ctx=await getMaterialVerificationContext(materialId);materialVerificationContext=ctx;
+    if(!ctx.material){showActionNotice('यह PDF अभी Students के लिए उपलब्ध नहीं है।','',null,'warning');return}
+    if((ctx.material.pdf_type||'class')==='direct'||ctx.material.requires_pdf_verification===false){
+      readPdf(ctx.material.id,ctx.material.storage_path,ctx.material.title);return;
+    }
+    if(ctx.configurationIncomplete){
+      showActionNotice(`इस Class की Verification setup अधूरी है। ${Number(ctx.expected||0)} Questions चाहिए, लेकिन ${Number(ctx.available||0)} तैयार हैं। Admin से संपर्क करें।`,'',null,'error');return;
+    }
+    if(!ctx.questions.length){showActionNotice('इस Class की Verification setup अधूरी है।','',null,'error');return}
+    showMaterialVerificationPanel(ctx);
+  }catch(e){showActionNotice('PDF Verification खोलने में समस्या आई: '+(e.message||'Unknown error'),'',null,'error')}
+};
+
+loadPdfs=async function(){
+  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date,manual_lock,manual_unlock),daily_targets(subject,topic,target_order,class_status,visibility_mode)').eq('status','published').eq('student_visible',true).order('created_at',{ascending:false});
+  if(r.error){pdfList.innerHTML=`<div class="card text-error">${esc(r.error.message)}<br><small>Admin को V12.18 SQL चलाना है।</small></div>`;return}
+  const all=r.data||[];
+  const classRows=all.filter(m=>(m.pdf_type||'class')!=='direct'&&v1218MaterialVisible(m));
+  const directRows=all.filter(m=>m.pdf_type==='direct'&&v1218MaterialVisible(m));
+  materials=[...classRows,...directRows];
+  const classHtml=classRows.map(m=>{
+    const required=m.requires_pdf_verification!==false;
+    const expected=Math.max(0,Number(m.verification_question_count||0));
+    return `<div class="item pdf-read-card premium-pdf-card class-pdf-student-card"><div class="row wrap"><div class="pdf-card-copy"><div class="pdf-title-row"><b>📘 ${esc(m.title)}</b><span class="badge badge-blue">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'}</span></div><div class="pdf-linked-class">${esc(m.daily_targets?.subject||'Class PDF')} • ${esc(m.daily_targets?.topic||'Class')}</div><div class="pdf-step-list"><span>${required?`🔐 खोलने से पहले ${expected} Verification Questions • Pass ${Number(m.pdf_verification_pass_percent||30)}%`:'🔓 बिना Verification सीधे खुलेगी'}</span><span>${m.access_mode==='test_required'?`📝 Download Mock Test • Pass ${Number(m.download_pass_percent||80)}%`:m.access_mode==='direct_download'?'⬇ Direct Download Allowed':'👁 Read Only'}</span><span>${isR2PdfPath(m.storage_path)?'☁ Secure R2 Storage':'Legacy PDF'}</span></div></div><div class="row wrap pdf-card-actions"><button class="btn btn-blue" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.title||'PDF')})'>${required?'Verification करें / PDF खोलें':'PDF खोलें'}</button>${m.access_mode!=='read_only'?`<button class="btn btn-green" onclick='downloadPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.download_test_id||'')},${JSON.stringify(m.access_mode)},${Number(m.download_pass_percent||80)},${JSON.stringify(m.title||'study-material.pdf')})'>Download</button>`:''}</div></div></div>`;
+  }).join('')||'<div class="pdf-empty-clean">अभी कोई Class PDF उपलब्ध नहीं है।</div>';
+  const directHtml=directRows.map(m=>`<div class="item pdf-read-card premium-pdf-card direct-pdf-student-card"><div class="row wrap"><div class="pdf-card-copy"><div class="pdf-title-row"><b>📄 ${esc(m.title)}</b><span class="badge badge-green">Direct PDF</span></div><div class="pdf-linked-class">बिना Class • बिना Verification • बिना Mock Test</div><div class="pdf-step-list"><span>🔓 Click करते ही PDF खुलेगी</span><span>${m.access_mode==='direct_download'?'⬇ Download Allowed':'👁 Read Only'}</span><span>${isR2PdfPath(m.storage_path)?'☁ Secure R2 Storage':'Legacy PDF'}</span></div></div><div class="row wrap pdf-card-actions"><button class="btn btn-blue" onclick='readPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},${JSON.stringify(m.title||'PDF')})'>PDF खोलें</button>${m.access_mode==='direct_download'?`<button class="btn btn-green" onclick='downloadPdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')},"",${JSON.stringify(m.access_mode)},0,${JSON.stringify(m.title||'study-material.pdf')})'>Download</button>`:''}</div></div></div>`).join('')||'<div class="pdf-empty-clean">अभी कोई Direct PDF उपलब्ध नहीं है।</div>';
+  pdfList.innerHTML=`<div class="student-pdf-tabs"><button id="studentClassPdfTabBtn" class="student-pdf-tab active" onclick="switchStudentPdfType('class')">📘 Class PDFs (${classRows.length})</button><button id="studentDirectPdfTabBtn" class="student-pdf-tab" onclick="switchStudentPdfType('direct')">📄 Direct PDFs (${directRows.length})</button></div><div id="studentClassPdfPanel" class="student-pdf-panel">${classHtml}</div><div id="studentDirectPdfPanel" class="student-pdf-panel hidden">${directHtml}</div>`;
+  switchStudentPdfType(studentPdfType);
+  if(currentDay)await renderHome();
+};
+
+const __v1218StudentInit=init;
+init=async function(){await __v1218StudentInit();switchStudentPdfType('class');};
 
 init();

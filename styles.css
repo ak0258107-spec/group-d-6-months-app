@@ -1172,3 +1172,28 @@ body.admin-security-pending .admin-switch-account-btn{
 .target-visibility-control select{width:auto;min-width:190px}
 .target-visibility-toolbar{border-color:#c4b5fd;background:linear-gradient(135deg,#f5f3ff,#faf5ff)}
 @media(max-width:700px){.visibility-item-actions{width:100%;justify-content:flex-start}.target-visibility-control select{width:100%}.visibility-control-panel{align-items:flex-start}}
+
+/* ==================================================================
+   V12.18 — CLEAN CLASS PDF / DIRECT PDF FLOW
+   ================================================================== */
+.pdf-admin-tabs,.student-pdf-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px;padding:8px;background:#fff;border:1px solid #d9e2f2;border-radius:16px;box-shadow:0 8px 24px rgba(31,41,55,.08)}
+.pdf-admin-tab,.student-pdf-tab{appearance:none;border:1px solid #cbd5e1;background:#f8fafc;color:#334155;border-radius:12px;padding:11px 16px;font-weight:900;cursor:pointer;transition:.18s ease}
+.pdf-admin-tab.active,.student-pdf-tab.active{background:linear-gradient(135deg,#7f1d1d,#b91c1c);color:#fff;border-color:#7f1d1d;box-shadow:0 8px 18px rgba(127,29,29,.22)}
+.class-pdf-setup-summary{margin:12px 0 16px;padding:14px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc;line-height:1.55}
+.class-pdf-setup-summary.ready{border-color:#86efac;background:#f0fdf4}
+.class-pdf-setup-summary.incomplete{border-color:#fca5a5;background:#fff1f2}
+.class-pdf-setup-summary.off{border-color:#93c5fd;background:#eff6ff}
+.class-verification-controls{display:grid;grid-template-columns:minmax(160px,1fr) minmax(150px,1fr) minmax(150px,1fr);gap:10px;align-items:end;margin:12px 0}
+.class-verification-status{padding:10px 12px;border-radius:12px;font-weight:800;margin:8px 0 12px}
+.class-verification-status.ready{background:#ecfdf5;color:#166534;border:1px solid #86efac}
+.class-verification-status.incomplete{background:#fff1f2;color:#991b1b;border:1px solid #fca5a5}
+.class-verification-status.off{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd}
+.direct-pdf-card{border:1px solid #86efac;background:linear-gradient(180deg,#fff,#f0fdf4)}
+.direct-pdf-guide div{border-color:#86efac!important}
+.pdf-type-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:900}
+.pdf-type-badge.class{background:#dbeafe;color:#1e40af}.pdf-type-badge.direct{background:#dcfce7;color:#166534}
+.student-pdf-panel.hidden{display:none!important}
+.direct-pdf-student-card{border-left:5px solid #16a34a}
+.class-pdf-student-card{border-left:5px solid #2563eb}
+.pdf-empty-clean{padding:22px;text-align:center;border:1px dashed #cbd5e1;border-radius:14px;background:#f8fafc;color:#64748b}
+@media(max-width:760px){.class-verification-controls{grid-template-columns:1fr}.pdf-admin-tabs,.student-pdf-tabs{display:grid;grid-template-columns:1fr}.pdf-admin-tab,.student-pdf-tab{width:100%}}

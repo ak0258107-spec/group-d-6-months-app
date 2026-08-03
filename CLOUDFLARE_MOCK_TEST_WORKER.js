@@ -1,4 +1,4 @@
-/* GK BY PURUSHOTAM SIR — Separate CBT Mock Test API (V12.14)
+/* GK BY PURUSHOTAM SIR — Separate CBT Mock Test API (V12.18)
    Required Worker secrets/variables:
    TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
    Optional: APP_ORIGIN (example https://ak0258107-spec.github.io)
@@ -16,7 +16,7 @@ export default {
     try {
       const url = new URL(request.url);
       await ensureQuestionVisibilitySchema(env);
-      if (!url.pathname.startsWith("/api")) return json({ success: true, service: "GK CBT Mock Test API V12.14" }, 200, cors);
+      if (!url.pathname.startsWith("/api")) return json({ success: true, service: "GK CBT Mock Test API V12.18" }, 200, cors);
 
       const user = await verifyUser(request, env);
       const route = url.pathname.replace(/^\/api/, "") || "/";
@@ -361,19 +361,26 @@ async function handleTopicVisibility(request, env, cors) {
   const visible = body.visible === true || body.visible === 1 || String(body.visible).toLowerCase() === "true";
   if (!subjectKey || !topicKey) throw httpError("Subject/Topic required");
 
-  if (visible) {
-    const count = await query(env, "SELECT COUNT(*) total FROM cbt_questions WHERE subject_key=? AND topic_key=? AND active=1 AND student_visible=1 AND question_type='mcq'", [subjectKey, topicKey]);
-    const total = Number(count.rows[0]?.total || 0);
-    if (total < 1) throw httpError("इस Topic में Student Visible MCQ नहीं है। पहले Question Manager में Questions Show करें, फिर Topic Save करें।");
-  }
+  const count = await query(env, "SELECT COUNT(*) total FROM cbt_questions WHERE subject_key=? AND topic_key=? AND active=1 AND question_type='mcq'", [subjectKey, topicKey]);
+  const total = Number(count.rows[0]?.total || 0);
+  if (visible && total < 1) throw httpError("इस Topic में Active MCQ नहीं है। पहले Questions upload करें।");
 
-  await pipeline(env, [
+  const results = await pipeline(env, [
     { sql: `INSERT INTO cbt_subjects(subject_key,subject_name,display_order,active) VALUES(?,?,999,1)
       ON CONFLICT(subject_key) DO UPDATE SET subject_name=COALESCE(NULLIF(excluded.subject_name,''),cbt_subjects.subject_name),active=1`, args: [subjectKey, subjectName || subjectKey] },
     { sql: `INSERT INTO cbt_topics(subject_key,topic_key,topic_name,display_order,active) VALUES(?,?,?,999,?)
-      ON CONFLICT(subject_key,topic_key) DO UPDATE SET topic_name=COALESCE(NULLIF(excluded.topic_name,''),cbt_topics.topic_name),active=excluded.active`, args: [subjectKey, topicKey, topicName || topicKey, visible ? 1 : 0] }
+      ON CONFLICT(subject_key,topic_key) DO UPDATE SET topic_name=COALESCE(NULLIF(excluded.topic_name,''),cbt_topics.topic_name),active=excluded.active`, args: [subjectKey, topicKey, topicName || topicKey, visible ? 1 : 0] },
+    { sql: `UPDATE cbt_questions SET student_visible=?, updated_at=CURRENT_TIMESTAMP
+      WHERE subject_key=? AND topic_key=? AND active=1 AND question_type='mcq'`, args: [visible ? 1 : 0, subjectKey, topicKey] }
   ]);
-  return json({ success: true, subject_key: subjectKey, topic_key: topicKey, student_visible: visible }, 200, cors);
+
+  return json({
+    success: true,
+    subject_key: subjectKey,
+    topic_key: topicKey,
+    student_visible: visible,
+    updated_questions: Number(results[2]?.affected || 0)
+  }, 200, cors);
 }
 
 

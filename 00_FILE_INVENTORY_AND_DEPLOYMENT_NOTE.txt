@@ -44,3 +44,18 @@ IMPORTANT SQL NOTE
 
 WHY PREVIOUS CLEAN ZIP HAD FEWER FILES
 पिछली clean ZIP में पुराने README और SQL patch files जानबूझकर हटाए गए थे। Core app files मौजूद थीं, लेकिन वह complete archival package नहीं थी। यह FULL ZIP recovery/reference के लिए सभी पुरानी files भी रखती है।
+
+
+V12.17 CBT FIX
+- cbt-admin.html: 10-format parser fix; answer lines no longer double-counted.
+- cbt-mock-test.js: strict difficulty filtering; only uploaded/visible difficulty appears.
+- cbt-mock-test.html: empty difficulty placeholder until topic counts load.
+- No Supabase SQL, Turso SQL, R2, PDF Worker or Push Worker change is required for this update.
+- GitHub files replace करें और exam-arena-api-live Worker को बदलने की जरूरत नहीं है।
+
+============================================================
+V12.18 FINAL — USE THIS DEPLOYMENT GUIDE FIRST
+============================================================
+Open: 00_START_HERE_V12_18_FINAL_HINDI.txt
+Run only: RUN_ONLY_THIS_V12_18_FINAL_PDF_AND_CBT_FIX_ONCE.sql
+Deploy both: CLOUDFLARE_WORKER_FINAL.js and CLOUDFLARE_MOCK_TEST_WORKER.js

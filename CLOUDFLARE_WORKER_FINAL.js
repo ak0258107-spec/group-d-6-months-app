@@ -57,6 +57,8 @@ export default {
       const downloadMatch=url.pathname.match(/^\/material\/([^/]+)\/download$/);
       if(downloadMatch && request.method==="GET"){
         const materialId=decodeURIComponent(downloadMatch[1]);
+        const canRead=await callSupabaseRpc(env,accessToken,"can_read_material",{p_material_id:materialId});
+        if(canRead!==true)return json({success:false,code:"VERIFICATION_REQUIRED",error:"पहले PDF Verification condition clear करें, तभी Download उपलब्ध होगा।"},403,cors);
         const canDownload=await callSupabaseRpc(env,accessToken,"can_download_material",{p_material_id:materialId});
         if(canDownload!==true)return json({success:false,code:"TEST_REQUIRED",error:"PDF Download के लिए required Mock Test pass करना जरूरी है।"},403,cors);
         const material=await getMaterial(env,accessToken,materialId);

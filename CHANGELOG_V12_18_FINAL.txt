@@ -1,0 +1,31 @@
+GK BY PURUSHOTAM SIR — V12.18 FINAL CHANGELOG
+================================================
+
+1. CBT Topic Publish Auto-Show
+- Topic Show to Students + Save पर सभी active MCQ questions उसी समय student_visible हो जाते हैं।
+- पुराने “पहले Question Manager में कम से कम एक Question...” blocker को हटाया गया।
+
+2. Clean Class PDF Workflow
+- Class/YouTube setup के अंदर PDF Verification Yes/No।
+- Verification Question Count और Passing Percentage।
+- Questions कम होने पर PDF upload/publish safety और student-side fail-closed lock।
+- Existing linked PDFs को migration के समय Class verification setup से sync किया जाता है।
+
+3. Optional PDF Download Mock Test
+- प्रत्येक Class PDF के लिए Mock Test Yes/No।
+- No पर Read + Direct Download या Read Only।
+- Yes पर selected PDF Download Gate Test pass करना जरूरी।
+
+4. Separate Direct PDFs
+- Admin में “Direct PDF — बिना Verification” tab।
+- Student में Class PDFs और Direct PDFs अलग tabs।
+- Direct PDFs Daily Target completion में शामिल नहीं होतीं।
+
+5. Security / Backend
+- R2 read route can_read_material RPC को enforce करता है।
+- Download से पहले read verification और optional mock-test दोनों backend पर enforce होते हैं।
+- Exact configured verification question set और unique answers validate होते हैं।
+
+6. Scope Protection
+- Existing Login, Authenticator, Daily Target scheduling, YouTube classes, Posters,
+  Notifications, One-Liners, Final Daily Test और Standalone CBT architecture बरकरार है।

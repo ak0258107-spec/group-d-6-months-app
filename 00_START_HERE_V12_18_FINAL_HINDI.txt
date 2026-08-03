@@ -1,0 +1,65 @@
+GK BY PURUSHOTAM SIR — V12.18 FINAL
+CLASS PDF + DIRECT PDF + CBT AUTO-PUBLISH FIX
+============================================================
+
+यह COMPLETE deploy-ready project है। इसे पुराने V12.17 project की जगह deploy करना है।
+पुराने Login, Daily Target, Class Scheduling, R2, Poster, Notification, One-Liner और अन्य modules को बदलने की जरूरत नहीं है।
+
+DEPLOYMENT ORDER — केवल ये काम करें
+------------------------------------
+
+1. SUPABASE का Backup लें।
+
+2. Supabase Dashboard → SQL Editor खोलें और केवल यह नई file एक बार Run करें:
+   RUN_ONLY_THIS_V12_18_FINAL_PDF_AND_CBT_FIX_ONCE.sql
+
+   Success message:
+   V12.18 FINAL PDF FLOW READY
+
+3. GitHub repository में इस ZIP के सभी web files को पुरानी files के ऊपर Replace/Upload करें।
+   खास files:
+   - q9v3x7k2-r8m4p6t1-z5n7c2w9.html  (Admin Panel)
+   - l4x8m2r7-k9v3t5n1-z6c4p8q2.html  (Student Panel)
+   - admin.js
+   - student.js
+   - styles.css
+   - cbt-admin.html
+   - cbt-mock-test.html
+   - cbt-mock-test.js
+   - sw.js
+
+4. PDF/R2 Cloudflare Worker में यह पूरी file Replace करके Deploy करें:
+   CLOUDFLARE_WORKER_FINAL.js
+
+5. CBT / Exam Arena Cloudflare Worker में यह पूरी file Replace करके Deploy करें:
+   CLOUDFLARE_MOCK_TEST_WORKER.js
+
+   Turso में इस update के लिए कोई नई manual SQL चलाने की जरूरत नहीं है।
+
+6. GitHub Pages और दोनों Workers deploy होने के बाद browser में Hard Refresh करें:
+   Computer: Ctrl + Shift + R
+   Mobile/PWA: App पूरी तरह बंद करके दोबारा खोलें। पुराना cache रहे तो browser site data/cache clear करें।
+
+मुख्य नया व्यवहार
+-----------------
+
+A. CBT Question Bank
+- Topic के सामने Show to Students टिक करके Save करते ही उस Topic के सभी active Questions अपने-आप Students को Show होंगे।
+- Question Manager में पहले एक-एक Question Show करना अनिवार्य नहीं है।
+
+B. Class PDF
+- हर Class में PDF Verification: Yes/No उपलब्ध है।
+- Yes पर Question Count और Passing % तय होंगे।
+- निर्धारित Questions पूरे न हों तो PDF fail-closed रहेगी; बच्चा सीधे नहीं खोल सकेगा।
+- PDF Download Mock Test अलग Yes/No control है।
+
+C. Direct PDF — बिना Verification
+- Admin PDF section में अलग tab है।
+- कोई Class, Verification या Mock Test link नहीं होगा।
+- Show to Students करते ही Student के Direct PDFs tab में उपलब्ध होगी।
+- Download Allow: Yes/No अलग control है।
+
+महत्वपूर्ण
+---------
+- पुरानी SQL files दोबारा मत चलाएँ। इस update के लिए केवल V12.18 वाली नई SQL file चलानी है।
+- Worker files GitHub पर डालना पर्याप्त नहीं है; उन्हें संबंधित Cloudflare Worker में भी Deploy करना जरूरी है।
