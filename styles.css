@@ -1197,3 +1197,30 @@ body.admin-security-pending .admin-switch-account-btn{
 .class-pdf-student-card{border-left:5px solid #2563eb}
 .pdf-empty-clean{padding:22px;text-align:center;border:1px dashed #cbd5e1;border-radius:14px;background:#f8fafc;color:#64748b}
 @media(max-width:760px){.class-verification-controls{grid-template-columns:1fr}.pdf-admin-tabs,.student-pdf-tabs{display:grid;grid-template-columns:1fr}.pdf-admin-tab,.student-pdf-tab{width:100%}}
+
+/* ==================================================================
+   V12.19 — CLEAN DAILY CONTENT SELECTOR + STABILITY STATUS
+   ================================================================== */
+.daily-content-clean-panel{padding:18px;border:1px solid #dbeafe;background:linear-gradient(180deg,#ffffff,#f8fbff);border-radius:18px}
+.smart-day-head{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.smart-day-head h2{margin:3px 0 4px;font-size:22px}
+.smart-day-head p{margin:0}
+.smart-day-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.smart-day-selector-row{display:grid;grid-template-columns:minmax(110px,180px) minmax(220px,1fr);gap:12px;align-items:center;padding:12px;border-radius:14px;background:#fff;border:1px solid #e2e8f0}
+.smart-day-selector-row label{margin:0;font-weight:800;color:#0f172a}
+.smart-day-selector-row select{margin:0}
+.smart-day-summary{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px;margin-top:12px}
+.smart-day-status-card{padding:12px;border-radius:14px;background:#fff;border:1px solid #e2e8f0;min-height:78px}
+.smart-day-status-card b{display:block;font-size:18px;color:#0f172a;margin-bottom:3px}
+.smart-day-status-card span{font-size:12px;color:#64748b}
+.smart-day-status-card.ready{border-color:#86efac;background:#f0fdf4}
+.smart-day-status-card.pending{border-color:#fdba74;background:#fff7ed}
+.smart-day-status-card.info{border-color:#93c5fd;background:#eff6ff}
+.publish-result-note{padding:10px 12px;border-radius:12px;background:#ecfdf5;border:1px solid #86efac;color:#166534;font-weight:700}
+@media(max-width:780px){
+  .smart-day-head{display:block}
+  .smart-day-actions{justify-content:flex-start;margin-top:12px}
+  .smart-day-selector-row{grid-template-columns:1fr}
+  .smart-day-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:430px){.smart-day-summary{grid-template-columns:1fr}}

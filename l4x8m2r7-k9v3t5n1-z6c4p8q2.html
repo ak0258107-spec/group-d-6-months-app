@@ -1,17 +1,39 @@
-<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071f3d"><link rel="manifest" href="manifest.webmanifest"><title>GK BY PURUSHOTAM SIR</title><link rel="stylesheet" href="styles.css?v=12.18.0"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=12.18.0"></script><script src="common.js?v=12.18.0"></script><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" href="favicon.png">
-</head><body><div class="mobile-shell">
-<header class="student-top"><div class="student-top-inner"><div class="student-brand"><span class="brand-emblem">GK</span>GK BY PURUSHOTAM SIR</div><div class="row"><button class="btn btn-light notification-bell" onclick="openNotifications()">🔔<span id="notificationBadge" class="notification-badge hidden">0</span></button></div></div><nav class="bottom-nav top-section-nav bottom-nav-6" aria-label="Student sections"><button class="nav-home active" onclick="tab('home',this)"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></button><button class="nav-target" onclick="tab('targets',this)"><span class="nav-icon">✓</span><span class="nav-label">Target</span></button><button class="nav-test" onclick="tab('tests',this)"><span class="nav-icon">▣</span><span class="nav-label">Test</span></button><button class="nav-oneliner" onclick="tab('oneliners',this)"><span class="nav-icon">≡</span><span class="nav-label">One-Liner</span></button><button class="nav-pdf" onclick="tab('pdfs',this)"><span class="nav-icon">▤</span><span class="nav-label">PDF</span></button><button class="nav-profile" onclick="tab('profile',this)"><span class="nav-icon">○</span><span class="nav-label">Profile</span></button></nav></header>
-<main class="student-main">
-<div id="homePosterSection" class="home-poster-section" style="display:none"><div id="homePosterSlider" class="home-poster-slider"></div><div id="homePosterDots" class="home-poster-dots"></div></div>
-<section id="homeTab"><div class="section-identity section-home"><span>⌂</span><div><b>Home</b><small>आपकी आज की तैयारी</small></div></div><div id="homeBox"></div></section>
-<section id="targetsTab" class="hidden"><div class="section-identity section-target"><span>✓</span><div><b>आज का Target</b><small>Class और daily work</small></div></div><div id="targetsBox"></div></section>
-<section id="testsTab" class="hidden"><div class="section-identity section-test"><span>▣</span><div><b>CBT Mock Test</b><small>Exam-style practice</small></div></div><div id="testsList" class="list"></div></section>
-<section id="onelinersTab" class="hidden"><div class="section-identity section-oneliner"><span>≡</span><div><b>One-Liner Practice</b><small>Topic-wise revision</small></div></div><div id="oneLinerFilters" class="card"></div><div id="oneLinersList" class="list" style="margin-top:12px"></div></section>
-<section id="pdfsTab" class="hidden"><div class="section-identity section-pdf"><span>▤</span><div><b>PDF Library</b><small>Study material और download</small></div></div><div id="pdfList" class="list"></div></section>
-<section id="notificationsTab" class="hidden"><h2>Notifications</h2><div id="notificationsList" class="list"></div></section>
-<section id="profileTab" class="hidden"><div class="section-identity section-profile"><span>○</span><div><b>My Profile</b><small>Account और progress</small></div></div><div id="profileBox"></div></section>
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071f3d">
+<title>GK BY PURUSHOTAM SIR</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css?v=12.20.0"><link rel="stylesheet" href="simple-v1220.css?v=12.20.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=12.20.0"></script><script src="common.js?v=12.20.0"></script>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body class="simple-student-body">
+<div class="simple-student-shell">
+<header class="simple-student-header">
+  <div class="simple-brand"><span>GK</span><div><b>GK BY PURUSHOTAM SIR</b><small>GROUP-D TARGET BATCH</small></div></div>
+  <button class="notification-bell" onclick="openNotifications()">🔔<span id="notificationBadge" class="notification-badge hidden">0</span></button>
+</header>
+<nav class="simple-student-nav" aria-label="Student sections">
+  <button class="active" data-tab="home" onclick="tab('home',this)">⌂ Home</button>
+  <button data-tab="classes" onclick="tab('classes',this)">▶ Classes</button>
+  <button data-tab="classpdfs" onclick="tab('classpdfs',this)">📘 Class PDFs</button>
+  <button data-tab="otherpdfs" onclick="tab('otherpdfs',this)">📄 Other PDFs</button>
+  <button data-tab="cbt" onclick="tab('cbt',this)">🖥 CBT Tests</button>
+  <button data-tab="announcements" onclick="tab('announcements',this)">📣 Messages</button>
+  <button data-tab="profile" onclick="tab('profile',this)">○ Profile</button>
+</nav>
+<main class="simple-student-main">
+  <section id="homeTab"><div id="homePosterSection" class="simple-home-posters hidden"><div id="homePosterSlider"></div><div id="homePosterDots"></div></div><div class="simple-section-head"><span>⌂</span><div><h1>Home</h1><p>आज की Class, नई PDF और जरूरी सूचना</p></div></div><div id="homeBox"></div></section>
+  <section id="classesTab" class="hidden"><div class="simple-section-head"><span>▶</span><div><h1>YouTube Classes</h1><p>Class का दिन, समय और Watch Link</p></div></div><div id="classesBox" class="student-card-list"></div></section>
+  <section id="classpdfsTab" class="hidden"><div class="simple-section-head"><span>📘</span><div><h1>Class PDFs</h1><p>Class से जुड़ी Notes PDF</p></div></div><div id="classPdfsBox" class="student-card-list"></div></section>
+  <section id="otherpdfsTab" class="hidden"><div class="simple-section-head"><span>📄</span><div><h1>Other PDFs</h1><p>Current Affairs, Revision और Extra Notes</p></div></div><div id="otherPdfsBox" class="student-card-list"></div></section>
+  <section id="cbtTab" class="hidden"><div class="simple-section-head"><span>🖥</span><div><h1>CBT Tests</h1><p>केवल live Subject, Topic और Difficulty दिखाई देंगे</p></div></div><div class="cbt-entry-card"><div class="cbt-entry-icon">CBT</div><h2>All Subjects CBT Exam Arena</h2><p>10 प्रकार के MCQ, Result, Explanation और Test Download</p><div class="simple-feature-chips"><span>Mock Test PDF</span><span>Answer Key</span><span>With Answer</span><span>ZIP</span></div><a class="btn btn-blue full-btn" href="cbt-mock-test.html">Start CBT Test</a></div></section>
+  <section id="announcementsTab" class="hidden"><div class="simple-section-head"><span>📣</span><div><h1>Announcements</h1><p>Class update और Admin message</p></div></div><div id="announcementsBox" class="student-card-list"></div></section>
+  <section id="notificationsTab" class="hidden"><div class="simple-section-head"><span>🔔</span><div><h1>Notifications</h1><p>नई Class, PDF, CBT और Message</p></div></div><div id="notificationsList" class="student-card-list"></div></section>
+  <section id="profileTab" class="hidden"><div class="simple-section-head"><span>○</span><div><h1>My Profile</h1><p>Account और App settings</p></div></div><div id="profileBox"></div></section>
 </main>
-<div class="student-install-footer"><button id="studentInstallBtn" class="btn student-install-btn hidden" onclick="installApp()">⬇ Install App</button></div>
-</div><script src="student.js?v=12.18.0"></script><script src="final-fix.js?v=12.18.0"></script>
-</body></html>
+<footer class="simple-student-footer"><button id="studentInstallBtn" class="btn btn-purple hidden" onclick="installApp()">⬇ Install App</button></footer>
+</div>
+<script src="student.js?v=12.20.0"></script>
+</body>
+</html>

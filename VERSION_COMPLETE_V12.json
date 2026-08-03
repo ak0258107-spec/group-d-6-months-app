@@ -1,17 +1,16 @@
 {
-  "version": "12.18.0",
-  "type": "complete-project",
-  "release_name": "Clean Class PDF Flow, Direct PDF Tab and CBT One-Click Publish",
-  "changes": [
-    "CBT Topic Show to Students now automatically shows all active questions in that topic",
-    "Removed the requirement to publish at least one question separately before publishing a CBT topic",
-    "Class setup now has explicit PDF Verification Yes/No, question count and passing percentage controls",
-    "Class PDFs fail closed when verification is enabled but the configured number of questions is not ready",
-    "Class PDF upload copies the saved class verification setup and keeps PDF download mock test optional",
-    "Added a separate Direct PDF tab for PDFs without class verification or mock test",
-    "Student PDF Library is separated into Class PDFs and Direct PDFs",
-    "Direct PDFs are excluded from daily target completion logic",
-    "R2 PDF download checks verification before reporting a mock-test lock"
+  "app": "GK BY PURUSHOTAM SIR GROUP-D SIMPLE APP",
+  "version": "12.20.0",
+  "release": "Simple Final",
+  "features": [
+    "YouTube Classes with date, time, duration and status",
+    "Class PDFs without verification",
+    "Other PDFs without verification",
+    "CBT 10-format parser and strict live subject/topic/difficulty",
+    "Mock Test, Answer Key and With Answer PDF downloads",
+    "Complete ZIP containing all three CBT PDFs",
+    "Posters, announcements and notifications",
+    "No Daily Submit, no PDF verification, no PDF unlock test"
   ],
-  "required_migration": "RUN_ONLY_THIS_V12_18_FINAL_PDF_AND_CBT_FIX_ONCE.sql"
+  "r2_change": "No new R2 bucket or binding required"
 }

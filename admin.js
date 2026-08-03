@@ -225,1609 +225,337 @@ async function guard(){
   });
 }
 
-let adminUser=null,days=[],students=[],allTargets=[],publishedTests=[];
-function tab(n,el){['dashboard','students','daysetup','targets','tests','oneliners','pdfs','posters','messages','reports'].forEach(x=>document.getElementById(x+'Tab').classList.toggle('hidden',x!==n));document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));if(el)el.classList.add('active');if(n==='posters'&&typeof loadPosters==='function')loadPosters()}
+/* =====================================================================
+   V12.20 SIMPLE APP — केवल Class, PDFs, CBT, Poster और Announcement
+   ===================================================================== */
+let adminUser=null,days=[],students=[],classes=[],materials=[],posters=[];
+const ADMIN_TABS=['dashboard','classes','classpdfs','otherpdfs','posters','announcements','students'];
 
-async function init(){if(!(await guard()))return;todayDate.textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});await loadDays();await loadStudents();await Promise.all([loadDashboard(),loadTests(),loadOneLinersAdmin(),loadMaterials(),loadReports(),loadBroadcasts()])}
-async function loadDays(){const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');days=r.data||[];const opts=days.map(d=>`<option value="${d.id}">Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');targetDay.innerHTML=opts;setupDay.innerHTML=opts;pdfDay.innerHTML=opts;testDay.innerHTML='<option value="">No linked day</option>'+opts;await loadTargetStatus();
-const vmDay=document.getElementById('verificationManagerDay');
-if(vmDay)vmDay.innerHTML='<option value="">सभी Days</option>'+opts;
-await loadDaySetup();
-await loadVerificationManager();
+function byId(id){return document.getElementById(id)}
+function tab(name,el){
+  ADMIN_TABS.forEach(x=>byId(x+'Tab')?.classList.toggle('hidden',x!==name));
+  document.querySelectorAll('.simple-sidebar a').forEach(a=>a.classList.remove('active'));
+  if(el)el.classList.add('active');
+  if(name==='classes')loadClasses();
+  if(name==='classpdfs'||name==='otherpdfs')loadMaterials();
+  if(name==='posters')loadPosters();
+  if(name==='announcements')loadBroadcasts();
+  if(name==='students')loadStudents();
 }
-async function loadStudents(){const r=await sb.from('profiles').select('*').eq('role','student').order('created_at',{ascending:false});students=r.data||[];renderStudents(students)}
-function renderStudents(list){studentsBody.innerHTML=list.map(s=>`<tr><td><b>${esc(s.full_name||'')}</b></td><td>${esc(s.phone||'')}</td><td>${s.total_completed_days||0}/151</td><td>${s.average_test_percentage||0}%</td><td>${s.current_streak||0}</td></tr>`).join('')}
-function filterStudents(){const q=studentSearch.value.toLowerCase();renderStudents(students.filter(s=>(s.full_name||'').toLowerCase().includes(q)||(s.phone||'').includes(q)))}
-async function loadDashboard(){const today=new Date().toISOString().slice(0,10),d=await sb.from('schedule_days').select('id').eq('day_date',today).maybeSingle();let p=[];if(d.data){const rr=await sb.from('daily_progress').select('*').eq('schedule_day_id',d.data.id);p=rr.data||[]}const c=p.filter(x=>x.status==='completed').length,partial=p.filter(x=>x.status==='partial').length,not=p.filter(x=>x.status==='not_started').length;kpis.innerHTML=`<div class="kpi-card kpi-blue span-4"><div class="muted">Total Students</div><div class="kpi">${students.length}</div></div><div class="kpi-card kpi-green span-4"><div class="muted">Today Complete</div><div class="kpi">${c}</div></div><div class="kpi-card kpi-red span-4"><div class="muted">Not Started</div><div class="kpi">${not}</div></div>`}
-async function loadDaySetup(){
-  const dayId=setupDay.value||days[0]?.id;if(!dayId)return;
-  const [t,v]=await Promise.all([
-    sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),
-    sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true).order('created_at')
+
+async function adminConfirmDelete(message){return window.confirm(message)}
+function localDateKey(date=new Date()){
+  const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function isoOrNull(value){return value?new Date(value).toISOString():null}
+function classDayLabel(row){return `Day ${row.schedule_days?.day_number||'-'} • ${fmtDate(row.schedule_days?.day_date||'')}`}
+function classTimeLabel(row){
+  if(!row.start_time)return row.class_type==='recorded'?'Recorded Class':'Time not set';
+  const [h,m]=String(row.start_time).slice(0,5).split(':').map(Number);
+  const dt=new Date();dt.setHours(h,m,0,0);
+  return dt.toLocaleTimeString('hi-IN',{hour:'numeric',minute:'2-digit'});
+}
+function statusLabel(status){return ({scheduled:'Scheduled',live:'Live Now',completed:'Completed',cancelled:'Cancelled',time_changed:'Time Changed',partial:'Time Changed'})[status]||status||'Scheduled'}
+function statusClass(status){return status==='live'?'badge-red':status==='completed'?'badge-green':status==='cancelled'?'badge-gray':status==='time_changed'||status==='partial'?'badge-orange':'badge-blue'}
+
+async function init(){
+  if(!(await guard()))return;
+  adminUser=await requireAuth();
+  byId('todayDate').textContent=new Date().toLocaleDateString('hi-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  initInstallUI('adminInstallBtn');
+  await loadDays();
+  await Promise.all([loadDashboard(),loadClasses(),loadMaterials(),loadBroadcasts(),loadStudents()]);
+}
+
+async function loadDays(){
+  const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');
+  if(r.error){toast(r.error.message,'error');return}
+  days=r.data||[];
+  const opts=days.map(d=>`<option value="${d.id}">Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');
+  byId('classDay').innerHTML=opts||'<option value="">कोई Day नहीं मिला</option>';
+  selectSuggestedDay('today',false);
+}
+function selectSuggestedDay(mode,notify=true){
+  const select=byId('classDay');if(!select||!days.length)return;
+  const today=localDateKey();
+  let selected=mode==='next'?days.find(d=>String(d.day_date)>today):days.find(d=>String(d.day_date)===today);
+  if(!selected)selected=mode==='next'?days.find(d=>String(d.day_date)>=today):days[0];
+  if(selected)select.value=selected.id;
+  if(notify)toast(mode==='next'?'अगला उपलब्ध Day चुन लिया गया।':'आज का Day चुन लिया गया।','success');
+}
+
+async function loadDashboard(){
+  const [studentR,classR,pdfR]=await Promise.all([
+    sb.from('profiles').select('id',{count:'exact',head:true}).eq('role','student'),
+    sb.from('daily_targets').select('id',{count:'exact',head:true}).eq('status','published').eq('simple_class_enabled',true).eq('student_visible',true),
+    sb.from('study_materials').select('id,pdf_type,student_visible').eq('status','published')
   ]);
-  allTargets=t.data||[];
-  const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));
-  setupTargets.innerHTML=allTargets.map((x,idx)=>`<details class="target-setup-3d" ${idx===0?'open':''}>
-    <summary>
-      <div><span class="topic-chip">${esc(x.subject)}</span><b>${esc(x.topic)}</b></div>
-      <span class="badge badge-blue">Target ${x.target_order}</span>
-    </summary>
-    <div class="target-setup-body">
-      <label>YouTube Class Link</label>
-      <div class="setup-inline"><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><button class="btn btn-red" onclick="saveYoutube('${x.id}')">Save Class Link</button></div>
-      <div class="verification-builder-3d">
-        <div class="row wrap" style="justify-content:space-between;align-items:center">
-          <div><h4>Class Verification Questions</h4><div class="small muted">Mock Test की तरह पूरा Question + Options + उत्तर + व्याख्या एक साथ paste करें।</div></div>
-          <div class="row wrap">
-            <span class="badge badge-purple">Existing: ${(vmap[x.id]||[]).length}</span>
-            ${(vmap[x.id]||[]).length?`<button class="btn btn-red btn-mini" onclick="deleteTargetVerifications('${x.id}','${dayId}')">🗑 Delete Verification</button>`:''}
-          </div>
-        </div>
-        <label>Question Visibility</label>
-        <select id="show_${x.id}"><option value="false">Hide Question — Student को केवल Options दिखें</option><option value="true">Show Question — Question + Options दोनों दिखें</option></select>
-        <label>Verification Question Data</label>
-        <textarea class="verification-raw-box" id="vqraw_${x.id}" placeholder="प्रश्न 1. ........
-(A) ....
-(B) ....
-(C) ....
-(D) ....
-उत्तर: (A)
-व्याख्या: ....
-
-------
-
-प्रश्न 2. ........"></textarea>
-        <div class="format-tip"><b>Format:</b> आप 1, 2, 3 या जितने चाहें प्रश्न paste कर सकते हैं। Save करने पर पुराने verification questions replace हो जाएंगे।</div>
-        <button class="btn btn-green" onclick="saveVerificationBatch('${x.id}','${dayId}')">Parse & Save Verification</button>
-      </div>
-    </div>
-  </details>`).join('')
+  const pdfRows=pdfR.data||[];
+  byId('kpis').innerHTML=`
+    <div class="kpi-card kpi-blue span-3"><div class="muted">Students</div><div class="kpi">${Number(studentR.count||0)}</div></div>
+    <div class="kpi-card kpi-red span-3"><div class="muted">Live Classes</div><div class="kpi">${Number(classR.count||0)}</div></div>
+    <div class="kpi-card kpi-green span-3"><div class="muted">Class PDFs</div><div class="kpi">${pdfRows.filter(x=>(x.pdf_type||'class')==='class'&&x.student_visible).length}</div></div>
+    <div class="kpi-card kpi-purple span-3"><div class="muted">Other PDFs</div><div class="kpi">${pdfRows.filter(x=>x.pdf_type==='direct'&&x.student_visible).length}</div></div>`;
 }
 
-/* ===== GLOBAL CLASS VERIFICATION MANAGER ===== */
-async function loadVerificationManager(){
-  const host=document.getElementById('verificationManagerList');
-  if(!host)return;
-
-  host.innerHTML='<div class="item">Verification questions load हो रहे हैं...</div>';
-
-  const selectedDay=document.getElementById('verificationManagerDay')?.value||'';
-  let q=sb.from('verification_questions')
-    .select('id,target_id,schedule_day_id,question_text,options,show_question,is_active,sort_order,created_at')
-    .order('created_at',{ascending:false});
-
-  if(selectedDay)q=q.eq('schedule_day_id',selectedDay);
-
-  const [vr,tr,dr]=await Promise.all([
-    q,
-    sb.from('daily_targets').select('id,subject,topic,schedule_day_id,target_order'),
-    sb.from('schedule_days').select('id,day_number,day_date')
-  ]);
-
-  if(vr.error){
-    host.innerHTML='<div class="item text-error">'+esc(vr.error.message)+'</div>';
-    return;
-  }
-
-  const targets={};
-  (tr.data||[]).forEach(x=>targets[x.id]=x);
-  const daysMap={};
-  (dr.data||[]).forEach(x=>daysMap[x.id]=x);
-
-  const rows=vr.data||[];
-  if(!rows.length){
-    host.innerHTML='<div class="item">कोई Verification Question मौजूद नहीं है।</div>';
-    return;
-  }
-
-  host.innerHTML=rows.map(v=>{
-    const target=targets[v.target_id]||null;
-    const day=daysMap[v.schedule_day_id]||daysMap[target?.schedule_day_id]||null;
-    const opts=Array.isArray(v.options)?v.options:[];
-    const question=v.question_text||'Hidden Class Verification';
-    const questionLabel=v.show_question===false?'Question Hidden — Student को केवल options दिखते हैं':'Question Visible';
-    const activeLabel=v.is_active===false?'Inactive':'Active';
-
-    return `<div class="verification-manager-item">
-      <div class="verification-manager-meta">
-        <span class="badge badge-blue">${day?`Day ${day.day_number}`:'Legacy / Day नहीं मिला'}</span>
-        <span class="badge badge-purple">${target?esc(target.subject):'Legacy Verification'}</span>
-        <span class="badge ${v.is_active===false?'badge-red':'badge-green'}">${activeLabel}</span>
-      </div>
-
-      <div class="verification-manager-topic">${target?esc(target.topic):'यह Question पुराने/legacy data से है'}</div>
-      <div class="verification-manager-question">${esc(question)}</div>
-      <div class="small muted">${esc(questionLabel)}</div>
-
-      ${opts.length?`<div class="verification-manager-options">
-        ${opts.map((o,i)=>`<div><b>${String.fromCharCode(65+i)}.</b> ${esc(String(o))}</div>`).join('')}
-      </div>`:''}
-
-      <div class="verification-manager-actions">
-        ${v.target_id?`<button class="btn btn-orange btn-mini" onclick="deleteTargetVerifications('${v.target_id}','${v.schedule_day_id||''}')">🗑 इस Target के सभी Questions Delete</button>`:''}
-        <button class="btn btn-red btn-mini" onclick="deleteSingleVerificationQuestion('${v.id}')">🗑 केवल यह Question Delete</button>
-      </div>
-    </div>`;
-  }).join('');
+function resetClassForm(){
+  byId('classId').value='';byId('classTitle').value='';byId('classSubject').value='';byId('classTopic').value='';byId('classYoutube').value='';byId('classStartTime').value='';byId('classDuration').value='60';byId('classType').value='live';byId('classStatus').value='scheduled';byId('classNote').value='';byId('classVisible').checked=true;byId('classNotify').checked=true;selectSuggestedDay('today',false);byId('saveClassBtn').textContent='Save Class';
 }
-
-async function deleteSingleVerificationQuestion(questionId){
-  if(!(await adminConfirmDelete('क्या आप केवल यह Verification Question delete करना चाहते हैं?')))return;
-
-  const rr=await sb.rpc('admin_delete_verification_question',{p_question_id:questionId});
-  if(rr.error){
-    toast('Verification delete नहीं हुआ: '+rr.error.message,'error');
-    return;
-  }
-
-  toast('Verification Question delete हो गया।','success');
-  await Promise.all([loadDaySetup(),loadVerificationManager()]);
-}
-
-async function deleteAllVerificationQuestions(){
-  if(!(await adminConfirmDelete('क्या आप सभी पुराने और वर्तमान Verification Questions delete करना चाहते हैं? यह action वापस नहीं होगा।')))return;
-
-  const rr=await sb.rpc('admin_delete_all_verification_questions');
-  if(rr.error){
-    toast('All Verification delete नहीं हुए: '+rr.error.message,'error');
-    return;
-  }
-
-  toast('सभी Verification Questions delete हो गए।','success');
-  await Promise.all([loadDaySetup(),loadVerificationManager()]);
-}
-
-async function saveYoutube(id){const url=document.getElementById('yt_'+id).value.trim();const rr=await sb.from('daily_targets').update({youtube_url:url||null}).eq('id',id);if(rr.error)toast(rr.error.message,'error');else toast('YouTube Class Link saved.','success')}
-
-async function deleteTargetVerifications(targetId,dayId){
-  if(!(await adminConfirmDelete('क्या आप इस Target के सभी Class Verification Questions delete करना चाहते हैं?')))return;
-  const rr=await sb.rpc('admin_delete_target_verifications',{p_target_id:targetId});
-  if(rr.error){toast('Verification delete नहीं हुआ: '+rr.error.message,'error');return}
-  toast('Class Verification delete हो गया। अब इस Target के लिए verification नहीं मांगा जाएगा।','success');
-  await Promise.all([loadDaySetup(),loadVerificationManager()]);
-}
-
-async function saveVerificationBatch(targetId,dayId){
-  const raw=document.getElementById('vqraw_'+targetId).value.trim();
-  const show=document.getElementById('show_'+targetId).value==='true';
-  const parsed=parseRawQuestions(raw);
-  if(!parsed.length){toast('Valid verification question नहीं मिला। Mock Test वाला format paste करें।','error');return}
-  const items=parsed.map((q,i)=>({
-    question_text:q.question_text||'Class Verification',
-    options:q.options,
-    correct_answer:String(q.correct_answer),
-    explanation:q.explanation||null,
-    sort_order:i+1
-  }));
-  const rr=await sb.rpc('admin_replace_target_verifications',{
-    p_target_id:targetId,
-    p_schedule_day_id:dayId,
-    p_show_question:show,
-    p_items:items
-  });
-  if(rr.error){toast('Verification save नहीं हुआ: '+rr.error.message,'error');return}
-  toast(parsed.length+' Verification Question save हो गए।','success');
-  document.getElementById('vqraw_'+targetId).value='';
-  await Promise.all([loadDaySetup(),loadVerificationManager()]);
-}
-async function loadTargetStatus(){const dayId=targetDay.value||days[0]?.id;if(!dayId)return;const r=await sb.from('daily_progress').select('*,profiles(full_name)').eq('schedule_day_id',dayId);const rows=r.data||[],c=rows.filter(x=>x.status==='completed').length,partial=rows.filter(x=>x.status==='partial').length,not=rows.filter(x=>x.status==='not_started').length;targetStatusCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed</div><div class="kpi">${c}</div></div><div class="kpi-card kpi-orange span-4"><div class="muted">Partial</div><div class="kpi">${partial}</div></div><div class="kpi-card kpi-red span-4"><div class="muted">Not Started</div><div class="kpi">${not}</div></div>`;targetStatusBody.innerHTML=rows.map(x=>`<tr><td>${esc(x.profiles?.full_name||'')}</td><td>${x.completed_targets}/${x.total_targets}</td><td>${x.test_score_percent??'-'}%</td><td>${esc(x.status)}</td><td>${x.status==='completed'?'Excellent 🌹':x.feedback==='test_pending'?'Final Test Pass करें 📝':x.status==='partial'?'Target पूरा करें ⚠️':'Work Complete नहीं हुआ ❌'}</td></tr>`).join('');renderDayUnlockState()}
-function currentSelectedDay(){return days.find(d=>String(d.id)===String(targetDay.value))||days[0]}function renderDayUnlockState(){const d=currentSelectedDay();if(!d)return;let txt=d.manual_lock?'🔒 Manually Locked':d.manual_unlock?'🔓 Manually Unlocked':'⏱ Automatic — Date-wise';dayUnlockState.innerHTML=`<span class="lock-chip ${d.manual_lock||d.manual_unlock?'manual':'auto'}">${txt}</span>`}
-async function setDayUnlock(mode){const d=currentSelectedDay(),patch=mode==='lock'?{manual_lock:true,manual_unlock:false}:mode==='unlock'?{manual_lock:false,manual_unlock:true}:{manual_lock:false,manual_unlock:false};const r=await sb.from('schedule_days').update(patch).eq('id',d.id).select().single();if(r.error){toast(r.error.message,'error');return}Object.assign(d,r.data);renderDayUnlockState();toast('Day unlock setting updated.','success')}
-function detectType(text){const t=text.toLowerCase();if(/अभिकथन|assertion/.test(t)&&/कारण|reason/.test(t))return'assertion_reason';if(/निष्कर्ष|conclusion/.test(t))return'statement_conclusion';if(/मिलान|सूची\s*[-–]?\s*i|list\s*[-–]?\s*i/.test(t))return'matching';if(/क्रमानुसार|सही क्रम|chronolog/.test(t))return'chronology';if(/रिक्त स्थान|____|fill in/.test(t))return'fill_blank';if(/सही कूट|correct code|कूट चुन/.test(t))return'correct_code';if(/विषम|odd one out/.test(t))return'odd_one_out';if(/कथनों? की सत्यता|कौन[- ]?से कथन सही|सही कथन|सत्य\/असत्य|true\/false/.test(t))return'multiple_statement_correctness';if(/(^|\n)\s*[1-9][.)]\s+/.test(text))return'multi_statement';return'normal_mcq'}
-function answerIndex(raw){const s=(raw||'').trim().replace(/[()\[\]]/g,'').toUpperCase(),m={A:0,B:1,C:2,D:3,'क':0,'ख':1,'ग':2,'घ':3,'1':0,'2':1,'3':2,'4':3};return m[s]??null}
-function parseRawQuestions(raw){const clean=raw.replace(/\r/g,'').trim();if(!clean)return[];const starts=[...clean.matchAll(/(?:^|\n)\s*(?:प्रश्न|Question|Q)\s*(?:No\.?\s*)?(\d+)\s*[.):-]?\s*/gi)];let blocks=[];if(starts.length){for(let i=0;i<starts.length;i++){const a=starts[i].index+(starts[i][0].startsWith('\n')?1:0),b=i+1<starts.length?starts[i+1].index:clean.length;blocks.push(clean.slice(a,b).trim())}}else blocks=clean.split(/\n\s*\n(?=\S)/).filter(Boolean);const out=[];for(const b0 of blocks){let block=b0.replace(/^\s*(?:प्रश्न|Question|Q)\s*(?:No\.?\s*)?\d+\s*[.):-]?\s*/i,'').trim();const ansM=block.match(/\n\s*(?:उत्तर|Answer|Ans\.?|सही उत्तर)\s*[:：-]\s*\(?\s*([A-Da-dकखगघ1-4])\s*\)?/i);if(!ansM)continue;const expM=block.match(/\n\s*(?:व्याख्या|Explanation|Solution)\s*[:：-]\s*([\s\S]*)$/i),answer=answerIndex(ansM[1]);let content=block.slice(0,ansM.index).trim();const optRe=/(?:^|\n)\s*(?:\(([A-Da-dकखगघ])\)|([A-Da-dकखगघ])[.)])\s*([^\n]+)/g,opts=[];let m,first=-1;while((m=optRe.exec(content))){if(first<0)first=m.index+(m[0].startsWith('\n')?1:0);opts.push(m[3].trim())}if(opts.length!==4||answer===null)continue;const qtext=(first>=0?content.slice(0,first):content).trim();out.push({question_type:detectType(qtext),question_text:qtext,options:opts,correct_answer:answer,explanation:expM?expM[1].trim():null})}return out}
-async function publishRawTest(){const parsed=parseRawQuestions(rawQuestions.value);if(!parsed.length){toast('Valid questions नहीं मिले। Format check करें।','error');return}const tr=await sb.from('tests').insert({batch_id:APP_CONFIG.BATCH_ID,schedule_day_id:testDay.value||null,title:testName.value.trim()||'New Test',test_type:'daily',total_questions:parsed.length,total_marks:parsed.length,time_limit_minutes:+testTime.value||null,passing_percent:+testPass.value||0,is_final_daily:isFinalDaily.checked,is_pdf_download_gate:isPdfGate.checked,allow_unlimited_retries:true,status:'published',created_by:adminUser.id}).select().single();if(tr.error){toast(tr.error.message,'error');return}for(let i=0;i<parsed.length;i++){const q=parsed[i],rr=await sb.from('test_questions').insert({test_id:tr.data.id,question_order:i+1,marks:1,difficulty:'normal',question_type:q.question_type,question_text:q.question_text,options:q.options}).select().single();if(rr.error){toast('Q'+(i+1)+': '+rr.error.message,'error');return}await sb.from('test_question_keys').insert({question_id:rr.data.id,correct_answer:q.correct_answer,explanation:q.explanation})}await createGlobalNotification('📝 नया Mock Test',tr.data.title+' उपलब्ध है।','test',tr.data.id);toast(parsed.length+' प्रश्नों का Test Publish हो गया।','success');rawQuestions.value='';loadTests()}
-async function loadTests(){const r=await sb.from('tests').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('created_at',{ascending:false});publishedTests=r.data||[];adminTests.innerHTML=publishedTests.map(t=>`<div class="item"><b>${esc(t.title)}</b><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent||0}% ${t.is_final_daily?'• Final Daily':''}</div></div>`).join('');pdfTest.innerHTML='<option value="">No Test</option>'+publishedTests.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('')}
-function parseOneLiners(raw){
-  const text=String(raw||'').replace(/\r/g,'').trim();
-  if(!text)return[];
-  const out=[];
-  for(const line0 of text.split('\n')){
-    const line=line0.trim();
-    if(!line)continue;
-    const m=line.match(/^\s*(?:\d+\s*[.)-]?\s*)?(.+?)\s*(?:—|--|-)?\s*(?:उत्तर|Answer|Ans\.?)\s*[:：-]\s*(.+)\s*$/i);
-    if(m&&m[1]&&m[2])out.push({question:m[1].trim().replace(/[—\-\s]+$/,''),answer:m[2].trim()});
-  }
-  if(out.length)return out;
-  const lines=text.split('\n');let q=null;
-  for(const l0 of lines){
-    const l=l0.trim();if(!l)continue;
-    const am=l.match(/^(?:उत्तर|Answer|Ans\.?)\s*[:：-]\s*(.+)$/i);
-    if(am&&q){out.push({question:q,answer:am[1].trim()});q=null;continue}
-    const qm=l.match(/^(?:प्रश्न|Question|Q)?\s*(?:\d+)?\s*[.):-]?\s*(.+)$/i);
-    if(qm)q=qm[1].trim();
-  }
-  return out;
-}
-async function publishOneLiners(){
-  const rows=parseOneLiners(oneLinerRaw.value);
-  if(!rows.length){toast('One-Liner format नहीं मिला। उदाहरण: 1. प्रश्न — उत्तर: जवाब','error');return}
-  const rr=await sb.rpc('admin_publish_one_liners',{
-    p_subject:oneLinerSubject.value.trim()||'General',
-    p_topic:oneLinerTopic.value.trim()||'General',
-    p_items:rows
-  });
-  if(rr.error){toast('One-Liner save नहीं हुआ: '+rr.error.message,'error');return}
-  await createGlobalNotification('📚 नए One-Liners',`${oneLinerTopic.value.trim()||'नए Topic'} के ${rows.length} One-Liners उपलब्ध हैं।`,'oneliner','');
-  toast(rows.length+' One-Liners Publish हो गए।','success');
-  oneLinerRaw.value='';
-  await loadOneLinersAdmin();
-}
-async function loadOneLinersAdmin(){const r=await sb.from('one_liners').select('*').order('created_at',{ascending:false}).limit(100);adminOneLiners.innerHTML=(r.data||[]).map(x=>`<div class="item"><span class="topic-chip">${esc(x.subject||'General')} • ${esc(x.topic||'General')}</span><p><b>${esc(x.question)}</b></p><p>${esc(x.answer)}</p></div>`).join('')||'<div class="item">अभी कोई One-Liner नहीं है।</div>'}
-async function uploadPdf(){const f=pdfFile.files[0];if(!f){toast('PDF चुनें','error');return}if(f.size>25*1024*1024){toast('PDF 25 MB से बड़ी है','error');return}const path=`${pdfDay.value}/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,up=await sb.storage.from('study-pdfs').upload(path,f,{contentType:'application/pdf'});if(up.error){toast(up.error.message,'error');return}const ins=await sb.from('study_materials').insert({schedule_day_id:pdfDay.value,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:path,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',access_mode:pdfAccess.value,download_test_id:pdfTest.value||null,download_pass_percent:+pdfPass.value||80,requires_class_verification:true,uploaded_by:adminUser.id,published_at:new Date().toISOString()}).select().single();if(ins.error){toast(ins.error.message,'error');return}await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);toast('PDF upload हो गई','success');loadMaterials()}
-async function loadMaterials(){const r=await sb.from('study_materials').select('*,schedule_days(day_number)').order('created_at',{ascending:false});materialsList.innerHTML=(r.data||[]).map(m=>`<div class="item"><b>${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${m.access_mode||'read_only'} ${m.access_mode==='test_required'?`• ${m.download_pass_percent}%`:''}</div></div>`).join('')}
-function adminLocalDateKey(){const d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
-function adminDayAvailable(day){return Boolean(day)&&day.manual_lock!==true&&(day.manual_unlock===true||String(day.day_date||'')<=adminLocalDateKey())}
-function adminTargetAvailable(target,day){const mode=target?.visibility_mode||'auto';return target?.class_status!=='cancelled'&&mode!=='hide'&&(mode==='show'||adminDayAvailable(day))}
-async function shouldCreatePublicNotification(relatedType,relatedId){
-  const type=String(relatedType||'').toLowerCase();
-  if(!relatedId||!['pdf','test','target','class'].includes(type))return true;
+async function saveClass(){
+  const payload={
+    p_class_id:byId('classId').value||null,
+    p_schedule_day_id:byId('classDay').value||null,
+    p_class_title:byId('classTitle').value.trim(),
+    p_subject:byId('classSubject').value.trim(),
+    p_topic:byId('classTopic').value.trim(),
+    p_youtube_url:byId('classYoutube').value.trim()||null,
+    p_start_time:byId('classStartTime').value||null,
+    p_duration_minutes:Math.max(1,Number(byId('classDuration').value||60)),
+    p_class_type:byId('classType').value,
+    p_class_status:byId('classStatus').value,
+    p_class_note:byId('classNote').value.trim()||null,
+    p_student_visible:byId('classVisible').checked
+  };
+  if(!payload.p_schedule_day_id||!payload.p_class_title||!payload.p_subject||!payload.p_topic){toast('Day, Class Title, Subject और Topic जरूरी हैं।','error');return}
+  const btn=byId('saveClassBtn'),old=btn.textContent;btn.disabled=true;btn.textContent='Saving...';
   try{
-    if(type==='pdf'){
-      const q=await sb.from('study_materials').select('student_visible,schedule_days(day_date,manual_lock,manual_unlock),daily_targets(visibility_mode,class_status)').eq('id',relatedId).maybeSingle();
-      if(q.error||!q.data||q.data.student_visible!==true)return false;
-      return adminDayAvailable(q.data.schedule_days)&&(!q.data.daily_targets||adminTargetAvailable(q.data.daily_targets,q.data.schedule_days));
+    const r=await sb.rpc('admin_save_simple_class',payload);
+    if(r.error)throw r.error;
+    const saved=r.data;
+    if(payload.p_student_visible&&byId('classNotify').checked){
+      const day=days.find(d=>String(d.id)===String(payload.p_schedule_day_id));
+      const msg=`${payload.p_class_title} • ${fmtDate(day?.day_date||'')} • ${classTimeLabel({start_time:payload.p_start_time,class_type:payload.p_class_type})}`;
+      await createGlobalNotification(payload.p_class_status==='cancelled'?'Class Cancelled':'▶ Class Update',msg,'class',saved?.id||payload.p_class_id);
     }
-    if(type==='test'){
-      const q=await sb.from('tests').select('student_visible,schedule_day_id,schedule_days(day_date,manual_lock,manual_unlock)').eq('id',relatedId).maybeSingle();
-      if(q.error||!q.data||q.data.student_visible!==true)return false;
-      return !q.data.schedule_day_id||adminDayAvailable(q.data.schedule_days);
-    }
-    const q=await sb.from('daily_targets').select('visibility_mode,class_status,schedule_days(day_date,manual_lock,manual_unlock)').eq('id',relatedId).maybeSingle();
-    if(q.error||!q.data)return false;
-    return adminTargetAvailable(q.data,q.data.schedule_days);
-  }catch(error){console.warn('Notification visibility check:',error);return false}
+    toast('Class save हो गई।','success');resetClassForm();await Promise.all([loadClasses(),loadDashboard()]);
+  }catch(e){toast(e.message||'Class save नहीं हुई।','error')}
+  finally{btn.disabled=false;btn.textContent=old}
 }
+function editClass(id){
+  const x=classes.find(c=>String(c.id)===String(id));if(!x)return;
+  byId('classId').value=x.id;byId('classDay').value=x.schedule_day_id||'';byId('classTitle').value=x.class_title||x.topic||'';byId('classSubject').value=x.subject||'';byId('classTopic').value=x.topic||'';byId('classYoutube').value=x.youtube_url||'';byId('classStartTime').value=String(x.start_time||'').slice(0,5);byId('classDuration').value=Number(x.duration_minutes||60);byId('classType').value=x.class_type||'live';byId('classStatus').value=x.class_status==='partial'?'time_changed':(x.class_status||'scheduled');byId('classNote').value=x.class_note||'';byId('classVisible').checked=x.student_visible===true;byId('classNotify').checked=false;byId('saveClassBtn').textContent='Update Class';window.scrollTo({top:0,behavior:'smooth'});
+}
+async function saveClassVisibility(id){
+  const visible=byId('classVisible_'+id)?.checked===true;
+  const r=await sb.rpc('admin_set_simple_class_visibility',{p_class_id:id,p_visible:visible});
+  if(r.error){toast(r.error.message,'error');return}
+  toast(visible?'Class Students को दिखाई देगी।':'Class hide कर दी गई।','success');await Promise.all([loadClasses(),loadDashboard()]);
+}
+async function deleteClass(id){
+  if(!(await adminConfirmDelete('यह Class delete करनी है? उससे linked Class PDFs Other PDF में नहीं जाएँगी; वे unlinked हो सकती हैं।')))return;
+  const r=await sb.rpc('admin_delete_simple_class',{p_class_id:id});
+  if(r.error){toast(r.error.message,'error');return}
+  toast('Class delete हो गई।','success');await Promise.all([loadClasses(),loadMaterials(),loadDashboard()]);
+}
+async function loadClasses(){
+  const r=await sb.from('daily_targets').select('*,schedule_days(day_number,day_date)').eq('status','published').eq('simple_class_enabled',true).order('schedule_day_id').order('target_order');
+  const host=byId('classesList');if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}</div>`;return}
+  classes=r.data||[];
+  byId('classPdfTarget').innerHTML='<option value="">Class चुनें</option>'+classes.map(x=>`<option value="${x.id}">${esc(classDayLabel(x))} — ${esc(x.class_title||x.topic||'Class')}</option>`).join('');
+  host.innerHTML=classes.map(x=>`<article class="simple-content-card">
+    <div class="simple-card-main"><div class="simple-card-top"><span class="badge ${statusClass(x.class_status)}">${esc(statusLabel(x.class_status))}</span><span class="badge ${x.student_visible?'badge-green':'badge-gray'}">${x.student_visible?'Student Visible':'Hidden'}</span></div>
+    <h3>${esc(x.class_title||x.topic||'Class')}</h3><p>${esc(x.subject||'')} • ${esc(x.topic||'')}</p><p>📅 ${esc(classDayLabel(x))} • ⏰ ${esc(classTimeLabel(x))} • ${Number(x.duration_minutes||60)} मिनट</p>${x.class_note?`<p class="small">${esc(x.class_note)}</p>`:''}</div>
+    <div class="simple-card-actions"><label class="simple-toggle compact"><input id="classVisible_${x.id}" type="checkbox" ${x.student_visible?'checked':''}><span>Show</span></label><button class="btn btn-blue btn-mini" onclick="saveClassVisibility('${x.id}')">Save</button><button class="btn btn-light btn-mini" onclick="editClass('${x.id}')">Edit</button><button class="btn btn-red btn-mini" onclick="deleteClass('${x.id}')">Delete</button></div>
+  </article>`).join('')||'<div class="item">अभी कोई Class नहीं है।</div>';
+}
+
+function resetPdfForm(type){
+  const isClass=type==='class';
+  byId(isClass?'classPdfId':'otherPdfId').value='';
+  byId(isClass?'classPdfTitle':'otherPdfTitle').value='';
+  byId(isClass?'classPdfFile':'otherPdfFile').value='';
+  byId(isClass?'classPdfDownload':'otherPdfDownload').value='direct_download';
+  byId(isClass?'classPdfVisible':'otherPdfVisible').checked=true;
+  byId(isClass?'classPdfNotify':'otherPdfNotify').checked=true;
+  if(isClass)byId('classPdfTarget').value='';else byId('otherPdfCategory').value='';
+  byId(isClass?'classPdfSaveBtn':'otherPdfSaveBtn').textContent=isClass?'Upload Class PDF':'Upload Other PDF';
+  byId(isClass?'classPdfCancelBtn':'otherPdfCancelBtn').classList.add('hidden');
+}
+function editPdf(id){
+  const m=materials.find(x=>String(x.id)===String(id));if(!m)return;
+  const isClass=(m.pdf_type||'class')==='class';
+  byId(isClass?'classPdfId':'otherPdfId').value=m.id;
+  byId(isClass?'classPdfTitle':'otherPdfTitle').value=m.title||'';
+  byId(isClass?'classPdfDownload':'otherPdfDownload').value=m.access_mode==='direct_download'?'direct_download':'read_only';
+  byId(isClass?'classPdfVisible':'otherPdfVisible').checked=m.student_visible===true;
+  byId(isClass?'classPdfNotify':'otherPdfNotify').checked=false;
+  if(isClass)byId('classPdfTarget').value=m.target_id||'';else byId('otherPdfCategory').value=m.category||'';
+  byId(isClass?'classPdfSaveBtn':'otherPdfSaveBtn').textContent=isClass?'Update Class PDF':'Update Other PDF';
+  byId(isClass?'classPdfCancelBtn':'otherPdfCancelBtn').classList.remove('hidden');
+  tab(isClass?'classpdfs':'otherpdfs',document.querySelector(`.simple-sidebar a[onclick*="${isClass?'classpdfs':'otherpdfs'}"]`));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+async function uploadSimplePdf(type){
+  const isClass=type==='class';
+  const id=byId(isClass?'classPdfId':'otherPdfId').value||null;
+  const existing=id?materials.find(x=>String(x.id)===String(id)):null;
+  const file=byId(isClass?'classPdfFile':'otherPdfFile')?.files?.[0]||null;
+  const title=byId(isClass?'classPdfTitle':'otherPdfTitle').value.trim()||file?.name||existing?.title||'';
+  const targetId=isClass?byId('classPdfTarget').value:null;
+  const category=isClass?'Class PDF':(byId('otherPdfCategory').value.trim()||'Other PDF');
+  const access=byId(isClass?'classPdfDownload':'otherPdfDownload').value;
+  const visible=byId(isClass?'classPdfVisible':'otherPdfVisible').checked;
+  const notify=byId(isClass?'classPdfNotify':'otherPdfNotify').checked;
+  if(!id&&!file){toast('PDF file चुनें।','error');return}
+  if(!title){toast('PDF Title लिखें।','error');return}
+  if(file&&file.type&&file.type!=='application/pdf'){toast('केवल PDF upload करें।','error');return}
+  if(file&&file.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
+  if(isClass&&!targetId){toast('Related Class चुनें।','error');return}
+  const target=classes.find(x=>String(x.id)===String(targetId));
+  const button=byId(isClass?'classPdfSaveBtn':'otherPdfSaveBtn'),oldText=button.textContent;
+  let newKey='';button.disabled=true;button.textContent=id?'Updating...':'Uploading...';
+  try{
+    if(file){
+      toast('PDF existing R2 storage में upload हो रही है...','info');
+      const up=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(file.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':file.name},body:file});
+      if(!up.ok)throw new Error(await r2ErrorMessage(up,'R2 upload failed'));
+      newKey=(await up.json()).key;if(!newKey)throw new Error('R2 file key नहीं मिला।');
+    }
+    const row={
+      schedule_day_id:isClass?(target?.schedule_day_id||null):null,target_id:isClass?targetId:null,title,category,
+      material_type:'pdf',pdf_type:isClass?'class':'direct',storage_path:newKey||existing?.storage_path,
+      file_size_bytes:file?file.size:(existing?.file_size_bytes||null),mime_type:'application/pdf',status:'published',access_mode:access,
+      download_test_id:null,download_pass_percent:0,requires_class_verification:false,requires_pdf_verification:false,
+      verification_question_count:0,pdf_verification_pass_percent:0,student_visible:visible,
+      published_at:visible?(existing?.published_at||new Date().toISOString()):existing?.published_at||null
+    };
+    let db;
+    if(id)db=await sb.from('study_materials').update(row).eq('id',id).select().single();
+    else db=await sb.from('study_materials').insert({...row,uploaded_by:adminUser.id}).select().single();
+    if(db.error)throw db.error;
+    if(id&&newKey&&existing?.storage_path&&existing.storage_path!==newKey&&isR2PdfPath(existing.storage_path)){
+      try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(existing.storage_path)}`,{method:'DELETE'})}catch(e){console.warn('Old PDF cleanup:',e)}
+    }
+    if(visible&&notify)await createGlobalNotification(id?'📄 PDF Updated':'📄 नई PDF उपलब्ध',title,'pdf',db.data.id);
+    resetPdfForm(type);toast(id?'PDF update हो गई।':'PDF upload हो गई और setting save हो गई।','success');
+    await Promise.all([loadMaterials(),loadDashboard()]);
+  }catch(e){
+    if(newKey){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(newKey)}`,{method:'DELETE'})}catch(_) {}}
+    toast(e.message||'PDF save नहीं हुई।','error');
+  }finally{button.disabled=false;if(button.textContent==='Updating...'||button.textContent==='Uploading...')button.textContent=oldText}
+}
+
+async function saveMaterialSettings(id){
+  const visible=byId('materialVisible_'+id)?.checked===true;
+  const access=byId('materialAccess_'+id)?.value||'read_only';
+  const r=await sb.rpc('admin_set_simple_material_settings',{p_material_id:id,p_visible:visible,p_access_mode:access});
+  if(r.error){toast(r.error.message,'error');return}
+  toast('PDF setting save हो गई।','success');await Promise.all([loadMaterials(),loadDashboard()]);
+}
+async function deletePdf(id,key){
+  if(!(await adminConfirmDelete('यह PDF database और R2 दोनों से delete करनी है?')))return;
+  let db=await sb.rpc('admin_delete_material',{p_material_id:id});
+  if(db.error){db=await sb.from('study_materials').delete().eq('id',id);if(db.error){toast(db.error.message,'error');return}}
+  try{if(key&&isR2PdfPath(key))await r2ApiFetch(`/admin/file?key=${encodeURIComponent(key)}`,{method:'DELETE'});else if(key)await sb.storage.from('study-pdfs').remove([key])}catch(e){console.warn(e)}
+  toast('PDF delete हो गई।','success');await Promise.all([loadMaterials(),loadDashboard()]);
+}
+async function loadMaterials(){
+  const r=await sb.from('study_materials').select('*').eq('status','published').order('created_at',{ascending:false});
+  if(r.error){byId('classPdfList').innerHTML=byId('otherPdfList').innerHTML=`<div class="item text-error">${esc(r.error.message)}</div>`;return}
+  materials=r.data||[];
+  const render=(rows,label)=>rows.map(m=>`<article class="simple-content-card"><div class="simple-card-main"><div class="simple-card-top"><span class="badge ${m.student_visible?'badge-green':'badge-gray'}">${m.student_visible?'Student Visible':'Hidden'}</span><span class="badge badge-blue">${esc(m.access_mode==='direct_download'?'Download Allowed':'Read Only')}</span></div><h3>📄 ${esc(m.title||'PDF')}</h3><p>${label==='Class PDF'?esc((classes.find(c=>String(c.id)===String(m.target_id))||{}).class_title||(classes.find(c=>String(c.id)===String(m.target_id))||{}).topic||'Unlinked Class'):esc(m.category||'Other PDF')}</p><p class="small">${isR2PdfPath(m.storage_path)?'Cloudflare R2':'Legacy Storage'}</p></div><div class="simple-card-actions stacked"><label class="simple-toggle compact"><input id="materialVisible_${m.id}" type="checkbox" ${m.student_visible?'checked':''}><span>Show</span></label><select id="materialAccess_${m.id}" class="mini-select"><option value="direct_download" ${m.access_mode==='direct_download'?'selected':''}>Download Allow</option><option value="read_only" ${m.access_mode!=='direct_download'?'selected':''}>Read Only</option></select><button class="btn btn-light btn-mini" onclick="editPdf('${m.id}')">Edit</button><button class="btn btn-blue btn-mini" onclick="saveMaterialSettings('${m.id}')">Save</button><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>Delete</button></div></article>`).join('')||`<div class="item">अभी कोई ${label} नहीं है।</div>`;
+  byId('classPdfList').innerHTML=render(materials.filter(x=>(x.pdf_type||'class')==='class'),'Class PDF');
+  byId('otherPdfList').innerHTML=render(materials.filter(x=>x.pdf_type==='direct'),'Other PDF');
+}
+
 async function createGlobalNotification(title,message,relatedType,relatedId){
-  if(!(await shouldCreatePublicNotification(relatedType,relatedId)))return {ok:true,skipped:true};
   const row={title,message,notification_type:'info',related_type:relatedType||null,related_id:String(relatedId||'')||null,is_active:true};
   const rr=await sb.from('app_notifications').insert(row).select().single();
-  if(rr.error){console.warn('In-app notification save failed:',rr.error);return {ok:false,error:rr.error}}
-  const push=await sendPushNotification(title,message,relatedType,rr.data?.id,relatedId);
-  return {ok:true,data:rr.data,push};
+  if(rr.error){console.warn('Notification save:',rr.error);return {ok:false,error:rr.error}}
+  try{await sendPushNotification(title,message,relatedType,rr.data?.id,relatedId)}catch(e){console.warn(e)}
+  return {ok:true,data:rr.data};
 }
-async function sendBroadcast(){const title=broadcastTitle.value.trim(),message=broadcastMessage.value.trim();if(!title||!message){toast('Title और Message लिखें।','error');return}const rr=await sb.from('broadcast_messages').insert({title,message,message_type:broadcastType.value,is_active:true}).select().single();if(rr.error){toast(rr.error.message,'error');return}await createGlobalNotification(title,message,'broadcast',rr.data.id);broadcastTitle.value='';broadcastMessage.value='';toast('संदेश सभी विद्यार्थियों को भेज दिया गया।','success');loadBroadcasts()}
+function resetBroadcastForm(){
+  byId('broadcastId').value='';byId('broadcastTitle').value='';byId('broadcastMessage').value='';byId('broadcastType').value='info';
+  byId('broadcastSaveBtn').textContent='Send to All Students';byId('broadcastCancelBtn').classList.add('hidden');
+}
+function editBroadcast(id){
+  const x=(window.__broadcastRows||[]).find(row=>String(row.id)===String(id));if(!x)return;
+  byId('broadcastId').value=x.id;byId('broadcastTitle').value=x.title||'';byId('broadcastMessage').value=x.message||'';byId('broadcastType').value=x.message_type||'info';
+  byId('broadcastSaveBtn').textContent='Update Message';byId('broadcastCancelBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});
+}
+async function sendBroadcast(){
+  const id=byId('broadcastId').value||null,title=byId('broadcastTitle').value.trim(),message=byId('broadcastMessage').value.trim();
+  if(!title||!message){toast('Title और Message लिखें।','error');return}
+  const payload={title,message,message_type:byId('broadcastType').value,is_active:true};
+  const rr=id?await sb.from('broadcast_messages').update(payload).eq('id',id).select().single():await sb.from('broadcast_messages').insert(payload).select().single();
+  if(rr.error){toast(rr.error.message,'error');return}
+  await createGlobalNotification(id?'📣 Message Updated':title,id?`${title}: ${message}`:message,'broadcast',rr.data.id);
+  resetBroadcastForm();toast(id?'Message update हो गया।':'संदेश सभी विद्यार्थियों को भेज दिया गया।','success');loadBroadcasts();
+}
+async function toggleBroadcast(id,current){
+  const r=await sb.from('broadcast_messages').update({is_active:!current}).eq('id',id);if(r.error){toast(r.error.message,'error');return}
+  toast(!current?'Message Students को दिखाई देगा।':'Message hide हो गया।','success');loadBroadcasts();
+}
 async function deleteBroadcast(id){
-  if(!(await adminConfirmDelete('क्या आप यह पुराना Message delete करना चाहते हैं?')))return;
-  const rr=await sb.rpc('admin_delete_broadcast',{p_broadcast_id:id});
-  if(rr.error){toast('Message delete नहीं हुआ: '+rr.error.message,'error');return}
-  toast('पुराना Message delete हो गया।','success');
-  await loadBroadcasts();
-}
-async function deleteAllBroadcasts(){
-  if(!(await adminConfirmDelete('क्या आप सभी पुराने Broadcast Messages delete करना चाहते हैं?')))return;
-  const rr=await sb.rpc('admin_delete_all_broadcasts');
-  if(rr.error){toast('Messages delete नहीं हुए: '+rr.error.message,'error');return}
-  toast('सभी पुराने Messages delete हो गए।','success');
-  await loadBroadcasts();
+  if(!(await adminConfirmDelete('यह Message delete करना है?')))return;
+  let r=await sb.rpc('admin_delete_broadcast',{p_broadcast_id:id});
+  if(r.error){r=await sb.from('broadcast_messages').delete().eq('id',id);if(r.error){toast(r.error.message,'error');return}}
+  if(String(byId('broadcastId').value)===String(id))resetBroadcastForm();
+  toast('Message delete हो गया।','success');loadBroadcasts();
 }
 async function loadBroadcasts(){
-  const r=await sb.from('broadcast_messages').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(100);
-  broadcastList.innerHTML=(r.data||[]).map(x=>`<div class="item notice-premium ${esc(x.message_type||'info')} broadcast-admin-item"><div class="broadcast-copy"><b>${esc(x.title)}</b><p>${esc(x.message)}</p><div class="small muted">${x.created_at?new Date(x.created_at).toLocaleString('hi-IN'):''}</div></div><button class="btn btn-red btn-mini" onclick="deleteBroadcast(${x.id})">🗑 Delete</button></div>`).join('')||'<div class="item">अभी कोई Broadcast नहीं है।</div>'
-}
-async function loadReports(){const top=[...students].sort((a,b)=>(b.total_completed_days||0)-(a.total_completed_days||0)||(b.average_test_percentage||0)-(a.average_test_percentage||0)).slice(0,5);reportCards.innerHTML=`<div class="kpi-card kpi-green span-4"><div class="muted">Completed Days</div><div class="kpi">${students.reduce((a,s)=>a+(s.total_completed_days||0),0)}</div></div><div class="kpi-card kpi-blue span-4"><div class="muted">Students</div><div class="kpi">${students.length}</div></div><div class="kpi-card kpi-purple span-4"><div class="muted">Average Score</div><div class="kpi">${students.length?Math.round(students.reduce((a,s)=>a+(s.average_test_percentage||0),0)/students.length):0}%</div></div>`;topStudents.innerHTML=top.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.full_name||'')}</td><td>${s.total_completed_days||0}/151</td><td>${s.average_test_percentage||0}%</td></tr>`).join('')}
-
-/* ===== REFINED ADMIN: SUBJECT/TOPIC CATALOG ===== */
-let adminOneLinerCatalog=[];
-async function loadAdminOneLinerCatalog(){
-  const r=await sb.from('daily_targets').select('subject,topic').eq('status','published').order('subject').order('topic');
-  adminOneLinerCatalog=r.data||[];
-  const subjects=[...new Set(adminOneLinerCatalog.map(x=>(x.subject||'').trim()).filter(Boolean))];
-  oneLinerSubject.innerHTML=subjects.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
-  updateAdminOneLinerTopics();
-}
-function updateAdminOneLinerTopics(){
-  const subject=oneLinerSubject?.value||'';
-  const topics=[...new Set(adminOneLinerCatalog.filter(x=>x.subject===subject).map(x=>(x.topic||'').trim()).filter(Boolean))];
-  oneLinerTopic.innerHTML=topics.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
-}
-async function loadOneLinersAdmin(){
-  const r=await sb.from('one_liners').select('subject,topic,id').eq('status','published').order('subject').order('topic');
-  const rows=r.data||[];
-  const groups={};
-  rows.forEach(x=>{
-    const k=(x.subject||'General')+'||'+(x.topic||'General');
-    groups[k]=(groups[k]||0)+1;
-  });
-  adminOneLiners.innerHTML=Object.entries(groups).map(([k,count])=>{
-    const [subject,topic]=k.split('||');
-    return `<div class="item one-topic-summary"><span class="topic-chip">${esc(subject)}</span><b>${esc(topic)}</b><span class="badge badge-blue">${count} One-Liners</span></div>`;
-  }).join('')||'<div class="item">अभी कोई One-Liner नहीं है।</div>';
-}
-const __oldAdminInit=init;
-init=async function(){
-  if(!(await guard()))return;
-  todayDate.textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
-  await loadDays();
-  await loadStudents();
-  await loadAdminOneLinerCatalog();
-  await Promise.all([loadDashboard(),loadTests(),loadOneLinersAdmin(),loadMaterials(),loadReports(),loadBroadcasts()]);
-  initInstallUI('adminInstallBtn');
-};
-
-
-/* ===== ADMIN DELETE CONTROLS ===== */
-async function adminConfirmDelete(message){
-  return window.confirm(message);
-}
-async function deleteOneLiner(id){
-  if(!(await adminConfirmDelete('क्या आप यह One-Liner delete करना चाहते हैं?'))) return;
-  const r=await sb.rpc('admin_delete_one_liner',{p_one_liner_id:id});
-  if(r.error){toast(r.error.message,'error');return}
-  toast('One-Liner delete हो गया।','success');
-  await loadOneLinersAdmin();
-}
-async function deleteOneLinerTopic(subject,topic){
-  if(!(await adminConfirmDelete(`क्या "${subject} → ${topic}" के सभी One-Liners delete करने हैं?`))) return;
-  const r=await sb.rpc('admin_delete_one_liner_topic',{p_subject:subject,p_topic:topic});
-  if(r.error){toast(r.error.message,'error');return}
-  toast('इस Topic के सभी One-Liners delete हो गए।','success');
-  await loadOneLinersAdmin();
-}
-async function deleteAllOneLiners(){
-  if(!(await adminConfirmDelete('क्या आप सभी One-Liners delete करना चाहते हैं? यह action वापस नहीं होगा।'))) return;
-  const r=await sb.rpc('admin_delete_all_one_liners');
-  if(r.error){toast(r.error.message,'error');return}
-  toast('सभी One-Liners delete हो गए।','success');
-  await loadOneLinersAdmin();
+  const r=await sb.from('broadcast_messages').select('*').order('created_at',{ascending:false}).limit(100);
+  window.__broadcastRows=r.data||[];
+  byId('broadcastList').innerHTML=(r.data||[]).map(x=>`<article class="simple-content-card"><div class="simple-card-main"><div class="simple-card-top"><span class="badge badge-blue">${esc(x.message_type||'info')}</span><span class="badge ${x.is_active?'badge-green':'badge-gray'}">${x.is_active?'Student Visible':'Hidden'}</span></div><h3>${esc(x.title)}</h3><p>${esc(x.message)}</p><p class="small muted">${x.created_at?new Date(x.created_at).toLocaleString('hi-IN'):''}</p></div><div class="simple-card-actions stacked"><button class="btn btn-light btn-mini" onclick="editBroadcast(${x.id})">Edit</button><button class="btn btn-blue btn-mini" onclick="toggleBroadcast(${x.id},${x.is_active})">${x.is_active?'Hide':'Show'}</button><button class="btn btn-red btn-mini" onclick="deleteBroadcast(${x.id})">Delete</button></div></article>`).join('')||'<div class="item">अभी कोई Message नहीं है।</div>';
 }
 
-async function deleteQuestion(questionId,testId){
-  if(!(await adminConfirmDelete('क्या आप केवल यह Question delete करना चाहते हैं?'))) return;
-  const r=await sb.rpc('admin_delete_test_question',{p_question_id:questionId});
-  if(r.error){toast(r.error.message,'error');return}
-  toast('Question delete हो गया।','success');
-  await loadTests();
-  if(testId) await loadTestQuestionsAdmin(testId);
-}
-async function deleteTest(testId){
-  if(!(await adminConfirmDelete('क्या आप पूरा Test और उसके सभी Questions delete करना चाहते हैं?'))) return;
-  const r=await sb.rpc('admin_delete_test',{p_test_id:testId});
-  if(r.error){toast(r.error.message,'error');return}
-  toast('पूरा Test delete हो गया।','success');
-  await loadTests();
-}
-async function deleteAllTests(){
-  if(!(await adminConfirmDelete('क्या आप सभी Tests और उनके सभी Questions delete करना चाहते हैं?'))) return;
-  const r=await sb.rpc('admin_delete_all_tests');
-  if(r.error){toast(r.error.message,'error');return}
-  toast('सभी Tests delete हो गए।','success');
-  await loadTests();
-}
-async function loadTestQuestionsAdmin(testId){
-  const host=document.getElementById('testQuestions_'+testId);
-  if(!host)return;
-  const r=await sb.from('test_questions').select('id,question_text,sort_order').eq('test_id',testId).order('sort_order');
-  const rows=r.data||[];
-  host.innerHTML=rows.map((q,i)=>`<div class="admin-delete-row"><div><b>Q${i+1}.</b> ${esc(q.question_text||'')}</div><button class="btn btn-red btn-mini" onclick="deleteQuestion('${q.id}','${testId}')">Delete Question</button></div>`).join('')||'<div class="muted">इस Test में कोई Question नहीं है।</div>';
-}
-
-async function deletePdf(materialId,storagePath){
-  if(!(await adminConfirmDelete('क्या आप यह PDF पूरी तरह delete करना चाहते हैं?'))) return;
-  const r=await sb.rpc('admin_delete_material',{p_material_id:materialId});
-  if(r.error){toast(r.error.message,'error');return}
-  if(storagePath){
-    try{await sb.storage.from('study-pdfs').remove([storagePath]);}catch(_){}
-  }
-  toast('PDF delete हो गई।','success');
-  await loadMaterials();
-}
-async function deleteAllPdfs(){
-  if(!(await adminConfirmDelete('क्या आप सभी PDFs delete करना चाहते हैं?'))) return;
-  const list=await sb.from('study_materials').select('id,storage_path');
-  const rows=list.data||[];
-  const r=await sb.rpc('admin_delete_all_materials');
-  if(r.error){toast(r.error.message,'error');return}
-  const paths=rows.map(x=>x.storage_path).filter(Boolean);
-  if(paths.length){try{await sb.storage.from('study-pdfs').remove(paths);}catch(_){}}
-  toast('सभी PDFs delete हो गईं।','success');
-  await loadMaterials();
-}
-
-/* Enrich published One-Liner listing with topic delete + individual expand/delete */
-const __deleteOldLoadOneLinersAdmin = typeof loadOneLinersAdmin==='function' ? loadOneLinersAdmin : null;
-loadOneLinersAdmin=async function(){
-  const r=await sb.from('one_liners').select('id,subject,topic,question,answer,created_at').eq('status','published').order('subject').order('topic').order('created_at');
-  const rows=r.data||[];
-  const groups={};
-  rows.forEach(x=>{
-    const k=(x.subject||'General')+'||'+(x.topic||'General');
-    (groups[k] ||= []).push(x);
-  });
-  adminOneLiners.innerHTML=Object.entries(groups).map(([k,items])=>{
-    const [subject,topic]=k.split('||');
-    const safeKey=btoa(unescape(encodeURIComponent(k))).replace(/=/g,'');
-    return `<div class="item admin-delete-group">
-      <div class="row wrap">
-        <div><span class="topic-chip">${esc(subject)}</span><b>${esc(topic)}</b><span class="badge badge-blue">${items.length} One-Liners</span></div>
-        <div class="row wrap">
-          <button class="btn btn-light btn-mini" onclick="document.getElementById('olgrp_${safeKey}').classList.toggle('hidden')">View</button>
-          <button class="btn btn-red btn-mini" onclick='deleteOneLinerTopic(${JSON.stringify(subject)},${JSON.stringify(topic)})'>Delete Topic</button>
-        </div>
-      </div>
-      <div id="olgrp_${safeKey}" class="hidden admin-delete-inner">
-        ${items.map((x,i)=>`<div class="admin-delete-row"><div><b>${i+1}. ${esc(x.question||'')}</b><div class="muted">उत्तर: ${esc(x.answer||'')}</div></div><button class="btn btn-red btn-mini" onclick="deleteOneLiner('${x.id}')">Delete</button></div>`).join('')}
-      </div>
-    </div>`;
-  }).join('')||'<div class="item">अभी कोई One-Liner नहीं है।</div>';
-};
-
-/* Enrich tests listing with delete and question manager */
-const __deleteOldLoadTests = typeof loadTests==='function' ? loadTests : null;
-loadTests=async function(){
-  const r=await sb.from('tests').select('*').order('created_at',{ascending:false});
-  const rows=r.data||[];
-  if(typeof adminTests!=='undefined' && adminTests){
-    adminTests.innerHTML=rows.map(t=>`<div class="item admin-delete-group">
-      <div class="row wrap">
-        <div><b>${esc(t.title||'Untitled Test')}</b><div class="muted">${t.total_questions||0} Questions • Pass ${t.passing_percent||0}%</div></div>
-        <div class="row wrap">
-          <button class="btn btn-light btn-mini" onclick="loadTestQuestionsAdmin('${t.id}');document.getElementById('testQuestions_${t.id}').classList.toggle('hidden')">Manage Questions</button>
-          <button class="btn btn-red btn-mini" onclick="deleteTest('${t.id}')">Delete Test</button>
-        </div>
-      </div>
-      <div id="testQuestions_${t.id}" class="hidden admin-delete-inner"></div>
-    </div>`).join('')||'<div class="item">अभी कोई Test नहीं है।</div>';
-  }
-};
-
-/* Enrich PDF listing with delete buttons */
-const __deleteOldLoadMaterials = typeof loadMaterials==='function' ? loadMaterials : null;
-loadMaterials=async function(){
-  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date)').order('created_at',{ascending:false});
-  const rows=r.data||[];
-  if(typeof adminPdfs!=='undefined' && adminPdfs){
-    adminPdfs.innerHTML=rows.map(m=>`<div class="item admin-delete-group"><div class="row wrap"><div><b>📄 ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${esc(m.access_mode||'')}</div></div><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>Delete PDF</button></div></div>`).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
-  }
-};
-
-
-
-/* ===== R2 PDF STORAGE OVERRIDES ===== */
-async function uploadPdf(){
-  const f=pdfFile.files[0];
-  if(!f){toast('PDF चुनें','error');return}
-  if(f.type && f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}
-  if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
-
-  const btn=document.querySelector('#pdfsTab button[onclick="uploadPdf()"]')||document.querySelector('button[onclick="uploadPdf()"]');
-  const oldText=btn?.textContent||'Upload PDF';
-  if(btn){btn.disabled=true;btn.textContent='Uploading to R2...';}
-
-  let uploadedKey=null;
-  try{
-    const uploadRes=await r2ApiFetch(
-      `/admin/upload?filename=${encodeURIComponent(f.name)}`,
-      {method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f}
-    );
-    if(!uploadRes.ok)throw new Error(await r2ErrorMessage(uploadRes,'R2 upload failed'));
-    const uploadData=await uploadRes.json();
-    uploadedKey=uploadData.key;
-    if(!uploadedKey)throw new Error('R2 file key नहीं मिला।');
-
-    const ins=await sb.from('study_materials').insert({
-      schedule_day_id:pdfDay.value,
-      title:pdfTitle.value.trim()||f.name,
-      material_type:'pdf',
-      storage_path:uploadedKey,
-      file_size_bytes:f.size,
-      mime_type:'application/pdf',
-      status:'published',
-      access_mode:pdfAccess.value,
-      download_test_id:pdfTest.value||null,
-      download_pass_percent:+pdfPass.value||80,
-      requires_class_verification:true,
-      uploaded_by:adminUser.id,
-      published_at:new Date().toISOString()
-    }).select().single();
-
-    if(ins.error){
-      try{
-        await r2ApiFetch(`/admin/file?key=${encodeURIComponent(uploadedKey)}`,{method:'DELETE'});
-      }catch(_){}
-      throw new Error(ins.error.message);
-    }
-
-    await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);
-    pdfTitle.value='';
-    pdfFile.value='';
-    toast('PDF Cloudflare R2 में upload हो गई।','success');
-    await loadMaterials();
-  }catch(e){
-    console.error(e);
-    toast(e.message||'PDF upload नहीं हो पाई।','error');
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent=oldText;}
-  }
-}
-
-async function deletePdf(materialId,storagePath){
-  if(!(await adminConfirmDelete('क्या आप यह PDF पूरी तरह delete करना चाहते हैं?')))return;
-
-  const db=await sb.rpc('admin_delete_material',{p_material_id:materialId});
-  if(db.error){toast(db.error.message,'error');return}
-
-  try{
-    if(isR2PdfPath(storagePath)){
-      const rr=await r2ApiFetch(`/admin/file?key=${encodeURIComponent(storagePath)}`,{method:'DELETE'});
-      if(!rr.ok)console.warn(await r2ErrorMessage(rr,'R2 delete failed'));
-    }else if(storagePath){
-      await sb.storage.from('study-pdfs').remove([storagePath]);
-    }
-  }catch(e){
-    console.warn('File cleanup warning:',e);
-  }
-
-  toast('PDF delete हो गई।','success');
-  await loadMaterials();
-}
-
-async function deleteAllPdfs(){
-  if(!(await adminConfirmDelete('क्या आप सभी PDFs delete करना चाहते हैं?')))return;
-
-  const list=await sb.from('study_materials').select('id,storage_path');
-  const rows=list.data||[];
-  const db=await sb.rpc('admin_delete_all_materials');
-  if(db.error){toast(db.error.message,'error');return}
-
-  for(const row of rows){
-    try{
-      if(isR2PdfPath(row.storage_path)){
-        await r2ApiFetch(`/admin/file?key=${encodeURIComponent(row.storage_path)}`,{method:'DELETE'});
-      }else if(row.storage_path){
-        await sb.storage.from('study-pdfs').remove([row.storage_path]);
-      }
-    }catch(e){console.warn('Cleanup warning',row.storage_path,e)}
-  }
-
-  toast('सभी PDFs delete हो गईं।','success');
-  await loadMaterials();
-}
-
-const __r2BaseLoadMaterials=loadMaterials;
-loadMaterials=async function(){
-  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date)').order('created_at',{ascending:false});
-  const rows=r.data||[];
-  if(typeof adminPdfs!=='undefined'&&adminPdfs){
-    adminPdfs.innerHTML=rows.map(m=>`
-      <div class="item admin-delete-group">
-        <div class="row wrap">
-          <div>
-            <b>📄 ${esc(m.title||'PDF')}</b>
-            <div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${esc(m.access_mode||'')}</div>
-            <div class="small">${isR2PdfPath(m.storage_path)?'☁ Cloudflare R2':'Legacy Supabase Storage'}</div>
-          </div>
-          <button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>Delete PDF</button>
-        </div>
-      </div>`).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
-  }else if(typeof materialsList!=='undefined'&&materialsList){
-    materialsList.innerHTML=rows.map(m=>`<div class="item"><b>${esc(m.title)}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${m.access_mode||'read_only'}</div></div>`).join('');
-  }
-};
-
-
-
-/* ===== FINAL PDF DELETE UI FIX ===== */
-loadMaterials=async function(){
-  const r=await sb.from('study_materials')
-    .select('*,schedule_days(day_number,day_date)')
-    .order('created_at',{ascending:false});
-
-  const rows=r.data||[];
-  const host=document.getElementById('materialsList');
-  if(!host)return;
-
-  host.innerHTML=rows.map(m=>`
-    <div class="item admin-delete-group">
-      <div class="row wrap" style="justify-content:space-between;align-items:center">
-        <div>
-          <b>📄 ${esc(m.title||'PDF')}</b>
-          <div class="muted">
-            Day ${m.schedule_days?.day_number||'-'} • ${esc(m.access_mode||'read_only')}
-          </div>
-          <div class="small">
-            ${isR2PdfPath(m.storage_path)?'☁ Cloudflare R2':'Legacy Supabase Storage'}
-          </div>
-        </div>
-        <button class="btn btn-red btn-mini"
-          onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>
-          🗑 Delete PDF
-        </button>
-      </div>
-    </div>
-  `).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
-};
-
-
-
-/* ===== POSTER / BANNER MANAGEMENT ===== */
-let posterObjectUrls=[];
-let posterUploadPreviewUrl='';
-const POSTER_FORMATS=['ratio_16_9','a4_portrait','a4_landscape','square','original'];
-const POSTER_FITS=['contain','cover'];
-
-function clearPosterObjectUrls(){posterObjectUrls.forEach(u=>URL.revokeObjectURL(u));posterObjectUrls=[]}
-function normalizePosterFormat(value){return POSTER_FORMATS.includes(value)?value:'original'}
-function normalizePosterFit(value){return POSTER_FITS.includes(value)?value:'contain'}
-function posterFormatClass(value){return 'poster-format-'+normalizePosterFormat(value).replaceAll('_','-')}
-function posterFormatLabel(value){return ({ratio_16_9:'16:9 Landscape',a4_portrait:'A4 Portrait',a4_landscape:'A4 Landscape',square:'Square 1:1',original:'Original / Auto'})[normalizePosterFormat(value)]}
-function posterFormatOptions(selected){return POSTER_FORMATS.map(v=>`<option value="${v}" ${normalizePosterFormat(selected)===v?'selected':''}>${posterFormatLabel(v)}</option>`).join('')}
-function posterFitOptions(selected){const fit=normalizePosterFit(selected);return `<option value="contain" ${fit==='contain'?'selected':''}>Full Image — बिना कटे</option><option value="cover" ${fit==='cover'?'selected':''}>Fill Box — Crop</option>`}
-
-function posterRatioForFormat(format,naturalWidth=16,naturalHeight=9){
-  const f=normalizePosterFormat(format);
-  if(f==='a4_portrait')return '210 / 297';
-  if(f==='a4_landscape')return '297 / 210';
-  if(f==='square')return '1 / 1';
-  if(f==='ratio_16_9')return '16 / 9';
-  return `${Math.max(1,naturalWidth)} / ${Math.max(1,naturalHeight)}`;
-}
-
-function refreshPosterUploadPreview(){
-  const box=document.getElementById('posterUploadPreview');
-  const img=document.getElementById('posterUploadPreviewImage');
-  if(!box||!img)return;
-  const format=normalizePosterFormat(document.getElementById('posterFormat')?.value);
-  const fit=normalizePosterFit(document.getElementById('posterFit')?.value);
-  const width=Number(img.dataset.naturalWidth||16),height=Number(img.dataset.naturalHeight||9);
-  box.className=`poster-upload-preview ${posterFormatClass(format)}`;
-  box.style.aspectRatio=posterRatioForFormat(format,width,height);
-  img.className=`poster-fit-${fit}${img.src?'':' hidden'}`;
-}
-
-function previewPosterFile(){
-  const file=document.getElementById('posterFile')?.files?.[0];
-  const img=document.getElementById('posterUploadPreviewImage');
-  const empty=document.getElementById('posterUploadPreviewEmpty');
-  if(!img||!empty)return;
+let posterObjectUrls=[],posterUploadPreviewUrl='';
+function clearPosterObjectUrls(){posterObjectUrls.forEach(URL.revokeObjectURL);posterObjectUrls=[]}
+function toDateTimeLocal(value){if(!value)return '';const d=new Date(value);const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
+function resetPosterForm(){
+  byId('posterId').value='';byId('posterExistingKey').value='';byId('posterTitle').value='';byId('posterFile').value='';byId('posterLink').value='';byId('posterStart').value='';byId('posterEnd').value='';byId('posterActive').value='true';byId('posterOrder').value='0';
   if(posterUploadPreviewUrl){URL.revokeObjectURL(posterUploadPreviewUrl);posterUploadPreviewUrl=''}
-  img.removeAttribute('src');img.dataset.naturalWidth='16';img.dataset.naturalHeight='9';
-  if(!file){empty.classList.remove('hidden');refreshPosterUploadPreview();return}
-  if(!file.type.startsWith('image/')){toast('केवल image file चुनें','error');return}
-  posterUploadPreviewUrl=URL.createObjectURL(file);
-  img.onload=()=>{img.dataset.naturalWidth=String(img.naturalWidth||16);img.dataset.naturalHeight=String(img.naturalHeight||9);empty.classList.add('hidden');refreshPosterUploadPreview()};
-  img.src=posterUploadPreviewUrl;
+  byId('posterUploadPreviewImage').src='';byId('posterUploadPreviewImage').classList.add('hidden');byId('posterUploadPreviewEmpty').classList.remove('hidden');
+  byId('posterSaveBtn').textContent='Publish Poster';byId('posterCancelBtn').classList.add('hidden');
 }
-
-async function posterPreviewUrl(key){
-  const res=await r2ApiFetch(`/poster?key=${encodeURIComponent(key)}`);
-  if(!res.ok)throw new Error(await r2ErrorMessage(res,'Poster load failed'));
-  const blob=await res.blob();
-  const url=URL.createObjectURL(blob);
-  posterObjectUrls.push(url);
-  return url;
+function previewPosterFile(){
+  const f=byId('posterFile')?.files?.[0],img=byId('posterUploadPreviewImage'),empty=byId('posterUploadPreviewEmpty');
+  if(posterUploadPreviewUrl){URL.revokeObjectURL(posterUploadPreviewUrl);posterUploadPreviewUrl=''}
+  if(!f){if(!byId('posterId').value){img.classList.add('hidden');empty.classList.remove('hidden')}return}
+  if(!f.type.startsWith('image/')){toast('Image file चुनें।','error');return}
+  posterUploadPreviewUrl=URL.createObjectURL(f);img.src=posterUploadPreviewUrl;img.classList.remove('hidden');empty.classList.add('hidden');
 }
-
+async function posterPreviewUrl(key){const res=await r2ApiFetch(`/poster?key=${encodeURIComponent(key)}`);if(!res.ok)throw new Error(await r2ErrorMessage(res,'Poster load failed'));const url=URL.createObjectURL(await res.blob());posterObjectUrls.push(url);return url}
+function editPoster(id){
+  const p=posters.find(x=>String(x.id)===String(id));if(!p)return;
+  byId('posterId').value=p.id;byId('posterExistingKey').value=p.image_key||'';byId('posterTitle').value=p.title||'';byId('posterLink').value=p.click_url||'';byId('posterStart').value=toDateTimeLocal(p.start_at);byId('posterEnd').value=toDateTimeLocal(p.end_at);byId('posterActive').value=String(p.is_active!==false);byId('posterOrder').value=Number(p.sort_order||0);
+  const img=byId('posterUploadPreviewImage'),empty=byId('posterUploadPreviewEmpty');if(p.preview_url){img.src=p.preview_url;img.classList.remove('hidden');empty.classList.add('hidden')}
+  byId('posterSaveBtn').textContent='Update Poster';byId('posterCancelBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});
+}
 async function publishPoster(){
-  const f=document.getElementById('posterFile')?.files?.[0];
-  if(!f){toast('Poster image चुनें','error');return}
-  if(!f.type.startsWith('image/')){toast('केवल image file चुनें','error');return}
-  if(f.size>5*1024*1024){toast('Poster 5 MB से कम रखें।','error');return}
-
-  const title=document.getElementById('posterTitle').value.trim()||'Poster';
-  const link=document.getElementById('posterLink').value.trim()||null;
-  const start=document.getElementById('posterStart').value||null;
-  const end=document.getElementById('posterEnd').value||null;
-  const active=document.getElementById('posterActive').value==='true';
-  const order=Number(document.getElementById('posterOrder').value||0);
-  const posterFormat=normalizePosterFormat(document.getElementById('posterFormat')?.value);
-  const fitMode=normalizePosterFit(document.getElementById('posterFit')?.value);
-
-  let key=null;
+  const id=byId('posterId').value||null,oldKey=byId('posterExistingKey').value||'',f=byId('posterFile')?.files?.[0]||null;
+  if(!id&&!f){toast('Poster image चुनें।','error');return}if(f&&f.size>5*1024*1024){toast('Poster 5 MB से कम रखें।','error');return}
+  const btn=byId('posterSaveBtn'),oldText=btn.textContent;let newKey='';btn.disabled=true;btn.textContent=id?'Updating...':'Publishing...';
   try{
-    const up=await r2ApiFetch(`/admin/poster-upload?filename=${encodeURIComponent(f.name)}`,{
-      method:'POST',
-      headers:{'Content-Type':f.type,'X-File-Name':f.name},
-      body:f
-    });
-    if(!up.ok)throw new Error(await r2ErrorMessage(up,'Poster upload failed'));
-    key=(await up.json()).key;
-
-    const ins=await sb.from('app_posters').insert({
-      title:title,image_key:key,click_url:link,
-      start_at:start?new Date(start).toISOString():null,
-      end_at:end?new Date(end).toISOString():null,
-      is_active:active,sort_order:order,created_by:adminUser.id,
-      poster_format:posterFormat,fit_mode:fitMode
-    });
-    if(ins.error){
-      try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(_){}
-      throw ins.error;
-    }
-
-    ['posterTitle','posterLink','posterStart','posterEnd'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
-    document.getElementById('posterFile').value='';
-    document.getElementById('posterOrder').value='0';
-    document.getElementById('posterFormat').value='ratio_16_9';
-    document.getElementById('posterFit').value='contain';
-    previewPosterFile();
-    toast('Poster publish हो गया।','success');
-    await loadPosters();
-  }catch(e){
-    console.error(e);
-    toast(e.message||'Poster publish नहीं हुआ।','error');
-  }
+    if(f){const up=await r2ApiFetch(`/admin/poster-upload?filename=${encodeURIComponent(f.name)}`,{method:'POST',headers:{'Content-Type':f.type,'X-File-Name':f.name},body:f});if(!up.ok)throw new Error(await r2ErrorMessage(up,'Poster upload failed'));newKey=(await up.json()).key}
+    const payload={title:byId('posterTitle').value.trim()||'Poster',image_key:newKey||oldKey,click_url:byId('posterLink').value.trim()||null,start_at:isoOrNull(byId('posterStart').value),end_at:isoOrNull(byId('posterEnd').value),is_active:byId('posterActive').value==='true',sort_order:Number(byId('posterOrder').value||0),poster_format:'ratio_16_9',fit_mode:'contain'};
+    let db=id?await sb.from('app_posters').update(payload).eq('id',id).select().single():await sb.from('app_posters').insert({...payload,created_by:adminUser.id}).select().single();
+    if(db.error)throw db.error;
+    if(id&&newKey&&oldKey&&newKey!==oldKey)try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(oldKey)}`,{method:'DELETE'})}catch(e){console.warn('Old poster cleanup:',e)}
+    if(payload.is_active)await createGlobalNotification(id?'🖼 Poster Updated':'🖼 नया Poster',payload.title,'poster',db.data.id);
+    resetPosterForm();toast(id?'Poster update हो गया।':'Poster publish हो गया।','success');loadPosters();
+  }catch(e){if(newKey)try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(newKey)}`,{method:'DELETE'})}catch(_){}toast(e.message||'Poster save नहीं हुआ।','error')}
+  finally{btn.disabled=false;if(btn.textContent==='Updating...'||btn.textContent==='Publishing...')btn.textContent=oldText}
 }
-
-async function deletePoster(id,key){
-  if(!(await adminConfirmDelete('क्या आप यह Poster delete करना चाहते हैं?')))return;
-  const del=await sb.from('app_posters').delete().eq('id',id);
-  if(del.error){toast(del.error.message,'error');return}
-  try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(e){console.warn(e)}
-  toast('Poster delete हो गया।','success');
-  await loadPosters();
-}
-
-async function deleteAllPosters(){
-  if(!(await adminConfirmDelete('क्या आप सभी पुराने Posters permanently delete करना चाहते हैं?')))return;
-  const r=await sb.from('app_posters').select('id,image_key');
-  if(r.error){toast(r.error.message,'error');return}
-  const rows=r.data||[];
-  if(!rows.length){toast('Delete करने के लिए कोई Poster नहीं है।','info');return}
-  const del=await sb.from('app_posters').delete().in('id',rows.map(x=>x.id));
-  if(del.error){toast(del.error.message,'error');return}
-  for(const p of rows){try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(p.image_key)}`,{method:'DELETE'})}catch(e){console.warn(e)}}
-  toast('सभी Posters delete हो गए।','success');
-  await loadPosters();
-}
-
-async function togglePoster(id,current){
-  const up=await sb.from('app_posters').update({is_active:!current}).eq('id',id);
-  if(up.error){toast(up.error.message,'error');return}
-  toast(!current?'Poster students को दिखेगा।':'Poster hide कर दिया गया।','success');
-  await loadPosters();
-}
-
-async function updatePosterDisplay(id){
-  const format=normalizePosterFormat(document.getElementById('poster_format_'+id)?.value);
-  const fit=normalizePosterFit(document.getElementById('poster_fit_'+id)?.value);
-  const up=await sb.from('app_posters').update({poster_format:format,fit_mode:fit}).eq('id',id);
-  if(up.error){toast(up.error.message,'error');return}
-  toast('Poster size/display update हो गया।','success');
-  await loadPosters();
-}
-
+async function togglePoster(id,current){const r=await sb.from('app_posters').update({is_active:!current}).eq('id',id);if(r.error){toast(r.error.message,'error');return}toast(!current?'Poster show होगा।':'Poster hide हो गया।','success');loadPosters()}
+async function deletePoster(id,key){if(!(await adminConfirmDelete('यह Poster delete करना है?')))return;const r=await sb.from('app_posters').delete().eq('id',id);if(r.error){toast(r.error.message,'error');return}try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(e){console.warn(e)}if(String(byId('posterId').value)===String(id))resetPosterForm();toast('Poster delete हो गया।','success');loadPosters()}
 async function loadPosters(){
-  const host=document.getElementById('posterList');
-  if(!host)return;
-  clearPosterObjectUrls();
-
-  const r=await sb.from('app_posters').select('*').order('sort_order').order('created_at',{ascending:false});
-  const rows=r.data||[];
-  if(r.error){host.innerHTML='<div class="item text-error">'+esc(r.error.message)+'</div>';return}
-  if(!rows.length){host.innerHTML='<div class="item">अभी कोई Poster नहीं है।</div>';return}
-
-  const cards=[];
-  for(const p of rows){
-    let img='';
-    try{img=await posterPreviewUrl(p.image_key)}catch(_){}
-    const format=normalizePosterFormat(p.poster_format);
-    const fit=normalizePosterFit(p.fit_mode);
-    cards.push(`<div class="item admin-delete-group">
-      <div class="poster-admin-card">
-        ${img?`<div class="poster-admin-thumb-frame ${posterFormatClass(format)}"><img src="${img}" class="poster-admin-thumb poster-fit-${fit}" alt=""></div>`:''}
-        <div class="poster-admin-info">
-          <b>${esc(p.title||'Poster')}</b>
-          <div class="small muted">${p.is_active?'Active':'Inactive'} • Order ${p.sort_order||0} • ${posterFormatLabel(format)} • ${fit==='contain'?'Full Image':'Fill/Crop'}</div>
-          <div class="poster-admin-display-controls">
-            <label>Format<select id="poster_format_${p.id}">${posterFormatOptions(format)}</select></label>
-            <label>Display<select id="poster_fit_${p.id}">${posterFitOptions(fit)}</select></label>
-            <button class="btn btn-green btn-mini" onclick='updatePosterDisplay(${JSON.stringify(p.id)})'>💾 Save Size</button>
-          </div>
-          <div class="row wrap" style="margin-top:8px">
-            <button class="btn btn-blue btn-mini" onclick='togglePoster(${JSON.stringify(p.id)},${p.is_active})'>${p.is_active?'Deactivate':'Activate'}</button>
-            <button class="btn btn-red btn-mini" onclick='deletePoster(${JSON.stringify(p.id)},${JSON.stringify(p.image_key)})'>🗑 Delete</button>
-          </div>
-        </div>
-      </div>
-    </div>`);
-  }
-  host.innerHTML=cards.join('');
+  const host=byId('posterList');clearPosterObjectUrls();const r=await sb.from('app_posters').select('*').order('sort_order').order('created_at',{ascending:false});if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}</div>`;return}
+  posters=r.data||[];const out=[];for(const p of posters){let img='';try{img=await posterPreviewUrl(p.image_key);p.preview_url=img}catch(_){}out.push(`<article class="simple-content-card poster-row">${img?`<img src="${img}" alt="">`:''}<div class="simple-card-main"><span class="badge ${p.is_active?'badge-green':'badge-gray'}">${p.is_active?'Active':'Hidden'}</span><h3>${esc(p.title||'Poster')}</h3><p class="small">Order ${Number(p.sort_order||0)}</p></div><div class="simple-card-actions stacked"><button class="btn btn-light btn-mini" onclick="editPoster('${p.id}')">Edit</button><button class="btn btn-blue btn-mini" onclick="togglePoster('${p.id}',${p.is_active})">${p.is_active?'Hide':'Show'}</button><button class="btn btn-red btn-mini" onclick='deletePoster(${JSON.stringify(p.id)},${JSON.stringify(p.image_key)})'>Delete</button></div></article>`)}
+  host.innerHTML=out.join('')||'<div class="item">अभी कोई Poster नहीं है।</div>';
 }
 
-
-
-/* ==================================================================
-   FINAL PRODUCT FLOW — PDF verification (not class verification)
-   ================================================================== */
-const __legacyDeleteTargetVerifications=deleteTargetVerifications;
-deleteTargetVerifications=async function(targetId,dayId){
-  if(!(await adminConfirmDelete('क्या आप इस Topic के सभी PDF Verification Questions delete करना चाहते हैं?')))return;
-  const rr=await sb.rpc('admin_delete_target_verifications',{p_target_id:targetId});
-  if(rr.error){toast('PDF Verification delete नहीं हुआ: '+rr.error.message,'error');return}
-  toast('PDF Verification Questions delete हो गए।','success');
-  await Promise.all([loadDaySetup(),loadVerificationManager()]);
-};
-
-loadDaySetup=async function(){
-  const dayId=setupDay.value||days[0]?.id;if(!dayId)return;
-  const [t,v]=await Promise.all([
-    sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),
-    sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true).order('created_at')
-  ]);
-  allTargets=t.data||[];
-  const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));
-  setupTargets.innerHTML=allTargets.map((x,idx)=>`<details class="target-setup-3d" ${idx===0?'open':''}>
-    <summary><div><span class="topic-chip">${esc(x.subject)}</span><b>${esc(x.topic)}</b></div><span class="badge badge-blue">Target ${x.target_order}</span></summary>
-    <div class="target-setup-body">
-      <label>YouTube Class Link — यहाँ कोई verification नहीं होगा</label>
-      <div class="setup-inline"><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><button class="btn btn-red" onclick="saveYoutube('${x.id}')">Save Class Link</button></div>
-      <div class="verification-builder-3d pdf-verification-builder">
-        <div class="row wrap" style="justify-content:space-between;align-items:center">
-          <div><h4>PDF Verification Questions</h4><div class="small muted">ये questions केवल PDF खोलते समय आएँगे। Class link खोलने पर कोई verification नहीं होगा।</div></div>
-          <div class="row wrap"><span class="badge badge-purple">Existing: ${(vmap[x.id]||[]).length}</span>${(vmap[x.id]||[]).length?`<button class="btn btn-red btn-mini" onclick="deleteTargetVerifications('${x.id}','${dayId}')">🗑 Delete PDF Verification</button>`:''}</div>
-        </div>
-        <label>Question Visibility</label>
-        <select id="show_${x.id}"><option value="false">Hide Question — Student को केवल Options दिखें</option><option value="true">Show Question — Question + Options दोनों दिखें</option></select>
-        <label>PDF Verification Question Data</label>
-        <textarea class="verification-raw-box" id="vqraw_${x.id}" placeholder="प्रश्न 1. ........
-(A) ....
-(B) ....
-(C) ....
-(D) ....
-उत्तर: (A)
-व्याख्या: ....
-
-------
-
-प्रश्न 2. ........"></textarea>
-        <div class="format-tip"><b>Format:</b> 1, 2, 3 या जितने चाहें प्रश्न paste करें। PDF upload करते समय passing percentage अलग से तय होगी।</div>
-        <button class="btn btn-green" onclick="saveVerificationBatch('${x.id}','${dayId}')">Parse & Save PDF Verification</button>
-      </div>
-    </div>
-  </details>`).join('')||'<div class="item">इस Day में पहले Daily Targets जोड़ें।</div>';
-};
-
-saveVerificationBatch=async function(targetId,dayId){
-  const raw=document.getElementById('vqraw_'+targetId)?.value||'';
-  const parsed=parseRawQuestions(raw);
-  if(!parsed.length){toast('Valid PDF verification question नहीं मिला। Mock Test वाला format paste करें।','error');return}
-  const items=parsed.map(q=>({question_text:q.question_text||'PDF Verification',options:q.options,correct_answer:q.correct_answer,explanation:q.explanation||null}));
-  const rr=await sb.rpc('admin_replace_pdf_verifications',{
-    p_target_id:targetId,p_schedule_day_id:dayId,
-    p_show_question:document.getElementById('show_'+targetId)?.value==='true',p_items:items
-  });
-  if(rr.error){toast('PDF Verification save नहीं हुआ: '+rr.error.message,'error');return}
-  toast(parsed.length+' PDF Verification Questions save हो गए।','success');
-  document.getElementById('vqraw_'+targetId).value='';
-  await Promise.all([loadDaySetup(),loadVerificationManager()]);
-};
-
-loadVerificationManager=async function(){
-  const host=document.getElementById('verificationManagerList');if(!host)return;
-  host.innerHTML='<div class="item">PDF Verification questions load हो रहे हैं...</div>';
-  const selectedDay=document.getElementById('verificationManagerDay')?.value||'';
-  let q=sb.from('verification_questions').select('id,target_id,schedule_day_id,question_text,options,show_question,is_active,sort_order,created_at').order('created_at',{ascending:false});
-  if(selectedDay)q=q.eq('schedule_day_id',selectedDay);
-  const [vr,tr,dr]=await Promise.all([q,sb.from('daily_targets').select('id,subject,topic,schedule_day_id,target_order'),sb.from('schedule_days').select('id,day_number,day_date')]);
-  if(vr.error){host.innerHTML='<div class="item text-error">'+esc(vr.error.message)+'</div>';return}
-  const targets={};(tr.data||[]).forEach(x=>targets[x.id]=x);const daysMap={};(dr.data||[]).forEach(x=>daysMap[x.id]=x);
-  const rows=vr.data||[];if(!rows.length){host.innerHTML='<div class="item">कोई PDF Verification Question मौजूद नहीं है।</div>';return}
-  host.innerHTML=rows.map(v=>{
-    const target=targets[v.target_id]||null,day=daysMap[v.schedule_day_id]||daysMap[target?.schedule_day_id]||null,opts=Array.isArray(v.options)?v.options:[];
-    return `<div class="verification-manager-item"><div class="verification-manager-meta"><span class="badge badge-blue">${day?`Day ${day.day_number}`:'Day नहीं मिला'}</span><span class="badge badge-purple">${target?esc(target.subject):'PDF Verification'}</span><span class="badge ${v.is_active===false?'badge-red':'badge-green'}">${v.is_active===false?'Inactive':'Active'}</span></div><div class="verification-manager-topic">${target?esc(target.topic):'Legacy Question'}</div><div class="verification-manager-question">${esc(v.question_text||'Hidden PDF Verification')}</div><div class="small muted">${v.show_question===false?'Question Hidden — केवल options दिखेंगे':'Question Visible'}</div>${opts.length?`<div class="verification-manager-options">${opts.map((o,i)=>`<div><b>${String.fromCharCode(65+i)}.</b> ${esc(String(o))}</div>`).join('')}</div>`:''}<div class="verification-manager-actions">${v.target_id?`<button class="btn btn-orange btn-mini" onclick="deleteTargetVerifications('${v.target_id}','${v.schedule_day_id||''}')">🗑 इस Topic के सभी Questions</button>`:''}<button class="btn btn-red btn-mini" onclick="deleteSingleVerificationQuestion('${v.id}')">🗑 केवल यह Question</button></div></div>`;
-  }).join('');
-};
-
-const __publishRawTestFinal=publishRawTest;
-publishRawTest=async function(){
-  if(isFinalDaily.checked&&isPdfGate.checked){toast('एक Test को Final Daily और PDF Download Gate दोनों न बनाएँ। अलग-अलग tests बनाइए।','error');return}
-  return __publishRawTestFinal();
-};
-
-loadTests=async function(){
-  const r=await sb.from('tests').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('created_at',{ascending:false});
-  publishedTests=r.data||[];
-  const host=document.getElementById('adminTests');
-  if(host)host.innerHTML=publishedTests.map(t=>{
-    const type=t.is_final_daily?'Final Daily Test':t.is_pdf_download_gate?'PDF Download Gate':'Standalone Mock Test';
-    return `<div class="item admin-delete-group"><div class="row wrap"><div><b>${esc(t.title||'Untitled Test')}</b><div class="muted">${type} • ${t.total_questions||0} Questions • Pass ${t.passing_percent||0}%</div></div><div class="row wrap"><button class="btn btn-light btn-mini" onclick="loadTestQuestionsAdmin('${t.id}');document.getElementById('testQuestions_${t.id}').classList.toggle('hidden')">Manage Questions</button><button class="btn btn-red btn-mini" onclick="deleteTest('${t.id}')">Delete Test</button></div></div><div id="testQuestions_${t.id}" class="hidden admin-delete-inner"></div></div>`;
-  }).join('')||'<div class="item">अभी कोई Test नहीं है।</div>';
-  if(typeof pdfTest!=='undefined'&&pdfTest){
-    const gateTests=publishedTests.filter(t=>t.is_pdf_download_gate);
-    pdfTest.innerHTML='<option value="">No Test</option>'+gateTests.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('');
-  }
-};
-
-uploadPdf=async function(){
-  const f=pdfFile.files[0];
-  if(!f){toast('PDF चुनें','error');return}
-  if(f.type&&f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}
-  if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
-  const access=pdfAccess.value;
-  if(access==='test_required'&&!pdfTest.value){toast('Download के लिए PDF Gate Mock Test चुनना जरूरी है।','error');return}
-  const verifyRequired=document.getElementById('pdfVerificationRequired')?.value!=='false';
-  const verifyPass=Math.max(0,Math.min(100,Number(document.getElementById('pdfVerifyPass')?.value||30)));
-  const btn=document.querySelector('#pdfsTab button[onclick="uploadPdf()"]')||document.querySelector('button[onclick="uploadPdf()"]');
-  const oldText=btn?.textContent||'Upload PDF';if(btn){btn.disabled=true;btn.textContent='Uploading securely to R2...';}
-  let uploadedKey=null;
-  try{
-    const uploadRes=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(f.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f});
-    if(!uploadRes.ok)throw new Error(await r2ErrorMessage(uploadRes,'R2 upload failed'));
-    uploadedKey=(await uploadRes.json()).key;if(!uploadedKey)throw new Error('R2 file key नहीं मिला।');
-    const ins=await sb.from('study_materials').insert({
-      schedule_day_id:pdfDay.value,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:uploadedKey,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',access_mode:access,
-      download_test_id:access==='test_required'?(pdfTest.value||null):null,download_pass_percent:+pdfPass.value||80,
-      requires_pdf_verification:verifyRequired,pdf_verification_pass_percent:verifyPass,
-      requires_class_verification:false,uploaded_by:adminUser.id,published_at:new Date().toISOString()
-    }).select().single();
-    if(ins.error){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(uploadedKey)}`,{method:'DELETE'})}catch(_){}throw new Error(ins.error.message)}
-    await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);
-    pdfTitle.value='';pdfFile.value='';toast('PDF Cloudflare R2 में upload हो गई।','success');await loadMaterials();
-  }catch(e){console.error(e);toast(e.message||'PDF upload नहीं हो पाई।','error')}
-  finally{if(btn){btn.disabled=false;btn.textContent=oldText;}}
-};
-
-loadMaterials=async function(){
-  const r=await sb.from('study_materials').select('*,schedule_days(day_number,day_date)').order('created_at',{ascending:false});
-  const rows=r.data||[],host=document.getElementById('materialsList');if(!host)return;
-  host.innerHTML=rows.map(m=>`<div class="item admin-delete-group"><div class="row wrap" style="justify-content:space-between;align-items:center"><div><b>📄 ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • ${esc(m.access_mode||'read_only')}</div><div class="small">${m.requires_pdf_verification===false?'PDF Verification: नहीं':`PDF Verification: ${Number(m.pdf_verification_pass_percent||30)}%`} • ${m.access_mode==='test_required'?`Download Test: ${Number(m.download_pass_percent||80)}%`:'Download Gate: नहीं'} • ${isR2PdfPath(m.storage_path)?'☁ R2':'Legacy'}</div></div><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>🗑 Delete PDF</button></div></div>`).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
-};
-
-
-/* ==================================================================
-   V12.9 — EASY CLASS-WISE PDF + FINAL DAILY FLOW
-   Each PDF is linked to one Daily Target/Class.
-   ================================================================== */
-let pdfTargetRows=[];
-
-async function loadPdfTargetOptions(preselectTargetId=''){
-  const host=document.getElementById('pdfTarget');
-  const dayEl=document.getElementById('pdfDay');
-  if(!host||!dayEl)return;
-  const dayId=dayEl.value||days[0]?.id||'';
-  if(!dayId){host.innerHTML='<option value="">पहले Day चुनें</option>';return}
-  const r=await sb.from('daily_targets').select('id,subject,topic,target_order,status').eq('schedule_day_id',dayId).order('target_order');
-  if(r.error){host.innerHTML='<option value="">Classes load नहीं हुईं</option>';toast(r.error.message,'error');return}
-  pdfTargetRows=(r.data||[]).filter(x=>x.status==='published');
-  host.innerHTML='<option value="">Class / Topic चुनें</option>'+pdfTargetRows.map(t=>`<option value="${t.id}">Class ${t.target_order||'-'} — ${esc(t.subject||'')} • ${esc(t.topic||'')}</option>`).join('');
-  if(preselectTargetId&&pdfTargetRows.some(t=>String(t.id)===String(preselectTargetId)))host.value=String(preselectTargetId);
+async function loadStudents(){
+  const r=await sb.from('profiles').select('id,full_name,email,phone,is_active,created_at').eq('role','student').order('created_at',{ascending:false});
+  if(r.error){toast(r.error.message,'error');return}students=r.data||[];renderStudents(students);
 }
-
-async function openPdfUploadForTarget(dayId,targetId){
-  const link=[...document.querySelectorAll('.sidebar a')].find(a=>(a.getAttribute('onclick')||'').includes("tab('pdfs'"));
-  tab('pdfs',link||null);
-  if(document.getElementById('pdfDay'))document.getElementById('pdfDay').value=String(dayId);
-  await loadPdfTargetOptions(targetId);
-  document.getElementById('pdfTitle')?.focus();
-  document.getElementById('pdfsTab')?.scrollIntoView({behavior:'smooth',block:'start'});
+async function toggleStudentStatus(id,current){
+  const r=await sb.from('profiles').update({is_active:!current}).eq('id',id).eq('role','student');
+  if(r.error){toast(r.error.message,'error');return}toast(!current?'Student account Active हो गया।':'Student account Inactive हो गया।','success');loadStudents();
 }
-
-function syncTestPurpose(){
-  const purpose=document.getElementById('testPurpose')?.value||'standalone';
-  const finalEl=document.getElementById('isFinalDaily');
-  const gateEl=document.getElementById('isPdfGate');
-  if(finalEl)finalEl.checked=purpose==='final_daily';
-  if(gateEl)gateEl.checked=purpose==='pdf_gate';
-  const help=document.getElementById('testPurposeHelp');
-  if(help){
-    help.innerHTML=purpose==='pdf_gate'
-      ?'<b>PDF Download Gate:</b> इस Test को PDF Upload screen में चुनें। Pass होने पर केवल उस PDF का Download खुलेगा।'
-      :purpose==='final_daily'
-        ?'<b>Final Daily Target Test:</b> सभी PDF verification के बाद “आज का Target Complete करें” पर यही Test खुलेगा।'
-        :'<b>Standalone Practice:</b> यह स्वतंत्र practice test रहेगा; PDF Download या Final Submit से link नहीं होगा।';
-  }
-}
-
-const __v129PublishRawTest=publishRawTest;
-publishRawTest=async function(){
-  syncTestPurpose();
-  const purpose=document.getElementById('testPurpose')?.value||'standalone';
-  if((purpose==='final_daily'||purpose==='pdf_gate')&&!testDay.value){toast('PDF Gate या Final Daily Test के लिए Schedule Day चुनना जरूरी है।','error');return}
-  return __v129PublishRawTest();
-};
-
-loadDaySetup=async function(){
-  const dayId=setupDay.value||days[0]?.id;if(!dayId)return;
-  const [t,v,m]=await Promise.all([
-    sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),
-    sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true).order('created_at'),
-    sb.from('study_materials').select('id,title,target_id,access_mode,download_test_id,status').eq('schedule_day_id',dayId).eq('status','published').order('created_at')
-  ]);
-  allTargets=t.data||[];
-  const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));
-  const mmap={};(m.data||[]).forEach(x=>(mmap[x.target_id]??=[]).push(x));
-  setupTargets.innerHTML=allTargets.map((x,idx)=>{
-    const pdfs=mmap[x.id]||[],qs=vmap[x.id]||[];
-    return `<details class="target-setup-3d easy-class-flow" ${idx===0?'open':''}>
-      <summary><div><span class="topic-chip">Class ${x.target_order||idx+1}</span><b>${esc(x.subject)} — ${esc(x.topic)}</b></div><span class="badge ${pdfs.length?'badge-green':'badge-blue'}">${pdfs.length?`${pdfs.length} PDF Linked`:'PDF Pending'}</span></summary>
-      <div class="target-setup-body">
-        <div class="easy-step-card"><span class="easy-step-no">1</span><div class="easy-step-content"><h4>YouTube Class Link</h4><p>Class पर कोई verification नहीं होगा।</p><div class="setup-inline"><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><button class="btn btn-red" onclick="saveYoutube('${x.id}')">Save Class Link</button></div></div></div>
-        <div class="easy-step-card"><span class="easy-step-no">2</span><div class="easy-step-content"><div class="row wrap" style="justify-content:space-between;align-items:center"><div><h4>इस Class की PDF Verification</h4><p>Question hide/show आप तय करेंगे।</p></div><div class="row wrap"><span class="badge badge-purple">${qs.length} Questions</span>${qs.length?`<button class="btn btn-red btn-mini" onclick="deleteTargetVerifications('${x.id}','${dayId}')">Delete Verification</button>`:''}</div></div><label>Question Visibility</label><select id="show_${x.id}"><option value="false">Hide Question — केवल Options दिखें</option><option value="true">Show Question — Question + Options दिखें</option></select><label>Verification Questions Paste करें</label><textarea class="verification-raw-box" id="vqraw_${x.id}" placeholder="प्रश्न 1. ........\n(A) ....\n(B) ....\n(C) ....\n(D) ....\nउत्तर: (A)\nव्याख्या: ....\n\n------\n\nप्रश्न 2. ........"></textarea><div class="format-tip"><b>Format:</b> 1, 2, 3 या जितने चाहें प्रश्न paste करें। Save करने पर इस Class के पुराने verification questions replace होंगे।</div><button class="btn btn-green" onclick="saveVerificationBatch('${x.id}','${dayId}')">Save Verification Questions</button></div></div>
-        <div class="easy-step-card"><span class="easy-step-no">3</span><div class="easy-step-content"><h4>इस Class की अलग PDF</h4>${pdfs.length?`<div class="linked-pdf-list">${pdfs.map(p=>`<span>📄 ${esc(p.title)}</span>`).join('')}</div>`:'<p class="muted">अभी इस Class से कोई PDF linked नहीं है।</p>'}<button class="btn btn-blue" onclick="openPdfUploadForTarget('${dayId}','${x.id}')">इस Class की PDF Upload करें</button></div></div>
-      </div>
-    </details>`;
-  }).join('')||'<div class="item">इस Day में पहले Daily Targets जोड़ें।</div>';
-};
-
-function syncPdfDownloadRule(){
-  const required=document.getElementById('pdfDownloadMockRequired')?.value==='yes';
-  const mockSettings=document.getElementById('pdfDownloadMockSettings');
-  const noMockAccess=document.getElementById('pdfNoMockAccessWrap');
-  if(mockSettings)mockSettings.classList.toggle('hidden',!required);
-  if(noMockAccess)noMockAccess.classList.toggle('hidden',required);
-  const test=document.getElementById('pdfTest');
-  const pass=document.getElementById('pdfPass');
-  const access=document.getElementById('pdfAccess');
-  if(test)test.disabled=!required;
-  if(pass)pass.disabled=!required;
-  if(access)access.disabled=required;
-}
-
-uploadPdf=async function(){
-  const f=pdfFile.files[0];
-  const targetId=document.getElementById('pdfTarget')?.value||'';
-  if(!targetId){toast('पहले Class / Topic चुनें।','error');return}
-  if(!f){toast('PDF चुनें','error');return}
-  if(f.type&&f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}
-  if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
-  const downloadMockRequired=document.getElementById('pdfDownloadMockRequired')?.value==='yes';
-  const access=downloadMockRequired?'test_required':(document.getElementById('pdfAccess')?.value||'direct_download');
-  if(downloadMockRequired&&!pdfTest.value){toast('Mock Test = Yes चुना है। Related PDF Download Gate Test चुनें।','error');return}
-  const downloadPass=downloadMockRequired?Math.max(0,Math.min(100,Number(document.getElementById('pdfPass')?.value||80))):0;
-  const verifyRequired=document.getElementById('pdfVerificationRequired')?.value!=='false';
-  const verifyPass=Math.max(0,Math.min(100,Number(document.getElementById('pdfVerifyPass')?.value||30)));
-  const btn=document.querySelector('#pdfsTab button[onclick="uploadPdf()"]')||document.querySelector('button[onclick="uploadPdf()"]');
-  const oldText=btn?.textContent||'Upload PDF';if(btn){btn.disabled=true;btn.textContent='Uploading securely to R2...';}
-  let uploadedKey=null;
-  try{
-    const uploadRes=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(f.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f});
-    if(!uploadRes.ok)throw new Error(await r2ErrorMessage(uploadRes,'R2 upload failed'));
-    uploadedKey=(await uploadRes.json()).key;if(!uploadedKey)throw new Error('R2 file key नहीं मिला।');
-    const ins=await sb.from('study_materials').insert({
-      schedule_day_id:pdfDay.value,target_id:targetId,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:uploadedKey,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',access_mode:access,
-      download_test_id:downloadMockRequired?(pdfTest.value||null):null,download_pass_percent:downloadPass,
-      requires_pdf_verification:verifyRequired,pdf_verification_pass_percent:verifyPass,
-      requires_class_verification:false,uploaded_by:adminUser.id,published_at:new Date().toISOString()
-    }).select().single();
-    if(ins.error){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(uploadedKey)}`,{method:'DELETE'})}catch(_){}throw new Error(ins.error.message)}
-    await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);
-    pdfTitle.value='';pdfFile.value='';toast(downloadMockRequired?'PDF upload हो गई। Download Mock Test लागू है।':'PDF upload हो गई। Download Mock Test लागू नहीं है।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
-  }catch(e){console.error(e);toast(e.message||'PDF upload नहीं हो पाई।','error')}
-  finally{if(btn){btn.disabled=false;btn.textContent=oldText;}}
-};
-
-async function linkExistingPdfToTarget(materialId,dayId){
-  const sel=document.getElementById('materialTarget_'+materialId);
-  const targetId=sel?.value||'';
-  if(!targetId){toast('इस PDF के लिए Class / Topic चुनें।','error');return}
-  const r=await sb.from('study_materials').update({target_id:targetId}).eq('id',materialId);
-  if(r.error){toast(r.error.message,'error');return}
-  toast('PDF की Class link save हो गई।','success');
-  await Promise.all([loadMaterials(),loadDaySetup()]);
-}
-
-loadMaterials=async function(){
-  const [r,t]=await Promise.all([
-    sb.from('study_materials').select('*,schedule_days(day_number,day_date),daily_targets(subject,topic,target_order)').order('created_at',{ascending:false}),
-    sb.from('daily_targets').select('id,schedule_day_id,subject,topic,target_order,status').eq('status','published').order('target_order')
-  ]);
-  const rows=r.data||[],targets=t.data||[],host=document.getElementById('materialsList');if(!host)return;
-  if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>Supabase में updated RUN_THIS_FINAL_PDF_FLOW_ONCE.sql चलाएँ।</small></div>`;return}
-  host.innerHTML=rows.map(m=>{
-    const dayTargets=targets.filter(x=>String(x.schedule_day_id)===String(m.schedule_day_id));
-    const options='<option value="">Class / Topic चुनें</option>'+dayTargets.map(x=>`<option value="${x.id}" ${String(x.id)===String(m.target_id)?'selected':''}>Class ${x.target_order||'-'} — ${esc(x.subject||'')} • ${esc(x.topic||'')}</option>`).join('');
-    return `<div class="item admin-delete-group"><div class="row wrap" style="justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:260px"><b>📄 ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'} — ${esc(m.daily_targets?.subject||'Unlinked')} • ${esc(m.daily_targets?.topic||'Class चुनना बाकी')}</div><div class="small">${m.requires_pdf_verification===false?'View Verification: नहीं':`View Verification: ${Number(m.pdf_verification_pass_percent||30)}%`} • ${m.access_mode==='test_required'?`Download Mock Test: ${Number(m.download_pass_percent||80)}%`:m.access_mode==='direct_download'?'Direct Download':'Read Only'} • ${isR2PdfPath(m.storage_path)?'☁ R2':'Legacy'}</div><div class="existing-pdf-linker"><select id="materialTarget_${m.id}">${options}</select><button class="btn btn-blue btn-mini" onclick="linkExistingPdfToTarget('${m.id}','${m.schedule_day_id}')">Save Class Link</button></div></div><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>🗑 Delete PDF</button></div></div>`;
-  }).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
-};
-
-const __v129AdminInit=init;
-init=async function(){
-  await __v129AdminInit();
-  syncTestPurpose();
-  syncPdfDownloadRule();
-  await loadPdfTargetOptions();
-};
-
-
-
-/* ==================================================================
-   V12.12 — 5-MONTH PLAN + FLEXIBLE DAILY CLASS/TIMING PLANNER
-   ================================================================== */
-const FLEXIBLE_CLASS_SUBJECTS=['हरियाणा GK','भारतीय इतिहास','भारतीय राजव्यवस्था','भारतीय भूगोल','विज्ञान','हिंदी','Static GK','करंट अफेयर','पुनरावृत्ति'];
-
-function classSubjectOptions(selected){
-  return FLEXIBLE_CLASS_SUBJECTS.map(s=>`<option value="${esc(s)}" ${String(selected||'')===s?'selected':''}>${esc(s)}</option>`).join('');
-}
-function classTimeInputValue(v){return String(v||'').slice(0,5)}
-function classTimeLabel(start,end){
-  const fmt=v=>{if(!v)return'';const [h,m]=String(v).slice(0,5).split(':').map(Number);const ap=h>=12?'PM':'AM';const hh=(h%12)||12;return `${hh}:${String(m).padStart(2,'0')} ${ap}`};
-  if(start&&end)return `${fmt(start)} – ${fmt(end)}`;
-  if(start)return `${fmt(start)} से`;
-  return 'Timing अभी नहीं दी गई';
-}
-function futureDayOptions(currentDayId,selected){
-  const currentIndex=days.findIndex(d=>String(d.id)===String(currentDayId));
-  return days.slice(Math.max(0,currentIndex+1)).map(d=>`<option value="${d.id}" ${String(selected||'')===String(d.id)?'selected':''}>Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');
-}
-function validateClassTimes(start,end){
-  if(start&&end&&end<=start){toast('End Time, Start Time के बाद होना चाहिए।','error');return false}
-  return true;
-}
-
-async function addFlexibleDailyClass(){
-  const dayId=setupDay.value||'';
-  const subject=document.getElementById('newClassSubject')?.value||'';
-  const topic=document.getElementById('newClassTopic')?.value.trim()||'';
-  const start=document.getElementById('newClassStart')?.value||null;
-  const end=document.getElementById('newClassEnd')?.value||null;
-  const note=document.getElementById('newClassNote')?.value.trim()||null;
-  if(!dayId||!subject||!topic){toast('Subject और Topic दोनों लिखें।','error');return}
-  if(!validateClassTimes(start,end))return;
-  const r=await sb.rpc('admin_add_daily_class',{p_schedule_day_id:dayId,p_subject:subject,p_topic:topic,p_start_time:start,p_end_time:end,p_class_note:note,p_is_extra:true});
-  if(r.error){toast('Class add नहीं हुई: '+r.error.message,'error');return}
-  await createGlobalNotification('➕ नई Class जोड़ी गई',`${subject} — ${topic}${start?` • ${classTimeLabel(start,end)}`:''}`,'class',r.data?.id||'');
-  toast('नई Extra Class timetable में जुड़ गई।','success');
-  await Promise.all([loadDaySetup(),loadPdfTargetOptions()]);
-}
-
-async function saveFlexibleDailyClass(targetId){
-  const subject=document.getElementById('classSubject_'+targetId)?.value||'';
-  const topic=document.getElementById('classTopic_'+targetId)?.value.trim()||'';
-  const start=document.getElementById('classStart_'+targetId)?.value||null;
-  const end=document.getElementById('classEnd_'+targetId)?.value||null;
-  const note=document.getElementById('classNote_'+targetId)?.value.trim()||null;
-  const classStatus=document.getElementById('classStatus_'+targetId)?.value||'scheduled';
-  const youtube=document.getElementById('yt_'+targetId)?.value.trim()||null;
-  if(!subject||!topic){toast('Subject और Topic खाली नहीं रह सकते।','error');return}
-  if(!validateClassTimes(start,end))return;
-  const r=await sb.rpc('admin_update_daily_class',{p_target_id:targetId,p_subject:subject,p_topic:topic,p_start_time:start,p_end_time:end,p_class_note:note,p_class_status:classStatus,p_youtube_url:youtube});
-  if(r.error){toast('Class details save नहीं हुईं: '+r.error.message,'error');return}
-  if(classStatus!=='cancelled')await createGlobalNotification('🕒 Class Update',`${subject} — ${topic}${start?` • ${classTimeLabel(start,end)}`:''}`,'class',targetId);
-  toast('Class, Timing और Link save हो गए।','success');
-  await Promise.all([loadDaySetup(),loadPdfTargetOptions()]);
-}
-
-async function moveFlexibleDailyClass(targetId,direction){
-  const r=await sb.rpc('admin_move_daily_class',{p_target_id:targetId,p_direction:direction});
-  if(r.error){toast('Class क्रम नहीं बदला: '+r.error.message,'error');return}
-  await Promise.all([loadDaySetup(),loadPdfTargetOptions()]);
-}
-
-async function deleteFlexibleDailyClass(targetId){
-  if(!(await adminConfirmDelete('क्या आप यह Class timetable से delete करना चाहते हैं? Linked PDF delete नहीं होगी, केवल Class link हटेगी।')))return;
-  const r=await sb.rpc('admin_delete_daily_class',{p_target_id:targetId});
-  if(r.error){toast('Class delete नहीं हुई: '+r.error.message,'error');return}
-  toast('Class delete हो गई।','success');
-  await Promise.all([loadDaySetup(),loadPdfTargetOptions(),loadMaterials()]);
-}
-
-async function carryForwardFlexibleClass(targetId){
-  const destination=document.getElementById('carryDay_'+targetId)?.value||'';
-  if(!destination){toast('Carry Forward के लिए अगला Day चुनें।','error');return}
-  const r=await sb.rpc('admin_carry_forward_daily_class',{p_target_id:targetId,p_destination_day_id:destination,p_start_time:null,p_end_time:null});
-  if(r.error){toast('Class Carry Forward नहीं हुई: '+r.error.message,'error');return}
-  const source=allTargets.find(x=>String(x.id)===String(targetId));
-  await createGlobalNotification('↪ Class Carry Forward',`${source?.subject||'Class'} — ${source?.topic||'अधूरा Topic'} अगले चुने हुए Day में जोड़ी गई।`,'class',r.data?.id||targetId);
-  toast('अधूरी Class चुने हुए Day में Extra Class के रूप में जुड़ गई। वहाँ नई Timing भर दें।','success');
-}
-
-loadDaySetup=async function(){
-  const dayId=setupDay.value||days[0]?.id;if(!dayId)return;
-  const [t,v,m]=await Promise.all([
-    sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),
-    sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true).order('created_at'),
-    sb.from('study_materials').select('id,title,target_id,access_mode,download_test_id,status').eq('schedule_day_id',dayId).eq('status','published').order('created_at')
-  ]);
-  if(t.error){setupTargets.innerHTML=`<div class="item text-error">${esc(t.error.message)}<br><small>V12.12 SQL एक बार Run करें।</small></div>`;return}
-  allTargets=(t.data||[]).filter(x=>x.status==='published');
-  const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));
-  const mmap={};(m.data||[]).forEach(x=>(mmap[x.target_id]??=[]).push(x));
-  const addBox=`<div class="flexible-class-planner">
-    <div class="flex-planner-head"><div><span class="section-kicker">FLEXIBLE TIMETABLE</span><h3>इस Day में नई / तीसरी Class जोड़ें</h3><p>अधूरा Topic, Extra Class या Current Affairs class यहाँ से जोड़ें।</p></div><span class="badge badge-purple">${allTargets.length} Classes</span></div>
-    <div class="flex-class-grid"><div><label>Subject</label><select id="newClassSubject">${classSubjectOptions('हरियाणा GK')}</select></div><div class="flex-topic-field"><label>Topic</label><input id="newClassTopic" placeholder="जैसे: वर्णमाला Part 2"></div><div><label>Start Time</label><input id="newClassStart" type="time"></div><div><label>End Time</label><input id="newClassEnd" type="time"></div><div class="flex-note-field"><label>Note</label><input id="newClassNote" placeholder="Optional: पिछली अधूरी Class"></div><button class="btn btn-purple flex-add-class-btn" onclick="addFlexibleDailyClass()">＋ Extra Class जोड़ें</button></div>
-  </div>`;
-  const cards=allTargets.map((x,idx)=>{
-    const pdfs=mmap[x.id]||[],qs=vmap[x.id]||[];
-    const state=x.class_status||'scheduled';
-    const stateLabel=state==='partial'?'Partially Completed':state==='completed'?'Completed':state==='cancelled'?'Cancelled':'Scheduled';
-    return `<details class="target-setup-3d easy-class-flow flexible-class-card" ${idx===0?'open':''}>
-      <summary><div><span class="topic-chip">Class ${idx+1}</span><b>${esc(x.subject)} — ${esc(x.topic)}</b><div class="class-summary-meta"><span>🕒 ${esc(classTimeLabel(x.start_time,x.end_time))}</span>${x.is_extra_class?'<span class="extra-class-chip">Extra Class</span>':''}</div></div><span class="badge ${state==='completed'?'badge-green':state==='partial'?'badge-orange':state==='cancelled'?'badge-red':'badge-blue'}">${stateLabel}</span></summary>
-      <div class="target-setup-body">
-        <div class="class-edit-panel"><div class="class-edit-title"><h4>Class Details और Timing</h4><div class="row wrap"><button class="btn btn-light btn-mini" onclick="moveFlexibleDailyClass('${x.id}',-1)">↑ ऊपर</button><button class="btn btn-light btn-mini" onclick="moveFlexibleDailyClass('${x.id}',1)">↓ नीचे</button><button class="btn btn-red btn-mini" onclick="deleteFlexibleDailyClass('${x.id}')">🗑 Delete</button></div></div>
-          <div class="flex-class-grid edit-grid"><div><label>Subject</label><select id="classSubject_${x.id}">${classSubjectOptions(x.subject)}</select></div><div class="flex-topic-field"><label>Topic</label><input id="classTopic_${x.id}" value="${esc(x.topic||'')}"></div><div><label>Start Time</label><input id="classStart_${x.id}" type="time" value="${esc(classTimeInputValue(x.start_time))}"></div><div><label>End Time</label><input id="classEnd_${x.id}" type="time" value="${esc(classTimeInputValue(x.end_time))}"></div><div><label>Class Status</label><select id="classStatus_${x.id}"><option value="scheduled" ${state==='scheduled'?'selected':''}>Scheduled</option><option value="partial" ${state==='partial'?'selected':''}>Partially Completed</option><option value="completed" ${state==='completed'?'selected':''}>Completed</option><option value="cancelled" ${state==='cancelled'?'selected':''}>Cancelled</option></select></div><div class="flex-note-field"><label>Note / Part</label><input id="classNote_${x.id}" value="${esc(x.class_note||'')}" placeholder="जैसे: Part 2 / Continuation"></div></div>
-          <label>YouTube Class Link</label><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/...">
-          <div class="row wrap class-save-row"><button class="btn btn-green" onclick="saveFlexibleDailyClass('${x.id}')">Save Class + Timing + Link</button><div class="carry-forward-box"><select id="carryDay_${x.id}"><option value="">Carry Forward Day चुनें</option>${futureDayOptions(dayId,'')}</select><button class="btn btn-orange" onclick="carryForwardFlexibleClass('${x.id}')">अधूरी Class आगे जोड़ें</button></div></div>
-        </div>
-        <div class="easy-step-card"><span class="easy-step-no">2</span><div class="easy-step-content"><div class="row wrap" style="justify-content:space-between;align-items:center"><div><h4>इस Class की PDF Verification</h4><p>Question hide/show आप तय करेंगे।</p></div><div class="row wrap"><span class="badge badge-purple">${qs.length} Questions</span>${qs.length?`<button class="btn btn-red btn-mini" onclick="deleteTargetVerifications('${x.id}','${dayId}')">Delete Verification</button>`:''}</div></div><label>Question Visibility</label><select id="show_${x.id}"><option value="false">Hide Question — केवल Options दिखें</option><option value="true">Show Question — Question + Options दिखें</option></select><label>Verification Questions Paste करें</label><textarea class="verification-raw-box" id="vqraw_${x.id}" placeholder="प्रश्न 1. ........\n(A) ....\n(B) ....\n(C) ....\n(D) ....\nउत्तर: (A)\nव्याख्या: ...."></textarea><button class="btn btn-green" onclick="saveVerificationBatch('${x.id}','${dayId}')">Save Verification Questions</button></div></div>
-        <div class="easy-step-card"><span class="easy-step-no">3</span><div class="easy-step-content"><h4>इस Class की अलग PDF</h4>${pdfs.length?`<div class="linked-pdf-list">${pdfs.map(p=>`<span>📄 ${esc(p.title)}</span>`).join('')}</div>`:'<p class="muted">अभी इस Class से कोई PDF linked नहीं है।</p>'}<button class="btn btn-blue" onclick="openPdfUploadForTarget('${dayId}','${x.id}')">इस Class की PDF Upload करें</button></div></div>
-      </div>
-    </details>`;
-  }).join('');
-  setupTargets.innerHTML=addBox+(cards||'<div class="item">इस Day में अभी कोई Class नहीं है। ऊपर से नई Class जोड़ें।</div>');
-};
-
-const __v1212AdminInit=init;
-init=async function(){await __v1212AdminInit();};
-
-/* ==================================================================
-   V12.13 — ADVANCE UPLOAD + SHOW/HIDE FOR TARGETS, PDFS AND TESTS
-   ================================================================== */
-function v1213InjectAdminVisibilityControls(){
-  const pdfFileEl=document.getElementById('pdfFile');
-  if(pdfFileEl&&!document.getElementById('pdfShowNowWrap')){
-    pdfFileEl.insertAdjacentHTML('beforebegin',`<div id="pdfShowNowWrap" class="visibility-control-panel"><label class="visibility-check"><input id="pdfShowNow" type="checkbox"> Show to Students अभी</label><div class="small muted">Unchecked रहने पर PDF सुरक्षित Draft/Hidden रहेगी। बाद में नीचे से Show करके Save करें।</div></div>`);
-  }
-  const raw=document.getElementById('rawQuestions');
-  if(raw&&!document.getElementById('testShowNowWrap')){
-    raw.insertAdjacentHTML('afterend',`<div id="testShowNowWrap" class="visibility-control-panel"><label class="visibility-check"><input id="testShowNow" type="checkbox"> Show to Students अभी</label><div class="small muted">Unchecked रहने पर पूरा Mock Test Draft/Hidden रहेगा।</div></div>`);
-  }
-  const testsHost=document.getElementById('adminTests');
-  if(testsHost&&!document.getElementById('testBulkVisibility')){
-    testsHost.insertAdjacentHTML('beforebegin',`<div id="testBulkVisibility" class="visibility-bulk-toolbar"><b>Mock Test Visibility</b><button class="btn btn-green btn-mini" onclick="setAllTestsVisibility(true)">Show All</button><button class="btn btn-light btn-mini" onclick="setAllTestsVisibility(false)">Hide All</button></div>`);
-  }
-  const materialsHost=document.getElementById('materialsList');
-  if(materialsHost&&!document.getElementById('pdfBulkVisibility')){
-    materialsHost.insertAdjacentHTML('beforebegin',`<div id="pdfBulkVisibility" class="visibility-bulk-toolbar"><b>PDF Visibility</b><button class="btn btn-green btn-mini" onclick="setAllMaterialsVisibility(true)">Show All</button><button class="btn btn-light btn-mini" onclick="setAllMaterialsVisibility(false)">Hide All</button></div>`);
-  }
-}
-
-async function saveTargetVisibility(targetId){
-  const mode=document.getElementById('targetVisibility_'+targetId)?.value||'auto';
-  const target=allTargets.find(x=>String(x.id)===String(targetId));
-  const r=await sb.rpc('admin_set_target_visibility',{p_target_id:targetId,p_mode:mode});
-  if(r.error){toast('Target visibility save नहीं हुई: '+r.error.message,'error');return}
-  if(mode==='show')await createGlobalNotification('🎯 Daily Target उपलब्ध',`${target?.subject||'आज का Target'} — ${target?.topic||'नई Class'} अब उपलब्ध है।`,'target',targetId);
-  toast(mode==='hide'?'यह Target Students से छिपा दिया गया।':mode==='show'?'यह Target Students को अभी दिखाई देगा।':'Target Automatic Date Mode पर है।','success');
-  await loadDaySetup();
-}
-async function setDayTargetVisibility(mode){
-  const dayId=document.getElementById('setupDay')?.value||'';
-  if(!dayId)return;
-  const r=await sb.rpc('admin_set_day_targets_visibility',{p_schedule_day_id:dayId,p_mode:mode});
-  if(r.error){toast(r.error.message,'error');return}
-  if(mode==='show')await createGlobalNotification('🎯 आज के Targets उपलब्ध',`इस Day के ${Number(r.data||0)} Targets अब विद्यार्थियों के लिए उपलब्ध हैं।`,'notice',dayId);
-  toast(`इस Day के ${Number(r.data||0)} Targets की visibility update हो गई।`,'success');
-  await loadDaySetup();
-}
-function v1213DecorateTargetVisibility(){
-  const host=document.getElementById('setupTargets');if(!host)return;
-  const planner=host.querySelector('.flexible-class-planner');
-  if(planner&&!document.getElementById('dayTargetVisibilityToolbar')){
-    planner.insertAdjacentHTML('afterend',`<div id="dayTargetVisibilityToolbar" class="visibility-bulk-toolbar target-visibility-toolbar"><b>इस Day के सभी Targets</b><button class="btn btn-green btn-mini" onclick="setDayTargetVisibility('show')">Show Now</button><button class="btn btn-light btn-mini" onclick="setDayTargetVisibility('auto')">Automatic Date</button><button class="btn btn-red btn-mini" onclick="setDayTargetVisibility('hide')">Stop / Hide</button></div>`);
-  }
-  const cards=[...host.querySelectorAll('.flexible-class-card')];
-  cards.forEach((card,index)=>{
-    const target=allTargets[index];if(!target)return;
-    const panel=card.querySelector('.class-edit-panel');
-    if(panel&&!document.getElementById('targetVisibility_'+target.id)){
-      const mode=target.visibility_mode||'auto';
-      panel.insertAdjacentHTML('beforeend',`<div class="visibility-control-panel target-visibility-control"><div><b>Daily Target — Show to Students</b><div class="small muted">पहले 5 दिन Show Now हैं; बाकी Automatic Date पर खुलेंगे।</div></div><select id="targetVisibility_${target.id}"><option value="show" ${mode==='show'?'selected':''}>Show Now</option><option value="auto" ${mode==='auto'?'selected':''}>Automatic on Date</option><option value="hide" ${mode==='hide'?'selected':''}>Stop / Hide</option></select><button class="btn btn-blue btn-mini" onclick="saveTargetVisibility('${target.id}')">Save Visibility</button></div>`);
-    }
-  });
-}
-
-const __v1213LoadDaySetup=loadDaySetup;
-loadDaySetup=async function(){await __v1213LoadDaySetup();v1213DecorateTargetVisibility();};
-
-publishRawTest=async function(){
-  syncTestPurpose();
-  const purpose=document.getElementById('testPurpose')?.value||'standalone';
-  if((purpose==='final_daily'||purpose==='pdf_gate')&&!testDay.value){toast('PDF Gate या Final Daily Test के लिए Schedule Day चुनना जरूरी है।','error');return}
-  const parsed=parseRawQuestions(rawQuestions.value);
-  if(!parsed.length){toast('Valid questions नहीं मिले। Format check करें।','error');return}
-  const visible=Boolean(document.getElementById('testShowNow')?.checked);
-  const tr=await sb.from('tests').insert({batch_id:APP_CONFIG.BATCH_ID,schedule_day_id:testDay.value||null,title:testName.value.trim()||'New Test',test_type:'daily',total_questions:parsed.length,total_marks:parsed.length,time_limit_minutes:+testTime.value||null,passing_percent:+testPass.value||0,is_final_daily:isFinalDaily.checked,is_pdf_download_gate:isPdfGate.checked,allow_unlimited_retries:true,status:'published',student_visible:visible,created_by:adminUser.id}).select().single();
-  if(tr.error){toast(tr.error.message,'error');return}
-  for(let i=0;i<parsed.length;i++){
-    const q=parsed[i],rr=await sb.from('test_questions').insert({test_id:tr.data.id,question_order:i+1,marks:1,difficulty:'normal',question_type:q.question_type,question_text:q.question_text,options:q.options}).select().single();
-    if(rr.error){toast('Q'+(i+1)+': '+rr.error.message,'error');return}
-    const kr=await sb.from('test_question_keys').insert({question_id:rr.data.id,correct_answer:q.correct_answer,explanation:q.explanation});
-    if(kr.error){toast('Q'+(i+1)+' answer key: '+kr.error.message,'error');return}
-  }
-  if(visible)await createGlobalNotification('📝 नया Mock Test',tr.data.title+' उपलब्ध है।','test',tr.data.id);
-  toast(visible?`${parsed.length} प्रश्नों का Test Students को Show हो गया।`:`${parsed.length} प्रश्नों का Test Draft/Hidden में save हो गया।`,'success');
-  rawQuestions.value='';if(document.getElementById('testShowNow'))document.getElementById('testShowNow').checked=false;await loadTests();
-};
-
-async function saveTestVisibility(testId){
-  const visible=Boolean(document.getElementById('testVisible_'+testId)?.checked);
-  const r=await sb.rpc('admin_set_test_visibility',{p_test_id:testId,p_visible:visible});
-  if(r.error){toast(r.error.message,'error');return}
-  if(visible){const t=publishedTests.find(x=>String(x.id)===String(testId));if(t)await createGlobalNotification('📝 Mock Test उपलब्ध',t.title+' अब विद्यार्थियों के लिए उपलब्ध है।','test',testId)}
-  toast(visible?'Mock Test Students को Show होगा।':'Mock Test Hidden कर दिया गया।','success');await loadTests();
-}
-async function setAllTestsVisibility(visible){
-  if(!confirm(`सभी Mock Tests ${visible?'Show':'Hide'} करने हैं?`))return;
-  const r=await sb.rpc('admin_set_all_test_visibility',{p_visible:visible});if(r.error){toast(r.error.message,'error');return}
-  if(visible)await createGlobalNotification('📝 Mock Tests उपलब्ध',`${Number(r.data||0)} Mock Tests विद्यार्थियों के लिए उपलब्ध किए गए हैं।`,'notice','bulk-tests');
-  toast(`${Number(r.data||0)} Tests update हो गए।`,'success');await loadTests();
-}
-loadTests=async function(){
-  const r=await sb.from('tests').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('created_at',{ascending:false});
-  publishedTests=r.data||[];
-  const host=document.getElementById('adminTests');if(host)host.innerHTML=publishedTests.map(t=>`<div class="item visibility-list-item"><div class="visibility-item-main"><b>${esc(t.title)}</b><div class="muted">${t.total_questions} Questions • Pass ${t.passing_percent||0}% ${t.is_final_daily?'• Final Daily':''}${t.is_pdf_download_gate?' • PDF Gate':''}</div></div><div class="visibility-item-actions"><span class="badge ${t.student_visible?'badge-green':'badge-gray'}">${t.student_visible?'Student Visible':'Draft / Hidden'}</span><label class="visibility-check"><input id="testVisible_${t.id}" type="checkbox" ${t.student_visible?'checked':''}> Show to Students</label><button class="btn btn-blue btn-mini" onclick="saveTestVisibility('${t.id}')">Save</button></div></div>`).join('')||'<div class="item">अभी कोई Test नहीं है।</div>';
-  if(document.getElementById('pdfTest'))document.getElementById('pdfTest').innerHTML='<option value="">No Test</option>'+publishedTests.map(t=>`<option value="${t.id}">${esc(t.title)}${t.student_visible?'':' — Hidden'}</option>`).join('');
-};
-
-uploadPdf=async function(){
-  const f=pdfFile.files[0];const targetId=document.getElementById('pdfTarget')?.value||'';
-  if(!targetId){toast('पहले Class / Topic चुनें।','error');return}if(!f){toast('PDF चुनें','error');return}
-  if(f.type&&f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
-  const downloadMockRequired=document.getElementById('pdfDownloadMockRequired')?.value==='yes';
-  const access=downloadMockRequired?'test_required':(document.getElementById('pdfAccess')?.value||'direct_download');
-  if(downloadMockRequired&&!pdfTest.value){toast('Related PDF Download Gate Test चुनें।','error');return}
-  const downloadPass=downloadMockRequired?Math.max(0,Math.min(100,Number(document.getElementById('pdfPass')?.value||80))):0;
-  const verifyRequired=document.getElementById('pdfVerificationRequired')?.value!=='false';const verifyPass=Math.max(0,Math.min(100,Number(document.getElementById('pdfVerifyPass')?.value||30)));
-  const visible=Boolean(document.getElementById('pdfShowNow')?.checked);
-  const btn=document.querySelector('#pdfsTab button[onclick="uploadPdf()"]')||document.querySelector('button[onclick="uploadPdf()"]');const oldText=btn?.textContent||'Upload PDF';if(btn){btn.disabled=true;btn.textContent='Uploading securely to R2...';}
-  let uploadedKey=null;
-  try{
-    const uploadRes=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(f.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f});
-    if(!uploadRes.ok)throw new Error(await r2ErrorMessage(uploadRes,'R2 upload failed'));
-    uploadedKey=(await uploadRes.json()).key;if(!uploadedKey)throw new Error('R2 file key नहीं मिला।');
-    const ins=await sb.from('study_materials').insert({schedule_day_id:pdfDay.value,target_id:targetId,title:pdfTitle.value.trim()||f.name,material_type:'pdf',storage_path:uploadedKey,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',student_visible:visible,access_mode:access,download_test_id:downloadMockRequired?(pdfTest.value||null):null,download_pass_percent:downloadPass,requires_pdf_verification:verifyRequired,pdf_verification_pass_percent:verifyPass,requires_class_verification:false,uploaded_by:adminUser.id,published_at:new Date().toISOString()}).select().single();
-    if(ins.error){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(uploadedKey)}`,{method:'DELETE'})}catch(_){}throw new Error(ins.error.message)}
-    if(visible)await createGlobalNotification('📄 नई PDF उपलब्ध',ins.data.title,'pdf',ins.data.id);
-    pdfTitle.value='';pdfFile.value='';if(document.getElementById('pdfShowNow'))document.getElementById('pdfShowNow').checked=false;
-    toast(visible?'PDF upload होकर Students को Show हो गई।':'PDF upload होकर Draft/Hidden में सुरक्षित है।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
-  }catch(e){console.error(e);toast(e.message||'PDF upload नहीं हो पाई।','error')}
-  finally{if(btn){btn.disabled=false;btn.textContent=oldText;}}
-};
-
-async function saveMaterialVisibility(materialId){
-  const visible=Boolean(document.getElementById('materialVisible_'+materialId)?.checked);
-  const material=null;
-  const r=await sb.rpc('admin_set_material_visibility',{p_material_id:materialId,p_visible:visible});if(r.error){toast(r.error.message,'error');return}
-  if(visible){
-    let title=material?.title||'';
-    if(!title){const q=await sb.from('study_materials').select('title').eq('id',materialId).maybeSingle();title=q.data?.title||'नई PDF';}
-    await createGlobalNotification('📄 PDF उपलब्ध',title+' अब विद्यार्थियों के लिए उपलब्ध है।','pdf',materialId);
-  }
-  toast(visible?'PDF Students को Show होगी।':'PDF Hidden कर दी गई।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
-}
-async function setAllMaterialsVisibility(visible){
-  if(!confirm(`सभी PDFs ${visible?'Show':'Hide'} करनी हैं?`))return;
-  const r=await sb.rpc('admin_set_all_material_visibility',{p_visible:visible});if(r.error){toast(r.error.message,'error');return}
-  if(visible)await createGlobalNotification('📄 नई PDFs उपलब्ध',`${Number(r.data||0)} PDFs विद्यार्थियों के लिए उपलब्ध की गई हैं।`,'notice','bulk-pdfs');
-  toast(`${Number(r.data||0)} PDFs update हो गईं।`,'success');await loadMaterials();
-}
-loadMaterials=async function(){
-  const [r,t]=await Promise.all([
-    sb.from('study_materials').select('*,schedule_days(day_number,day_date),daily_targets(subject,topic,target_order)').order('created_at',{ascending:false}),
-    sb.from('daily_targets').select('id,schedule_day_id,subject,topic,target_order,status').eq('status','published').order('target_order')
-  ]);
-  const rows=r.data||[],targets=t.data||[],host=document.getElementById('materialsList');if(!host)return;
-  if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>V12.14 Complete SQL चलाएँ।</small></div>`;return}
-  host.innerHTML=rows.map(m=>{
-    const dayTargets=targets.filter(x=>String(x.schedule_day_id)===String(m.schedule_day_id));
-    const options='<option value="">Class / Topic चुनें</option>'+dayTargets.map(x=>`<option value="${x.id}" ${String(x.id)===String(m.target_id)?'selected':''}>Class ${x.target_order||'-'} — ${esc(x.subject||'')} • ${esc(x.topic||'')}</option>`).join('');
-    return `<div class="item admin-delete-group visibility-list-item"><div class="visibility-item-main"><b>📄 ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'} — ${esc(m.daily_targets?.subject||'Unlinked')} • ${esc(m.daily_targets?.topic||'Class चुनना बाकी')}</div><div class="small">${m.requires_pdf_verification===false?'Verification: नहीं':`Verification: ${Number(m.pdf_verification_pass_percent||30)}%`} • ${m.access_mode==='test_required'?`Download Test: ${Number(m.download_pass_percent||80)}%`:m.access_mode==='direct_download'?'Direct Download':'Read Only'}</div><div class="existing-pdf-linker"><select id="materialTarget_${m.id}">${options}</select><button class="btn btn-blue btn-mini" onclick="linkExistingPdfToTarget('${m.id}','${m.schedule_day_id}')">Save Class Link</button></div></div><div class="visibility-item-actions"><span class="badge ${m.student_visible?'badge-green':'badge-gray'}">${m.student_visible?'Student Visible':'Draft / Hidden'}</span><label class="visibility-check"><input id="materialVisible_${m.id}" type="checkbox" ${m.student_visible?'checked':''}> Show to Students</label><button class="btn btn-blue btn-mini" onclick="saveMaterialVisibility('${m.id}')">Save</button><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||"")})'>🗑 Delete</button></div></div>`;
-  }).join('')||'<div class="item">अभी कोई PDF नहीं है।</div>';
-};
-
-const __v1213AdminInit=init;
-init=async function(){
-  await __v1213AdminInit();
-  v1213InjectAdminVisibilityControls();
-  await Promise.all([loadTests(),loadMaterials(),loadDaySetup()]);
-};
-
-/* ==================================================================
-   V12.18 — CLEAN CLASS PDF + DIRECT PDF FLOW
-   ================================================================== */
-let adminPdfType='class';
-
-function switchAdminPdfType(type){
-  adminPdfType=type==='direct'?'direct':'class';
-  document.getElementById('classPdfAdminPanel')?.classList.toggle('hidden',adminPdfType!=='class');
-  document.getElementById('directPdfAdminPanel')?.classList.toggle('hidden',adminPdfType!=='direct');
-  document.getElementById('classPdfAdminTabBtn')?.classList.toggle('active',adminPdfType==='class');
-  document.getElementById('directPdfAdminTabBtn')?.classList.toggle('active',adminPdfType==='direct');
-}
-
-function syncClassVerificationControls(targetId){
-  const required=document.getElementById('classVerifyRequired_'+targetId)?.value==='yes';
-  document.getElementById('classVerifySettings_'+targetId)?.classList.toggle('hidden',!required);
-  document.getElementById('classVerifySettingsPass_'+targetId)?.classList.toggle('hidden',!required);
-  const status=document.getElementById('classVerifyStatus_'+targetId);
-  if(status&&!required){status.className='class-verification-status off';status.textContent='Verification: No — इस Class की PDF बिना Verification खुलेगी।';}
-}
-
-async function saveClassPdfVerificationSetup(targetId){
-  const required=document.getElementById('classVerifyRequired_'+targetId)?.value==='yes';
-  const count=required?Math.max(1,Math.min(100,Number(document.getElementById('classVerifyCount_'+targetId)?.value||1))):0;
-  const pass=required?Math.max(0,Math.min(100,Number(document.getElementById('classVerifyPass_'+targetId)?.value||30))):0;
-  const r=await sb.rpc('admin_set_class_pdf_verification',{p_target_id:targetId,p_required:required,p_question_count:count,p_pass_percent:pass});
-  if(r.error){toast('Verification setup save नहीं हुआ: '+r.error.message,'error');return}
-  const data=r.data||{};
-  toast(data.ready===false?`Setup save हो गया, लेकिन ${count} में से केवल ${Number(data.available_questions||0)} Questions तैयार हैं।`:'Class PDF Verification setup save हो गया।',data.ready===false?'error':'success');
-  await Promise.all([loadDaySetup(),loadSelectedClassPdfSetup()]);
-}
-
-saveVerificationBatch=async function(targetId,dayId){
-  const raw=document.getElementById('vqraw_'+targetId)?.value||'';
-  const parsed=parseRawQuestions(raw);
-  if(!parsed.length){toast('Valid PDF Verification Question नहीं मिला।','error');return}
-  const required=document.getElementById('classVerifyRequired_'+targetId)?.value==='yes';
-  const expected=required?Math.max(1,Math.min(100,Number(document.getElementById('classVerifyCount_'+targetId)?.value||parsed.length))):0;
-  if(required&&parsed.length<expected){toast(`आपने ${expected} Verification Questions चुने हैं, लेकिन paste data में केवल ${parsed.length} valid Questions मिले।`,'error');return}
-  const items=parsed.map(q=>({question_text:q.question_text||'PDF Verification',options:q.options,correct_answer:q.correct_answer,explanation:q.explanation||null}));
-  const rr=await sb.rpc('admin_replace_pdf_verifications',{p_target_id:targetId,p_schedule_day_id:dayId,p_show_question:document.getElementById('show_'+targetId)?.value==='true',p_items:items});
-  if(rr.error){toast('PDF Verification Questions save नहीं हुए: '+rr.error.message,'error');return}
-  const pass=required?Math.max(0,Math.min(100,Number(document.getElementById('classVerifyPass_'+targetId)?.value||30))):0;
-  const cfg=await sb.rpc('admin_set_class_pdf_verification',{p_target_id:targetId,p_required:required,p_question_count:expected,p_pass_percent:pass});
-  if(cfg.error){toast('Questions save हुए, लेकिन Verification setup save नहीं हुआ: '+cfg.error.message,'error');return}
-  toast(`${parsed.length} Questions save हुए। PDF में ${required?expected:0} Question${expected===1?'':'s'} उपयोग होंगे।`,'success');
-  const box=document.getElementById('vqraw_'+targetId);if(box)box.value='';
-  await Promise.all([loadDaySetup(),loadVerificationManager(),loadSelectedClassPdfSetup()]);
-};
-
-loadDaySetup=async function(){
-  const dayId=setupDay.value||days[0]?.id;if(!dayId)return;
-  const [t,v,m]=await Promise.all([
-    sb.from('daily_targets').select('*').eq('schedule_day_id',dayId).order('target_order'),
-    sb.from('verification_questions').select('*').eq('schedule_day_id',dayId).eq('is_active',true).order('sort_order').order('created_at'),
-    sb.from('study_materials').select('id,title,target_id,access_mode,download_test_id,status,pdf_type,student_visible').eq('schedule_day_id',dayId).eq('status','published').eq('pdf_type','class').order('created_at')
-  ]);
-  if(t.error){setupTargets.innerHTML=`<div class="item text-error">${esc(t.error.message)}<br><small>V12.18 SQL पहले चलाएँ।</small></div>`;return}
-  allTargets=(t.data||[]).filter(x=>x.status==='published');
-  const vmap={};(v.data||[]).forEach(x=>(vmap[x.target_id]??=[]).push(x));
-  const mmap={};(m.data||[]).forEach(x=>(mmap[x.target_id]??=[]).push(x));
-  const addBox=`<div class="flexible-class-planner"><div class="flex-planner-head"><div><span class="section-kicker">FLEXIBLE TIMETABLE</span><h3>इस Day में नई / Extra Class जोड़ें</h3><p>Class, Timing और Topic का पुराना system वैसा ही रखा गया है।</p></div><span class="badge badge-purple">${allTargets.length} Classes</span></div><div class="flex-class-grid"><div><label>Subject</label><select id="newClassSubject">${classSubjectOptions('हरियाणा GK')}</select></div><div class="flex-topic-field"><label>Topic</label><input id="newClassTopic" placeholder="जैसे: वर्णमाला Part 2"></div><div><label>Start Time</label><input id="newClassStart" type="time"></div><div><label>End Time</label><input id="newClassEnd" type="time"></div><div class="flex-note-field"><label>Note</label><input id="newClassNote" placeholder="Optional"></div><button class="btn btn-purple flex-add-class-btn" onclick="addFlexibleDailyClass()">＋ Extra Class जोड़ें</button></div></div>`;
-  const cards=allTargets.map((x,idx)=>{
-    const pdfs=mmap[x.id]||[],qs=vmap[x.id]||[];
-    const state=x.class_status||'scheduled';
-    const required=x.pdf_verification_required===true;
-    const expected=required?Math.max(1,Number(x.pdf_verification_question_count||1)):0;
-    const pass=Number(x.pdf_verification_pass_percent||30);
-    const ready=!required||qs.length>=expected;
-    const stateLabel=state==='partial'?'Partially Completed':state==='completed'?'Completed':state==='cancelled'?'Cancelled':'Scheduled';
-    const verifyStatus=!required?'Verification No — PDF सीधे खुलेगी।':ready?`Ready — ${expected} Questions उपयोग होंगे, Pass ${pass}%`:`Incomplete — ${expected} चाहिए, अभी ${qs.length} Questions हैं`;
-    return `<details class="target-setup-3d easy-class-flow flexible-class-card" ${idx===0?'open':''}><summary><div><span class="topic-chip">Class ${idx+1}</span><b>${esc(x.subject)} — ${esc(x.topic)}</b><div class="class-summary-meta"><span>🕒 ${esc(classTimeLabel(x.start_time,x.end_time))}</span>${x.is_extra_class?'<span class="extra-class-chip">Extra Class</span>':''}</div></div><span class="badge ${state==='completed'?'badge-green':state==='partial'?'badge-orange':state==='cancelled'?'badge-red':'badge-blue'}">${stateLabel}</span></summary><div class="target-setup-body">
-      <div class="class-edit-panel"><div class="class-edit-title"><h4>1. YouTube Class + Timing</h4><div class="row wrap"><button class="btn btn-light btn-mini" onclick="moveFlexibleDailyClass('${x.id}',-1)">↑ ऊपर</button><button class="btn btn-light btn-mini" onclick="moveFlexibleDailyClass('${x.id}',1)">↓ नीचे</button><button class="btn btn-red btn-mini" onclick="deleteFlexibleDailyClass('${x.id}')">🗑 Delete</button></div></div><div class="flex-class-grid edit-grid"><div><label>Subject</label><select id="classSubject_${x.id}">${classSubjectOptions(x.subject)}</select></div><div class="flex-topic-field"><label>Topic</label><input id="classTopic_${x.id}" value="${esc(x.topic||'')}"></div><div><label>Start Time</label><input id="classStart_${x.id}" type="time" value="${esc(classTimeInputValue(x.start_time))}"></div><div><label>End Time</label><input id="classEnd_${x.id}" type="time" value="${esc(classTimeInputValue(x.end_time))}"></div><div><label>Class Status</label><select id="classStatus_${x.id}"><option value="scheduled" ${state==='scheduled'?'selected':''}>Scheduled</option><option value="partial" ${state==='partial'?'selected':''}>Partially Completed</option><option value="completed" ${state==='completed'?'selected':''}>Completed</option><option value="cancelled" ${state==='cancelled'?'selected':''}>Cancelled</option></select></div><div class="flex-note-field"><label>Note / Part</label><input id="classNote_${x.id}" value="${esc(x.class_note||'')}"></div></div><label>YouTube Class Link</label><input id="yt_${x.id}" value="${esc(x.youtube_url||'')}" placeholder="https://youtube.com/..."><div class="row wrap class-save-row"><button class="btn btn-green" onclick="saveFlexibleDailyClass('${x.id}')">Save Class + Timing + Link</button><div class="carry-forward-box"><select id="carryDay_${x.id}"><option value="">Carry Forward Day चुनें</option>${futureDayOptions(dayId,'')}</select><button class="btn btn-orange" onclick="carryForwardFlexibleClass('${x.id}')">अधूरी Class आगे जोड़ें</button></div></div></div>
-      <div class="easy-step-card"><span class="easy-step-no">2</span><div class="easy-step-content"><div class="row wrap" style="justify-content:space-between;align-items:center"><div><h4>इस Class की PDF Verification</h4><p>Yes/No, Question Count और Passing % यहीं तय करें।</p></div><span class="badge badge-purple">${qs.length} Saved Questions</span></div><div class="class-verification-controls"><div><label>Verification Required?</label><select id="classVerifyRequired_${x.id}" onchange="syncClassVerificationControls('${x.id}')"><option value="no" ${!required?'selected':''}>No — PDF सीधे खुलेगी</option><option value="yes" ${required?'selected':''}>Yes — पहले Verification</option></select></div><div id="classVerifySettings_${x.id}" class="${required?'':'hidden'}"><label>कितने Questions?</label><input id="classVerifyCount_${x.id}" type="number" min="1" max="100" value="${expected||1}"></div><div id="classVerifySettingsPass_${x.id}" class="${required?'':'hidden'}"><label>Passing %</label><input id="classVerifyPass_${x.id}" type="number" min="0" max="100" value="${pass}"></div></div><div id="classVerifyStatus_${x.id}" class="class-verification-status ${!required?'off':ready?'ready':'incomplete'}">${verifyStatus}</div><button class="btn btn-blue" onclick="saveClassPdfVerificationSetup('${x.id}')">Save Verification Yes/No + Count</button><label>Question Visibility</label><select id="show_${x.id}"><option value="false">Hide Question — केवल Options</option><option value="true">Show Question + Options</option></select><label>Verification Questions Paste करें</label><textarea class="verification-raw-box" id="vqraw_${x.id}" placeholder="प्रश्न 1...\n(A)...\n(B)...\n(C)...\n(D)...\nउत्तर: (A)\nव्याख्या: ..."></textarea><div class="row wrap"><button class="btn btn-green" onclick="saveVerificationBatch('${x.id}','${dayId}')">Save Verification Questions</button>${qs.length?`<button class="btn btn-red btn-mini" onclick="deleteTargetVerifications('${x.id}','${dayId}')">Delete Questions</button>`:''}</div></div></div>
-      <div class="easy-step-card"><span class="easy-step-no">3</span><div class="easy-step-content"><h4>इस Class की PDF Upload</h4>${pdfs.length?`<div class="linked-pdf-list">${pdfs.map(p=>`<span>📄 ${esc(p.title)} ${p.student_visible?'• Live':'• Hidden'}</span>`).join('')}</div>`:'<p class="muted">अभी इस Class से PDF linked नहीं है।</p>'}<button class="btn btn-blue" onclick="openPdfUploadForTarget('${dayId}','${x.id}')">इस Class की PDF Upload करें</button></div></div>
-      <div class="easy-step-card"><span class="easy-step-no">4</span><div class="easy-step-content"><h4>PDF Download Mock Test</h4><p>PDF Upload screen पर Yes/No चुनें। No चुनने पर कोई Mock Test नहीं आएगा।</p></div></div>
-    </div></details>`;
-  }).join('');
-  setupTargets.innerHTML=addBox+(cards||'<div class="item">इस Day में अभी कोई Class नहीं है।</div>');
-  v1213DecorateTargetVisibility();
-};
-
-loadPdfTargetOptions=async function(preselectTargetId=''){
-  const host=document.getElementById('pdfTarget');if(!host)return;
-  const dayId=document.getElementById('pdfDay')?.value||'';
-  if(!dayId){host.innerHTML='<option value="">पहले Day चुनें</option>';pdfTargetRows=[];await loadSelectedClassPdfSetup();return}
-  const r=await sb.from('daily_targets').select('id,subject,topic,target_order,status,pdf_verification_required,pdf_verification_question_count,pdf_verification_pass_percent').eq('schedule_day_id',dayId).order('target_order');
-  if(r.error){host.innerHTML='<option value="">Classes load नहीं हुईं</option>';toast(r.error.message,'error');return}
-  pdfTargetRows=(r.data||[]).filter(x=>x.status==='published');
-  host.innerHTML='<option value="">Class / Topic चुनें</option>'+pdfTargetRows.map(t=>`<option value="${t.id}">Class ${t.target_order||'-'} — ${esc(t.subject||'')} • ${esc(t.topic||'')}</option>`).join('');
-  if(preselectTargetId&&pdfTargetRows.some(t=>String(t.id)===String(preselectTargetId)))host.value=String(preselectTargetId);
-  await loadSelectedClassPdfSetup();
-};
-
-async function loadSelectedClassPdfSetup(){
-  const host=document.getElementById('classPdfVerificationSummary');if(!host)return;
-  const targetId=document.getElementById('pdfTarget')?.value||'';
-  if(!targetId){host.className='class-pdf-setup-summary';host.innerHTML='<span class="muted">Class चुनने पर Verification setup यहाँ दिखाई देगा।</span>';return}
-  let target=pdfTargetRows.find(t=>String(t.id)===String(targetId));
-  if(!target){const q=await sb.from('daily_targets').select('id,subject,topic,target_order,pdf_verification_required,pdf_verification_question_count,pdf_verification_pass_percent').eq('id',targetId).maybeSingle();target=q.data;}
-  if(!target){host.className='class-pdf-setup-summary incomplete';host.textContent='Class setup नहीं मिला।';return}
-  const required=target.pdf_verification_required===true;
-  const expected=required?Math.max(1,Number(target.pdf_verification_question_count||1)):0;
-  let available=0;
-  if(required){const q=await sb.from('verification_questions').select('id',{count:'exact',head:true}).eq('target_id',targetId).eq('is_active',true);available=Number(q.count||0);}
-  const ready=!required||available>=expected;
-  host.className=`class-pdf-setup-summary ${!required?'off':ready?'ready':'incomplete'}`;
-  host.innerHTML=!required?`<b>🔓 Verification: No</b><div>यह Class PDF बिना Verification खुलेगी।</div>`:`<b>${ready?'✅ Verification Ready':'⚠ Verification Incomplete'}</b><div>Use Questions: ${expected} • Saved Questions: ${available} • Pass: ${Number(target.pdf_verification_pass_percent||30)}%</div>${ready?'':'<div><b>पहले Daily Content Setup में Questions पूरे करें। PDF upload नहीं होगी।</b></div>'}`;
-}
-
-openPdfUploadForTarget=async function(dayId,targetId){
-  const link=[...document.querySelectorAll('.sidebar a')].find(a=>(a.getAttribute('onclick')||'').includes("tab('pdfs'"));
-  tab('pdfs',link||null);switchAdminPdfType('class');
-  if(document.getElementById('pdfDay'))document.getElementById('pdfDay').value=String(dayId);
-  await loadPdfTargetOptions(targetId);document.getElementById('pdfTitle')?.focus();document.getElementById('pdfsTab')?.scrollIntoView({behavior:'smooth',block:'start'});
-};
-
-syncPdfDownloadRule=function(){
-  const required=document.getElementById('pdfDownloadMockRequired')?.value==='yes';
-  document.getElementById('pdfDownloadMockSettings')?.classList.toggle('hidden',!required);
-  document.getElementById('pdfNoMockAccessWrap')?.classList.toggle('hidden',required);
-  const test=document.getElementById('pdfTest');if(test)test.disabled=!required;
-  const pass=document.getElementById('pdfPass');if(pass)pass.disabled=!required;
-};
-
-uploadPdf=async function(){
-  const f=document.getElementById('pdfFile')?.files?.[0];
-  const dayId=document.getElementById('pdfDay')?.value||'';
-  const targetId=document.getElementById('pdfTarget')?.value||'';
-  if(!dayId||!targetId){toast('पहले Schedule Day और Class / Topic चुनें।','error');return}
-  if(!f){toast('PDF चुनें।','error');return}if(f.type&&f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
-  let target=pdfTargetRows.find(t=>String(t.id)===String(targetId));
-  if(!target){const q=await sb.from('daily_targets').select('*').eq('id',targetId).maybeSingle();target=q.data;}
-  if(!target){toast('Class Verification setup नहीं मिला।','error');return}
-  const verifyRequired=target.pdf_verification_required===true;
-  const verifyCount=verifyRequired?Math.max(1,Number(target.pdf_verification_question_count||1)):0;
-  const verifyPass=verifyRequired?Math.max(0,Math.min(100,Number(target.pdf_verification_pass_percent||30))):0;
-  if(verifyRequired){const q=await sb.from('verification_questions').select('id',{count:'exact',head:true}).eq('target_id',targetId).eq('is_active',true);const available=Number(q.count||0);if(available<verifyCount){toast(`Verification चालू है। ${verifyCount} Questions चाहिए, लेकिन केवल ${available} तैयार हैं।`,'error');return}}
-  const downloadMockRequired=document.getElementById('pdfDownloadMockRequired')?.value==='yes';
-  const access=downloadMockRequired?'test_required':(document.getElementById('pdfAccess')?.value||'direct_download');
-  const testId=document.getElementById('pdfTest')?.value||'';
-  if(downloadMockRequired&&!testId){toast('Mock Test = Yes है। Related PDF Download Gate Test चुनें।','error');return}
-  const downloadPass=downloadMockRequired?Math.max(0,Math.min(100,Number(document.getElementById('pdfPass')?.value||80))):0;
-  const visible=Boolean(document.getElementById('pdfShowNow')?.checked);
-  const btn=document.querySelector('#classPdfAdminPanel button[onclick="uploadPdf()"]');const old=btn?.textContent||'Upload Class PDF';if(btn){btn.disabled=true;btn.textContent='Uploading securely to R2...'}
-  let key=null;
-  try{
-    const up=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(f.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f});
-    if(!up.ok)throw new Error(await r2ErrorMessage(up,'R2 upload failed'));key=(await up.json()).key;if(!key)throw new Error('R2 file key नहीं मिला।');
-    const ins=await sb.from('study_materials').insert({schedule_day_id:dayId,target_id:targetId,pdf_type:'class',title:document.getElementById('pdfTitle')?.value.trim()||f.name,material_type:'pdf',storage_path:key,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',student_visible:visible,access_mode:access,download_test_id:downloadMockRequired?testId:null,download_pass_percent:downloadPass,requires_pdf_verification:verifyRequired,verification_question_count:verifyCount,pdf_verification_pass_percent:verifyPass,requires_class_verification:false,uploaded_by:adminUser.id,published_at:new Date().toISOString()}).select().single();
-    if(ins.error){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(_){}throw new Error(ins.error.message)}
-    if(visible)await createGlobalNotification('📘 Class PDF उपलब्ध',ins.data.title+' अब विद्यार्थियों के लिए उपलब्ध है।','pdf',ins.data.id);
-    document.getElementById('pdfTitle').value='';document.getElementById('pdfFile').value='';if(document.getElementById('pdfShowNow'))document.getElementById('pdfShowNow').checked=false;
-    toast(visible?'Class PDF Students को Show हो गई।':'Class PDF Draft/Hidden में save हो गई।','success');await Promise.all([loadMaterials(),loadDaySetup()]);
-  }catch(e){console.error(e);toast(e.message||'Class PDF upload नहीं हुई।','error')}finally{if(btn){btn.disabled=false;btn.textContent=old}}
-};
-
-async function uploadDirectPdf(){
-  const f=document.getElementById('directPdfFile')?.files?.[0];if(!f){toast('Direct PDF चुनें।','error');return}
-  if(f.type&&f.type!=='application/pdf'){toast('केवल PDF file upload करें।','error');return}if(f.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
-  const access=document.getElementById('directPdfAccess')?.value||'direct_download';
-  const visible=Boolean(document.getElementById('directPdfShowNow')?.checked);
-  const btn=document.querySelector('button[onclick="uploadDirectPdf()"]');const old=btn?.textContent||'Upload Direct PDF';if(btn){btn.disabled=true;btn.textContent='Uploading securely to R2...'}
-  let key=null;
-  try{
-    const up=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(f.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':f.name},body:f});
-    if(!up.ok)throw new Error(await r2ErrorMessage(up,'R2 upload failed'));key=(await up.json()).key;if(!key)throw new Error('R2 file key नहीं मिला।');
-    const ins=await sb.from('study_materials').insert({schedule_day_id:null,target_id:null,pdf_type:'direct',title:document.getElementById('directPdfTitle')?.value.trim()||f.name,material_type:'pdf',storage_path:key,file_size_bytes:f.size,mime_type:'application/pdf',status:'published',student_visible:visible,access_mode:access,download_test_id:null,download_pass_percent:0,requires_pdf_verification:false,verification_question_count:0,pdf_verification_pass_percent:0,requires_class_verification:false,uploaded_by:adminUser.id,published_at:new Date().toISOString()}).select().single();
-    if(ins.error){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(key)}`,{method:'DELETE'})}catch(_){}throw new Error(ins.error.message)}
-    if(visible)await createGlobalNotification('📄 Direct PDF उपलब्ध',ins.data.title+' बिना Verification उपलब्ध है।','pdf',ins.data.id);
-    document.getElementById('directPdfTitle').value='';document.getElementById('directPdfFile').value='';document.getElementById('directPdfShowNow').checked=false;
-    toast(visible?'Direct PDF Students को Show हो गई।':'Direct PDF Draft/Hidden में save हो गई।','success');await loadMaterials();
-  }catch(e){console.error(e);toast(e.message||'Direct PDF upload नहीं हुई।','error')}finally{if(btn){btn.disabled=false;btn.textContent=old}}
-}
-
-linkExistingPdfToTarget=async function(materialId,dayId){
-  const targetId=document.getElementById('materialTarget_'+materialId)?.value||'';
-  if(!targetId){toast('इस PDF के लिए Class / Topic चुनें।','error');return}
-  const tr=await sb.from('daily_targets').select('schedule_day_id,pdf_verification_required,pdf_verification_question_count,pdf_verification_pass_percent').eq('id',targetId).maybeSingle();
-  if(tr.error||!tr.data){toast(tr.error?.message||'Class setup नहीं मिला।','error');return}
-  const required=tr.data.pdf_verification_required===true;
-  const count=required?Math.max(1,Number(tr.data.pdf_verification_question_count||1)):0;
-  const r=await sb.from('study_materials').update({schedule_day_id:tr.data.schedule_day_id||dayId||null,target_id:targetId,pdf_type:'class',requires_pdf_verification:required,verification_question_count:count,pdf_verification_pass_percent:required?Number(tr.data.pdf_verification_pass_percent||30):0}).eq('id',materialId);
-  if(r.error){toast(r.error.message,'error');return}
-  toast('PDF की Class link और Verification setup save हो गई।','success');
-  await Promise.all([loadMaterials(),loadDaySetup()]);
-};
-
-loadMaterials=async function(){
-  const [r,t]=await Promise.all([
-    sb.from('study_materials').select('*,schedule_days(day_number,day_date),daily_targets(subject,topic,target_order)').order('created_at',{ascending:false}),
-    sb.from('daily_targets').select('id,schedule_day_id,subject,topic,target_order,status').eq('status','published').order('target_order')
-  ]);
-  const classHost=document.getElementById('materialsList'),directHost=document.getElementById('directMaterialsList');if(!classHost&&!directHost)return;
-  if(r.error){if(classHost)classHost.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>V12.18 SQL पहले चलाएँ।</small></div>`;return}
-  const rows=r.data||[],targets=t.data||[];
-  const classRows=rows.filter(m=>(m.pdf_type||'class')!=='direct');
-  const directRows=rows.filter(m=>m.pdf_type==='direct');
-  if(classHost)classHost.innerHTML=classRows.map(m=>{
-    const dayTargets=targets.filter(x=>String(x.schedule_day_id)===String(m.schedule_day_id));
-    const options='<option value="">Class / Topic चुनें</option>'+dayTargets.map(x=>`<option value="${x.id}" ${String(x.id)===String(m.target_id)?'selected':''}>Class ${x.target_order||'-'} — ${esc(x.subject||'')} • ${esc(x.topic||'')}</option>`).join('');
-    const verify=m.requires_pdf_verification===false?'Verification: No':`Verification: ${Number(m.verification_question_count||0)} Questions • Pass ${Number(m.pdf_verification_pass_percent||30)}%`;
-    return `<div class="item admin-delete-group visibility-list-item"><div class="visibility-item-main"><span class="pdf-type-badge class">📘 Class PDF</span><b> ${esc(m.title||'PDF')}</b><div class="muted">Day ${m.schedule_days?.day_number||'-'} • Class ${m.daily_targets?.target_order||'-'} — ${esc(m.daily_targets?.subject||'Unlinked')} • ${esc(m.daily_targets?.topic||'Class चुनना बाकी')}</div><div class="small">${verify} • ${m.access_mode==='test_required'?`Download Mock: ${Number(m.download_pass_percent||80)}%`:m.access_mode==='direct_download'?'Direct Download':'Read Only'}</div><div class="existing-pdf-linker"><select id="materialTarget_${m.id}">${options}</select><button class="btn btn-blue btn-mini" onclick="linkExistingPdfToTarget('${m.id}','${m.schedule_day_id||''}')">Save Class Link</button></div></div><div class="visibility-item-actions"><span class="badge ${m.student_visible?'badge-green':'badge-gray'}">${m.student_visible?'Student Visible':'Draft / Hidden'}</span><label class="visibility-check"><input id="materialVisible_${m.id}" type="checkbox" ${m.student_visible?'checked':''}> Show to Students</label><button class="btn btn-blue btn-mini" onclick="saveMaterialVisibility('${m.id}')">Save</button><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')})'>🗑 Delete</button></div></div>`;
-  }).join('')||'<div class="pdf-empty-clean">अभी कोई Class PDF नहीं है।</div>';
-  if(directHost)directHost.innerHTML=directRows.map(m=>`<div class="item admin-delete-group visibility-list-item"><div class="visibility-item-main"><span class="pdf-type-badge direct">📄 Direct PDF</span><b> ${esc(m.title||'PDF')}</b><div class="muted">बिना Class • बिना Verification • बिना Mock Test</div><div class="small">${m.access_mode==='direct_download'?'Read + Download':'Read Only'} • ${isR2PdfPath(m.storage_path)?'☁ R2':'Legacy'}</div></div><div class="visibility-item-actions"><span class="badge ${m.student_visible?'badge-green':'badge-gray'}">${m.student_visible?'Student Visible':'Draft / Hidden'}</span><label class="visibility-check"><input id="materialVisible_${m.id}" type="checkbox" ${m.student_visible?'checked':''}> Show to Students</label><button class="btn btn-blue btn-mini" onclick="saveMaterialVisibility('${m.id}')">Save</button><button class="btn btn-red btn-mini" onclick='deletePdf(${JSON.stringify(m.id)},${JSON.stringify(m.storage_path||'')})'>🗑 Delete</button></div></div>`).join('')||'<div class="pdf-empty-clean">अभी कोई Direct PDF नहीं है।</div>';
-};
-
-async function deleteAllPdfs(type){
-  const pdfType=type==='direct'?'direct':type==='class'?'class':'';
-  const label=pdfType==='direct'?'सभी Direct PDFs':pdfType==='class'?'सभी Class PDFs':'सभी PDFs';
-  if(!(await adminConfirmDelete(`क्या आप ${label} पूरी तरह delete करना चाहते हैं?`)))return;
-  let q=sb.from('study_materials').select('id,storage_path,pdf_type');if(pdfType)q=q.eq('pdf_type',pdfType);
-  const list=await q;const rows=list.data||[];
-  for(const row of rows){
-    const db=await sb.rpc('admin_delete_material',{p_material_id:row.id});if(db.error){toast(db.error.message,'error');return}
-    try{if(isR2PdfPath(row.storage_path))await r2ApiFetch(`/admin/file?key=${encodeURIComponent(row.storage_path)}`,{method:'DELETE'});else if(row.storage_path)await sb.storage.from('study-pdfs').remove([row.storage_path]);}catch(e){console.warn(e)}
-  }
-  toast(`${rows.length} PDF delete हो गईं।`,'success');await loadMaterials();
-}
-
-const __v1218AdminInit=init;
-init=async function(){
-  await __v1218AdminInit();
-  switchAdminPdfType('class');syncPdfDownloadRule();
-  await Promise.all([loadMaterials(),loadDaySetup(),loadSelectedClassPdfSetup()]);
-};
+function renderStudents(rows){byId('studentsBody').innerHTML=rows.map(s=>`<tr><td><b>${esc(s.full_name||'Student')}</b></td><td>${esc(s.email||'')}</td><td>${esc(s.phone||'')}</td><td><span class="badge ${s.is_active===false?'badge-gray':'badge-green'}">${s.is_active===false?'Inactive':'Active'}</span></td><td><button class="btn ${s.is_active===false?'btn-green':'btn-red'} btn-mini" onclick="toggleStudentStatus('${s.id}',${s.is_active!==false})">${s.is_active===false?'Activate':'Deactivate'}</button></td></tr>`).join('')||'<tr><td colspan="5">कोई Student नहीं मिला।</td></tr>'}
+function filterStudents(){const q=byId('studentSearch').value.trim().toLowerCase();renderStudents(students.filter(s=>[s.full_name,s.email,s.phone].some(v=>String(v||'').toLowerCase().includes(q))))}
 
 init();

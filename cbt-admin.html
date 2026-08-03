@@ -6,9 +6,9 @@
     <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=12.18.0"></script>
-    <script src="common.js?v=12.18.0"></script>
-    <script src="cbt-topics-data.js?v=12.18.0"></script>
+    <script src="config.js?v=12.20.0"></script>
+    <script src="common.js?v=12.20.0"></script>
+    <script src="cbt-topics-data.js?v=12.20.0"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -987,6 +987,39 @@
 
         function adminHeaders() { return { "Content-Type":"application/json", "Authorization":`Bearer ${getAdminToken()}` }; }
 
+        async function refreshAdminToken() {
+            try {
+                const refreshed = await sb.auth.refreshSession();
+                const token = refreshed?.data?.session?.access_token || "";
+                if (token) currentAdminAccessToken = token;
+                return token;
+            } catch (_) { return ""; }
+        }
+
+        async function cbtFetch(url, options = {}, allowRetry = true) {
+            const requestOptions = {
+                ...options,
+                mode: "cors",
+                cache: "no-store",
+                headers: { ...(options.headers || {}), ...adminHeaders() }
+            };
+            try {
+                const response = await window.fetch(url, requestOptions);
+                if (response.status === 401 && allowRetry) {
+                    await refreshAdminToken();
+                    return cbtFetch(url, options, false);
+                }
+                return response;
+            } catch (error) {
+                if (allowRetry) {
+                    await refreshAdminToken();
+                    await sleep(500);
+                    return cbtFetch(url, options, false);
+                }
+                throw new Error("CBT API से संपर्क नहीं हो पाया। Existing exam-arena-api-live Worker में V12.20 code deploy करें; कोई नई Binding बनाने की जरूरत नहीं है।");
+            }
+        }
+
         function escapeHtml(value) {
             return String(value || "")
                 .replaceAll("&", "&amp;")
@@ -1064,7 +1097,7 @@
 
         async function logoutAdmin() { await sb.auth.signOut(); location.href="index.html"; }
 
-        async function showAdminPanel() { loginPanel.classList.add("hidden"); adminPanel.classList.remove("hidden"); await loadTopics(); await loadQuestionCounts(true); setStatus("CBT Admin Panel Ready ✅", "ok"); }
+        async function showAdminPanel() { loginPanel.classList.add("hidden"); adminPanel.classList.remove("hidden"); await loadTopics(); await loadQuestionCounts(true); setStatus("CBT Admin Panel Ready ✅ • Stable Publish Mode", "ok"); }
 
         async function initAdminLock() {
             try {
@@ -1189,7 +1222,7 @@
         async function loadQuestionCounts(silent = false) {
             try {
                 if(!silent)setStatus("Question counts refresh हो रहे हैं...","info");
-                const response=await fetch(`${API_BASE_URL}/admin/summary?subject_key=${encodeURIComponent(FIXED_SUBJECT_KEY)}`,{method:"GET",headers:adminHeaders()});
+                const response=await cbtFetch(`${API_BASE_URL}/admin/summary?subject_key=${encodeURIComponent(FIXED_SUBJECT_KEY)}`,{method:"GET",headers:adminHeaders()});
                 const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)throw new Error(data.message||data.error||"Question counts load नहीं हुए।");
                 questionCountMap={};visibleQuestionCountMap={};topicVisibilityMap={};totalQuestionsInDb=Number(data.total_questions||0);(Array.isArray(data.by_topic)?data.by_topic:[]).forEach((row)=>{const key=clean(row.topic_key||"");if(key){questionCountMap[key]=Number(row.active_mcq_count||row.count||0);visibleQuestionCountMap[key]=Number(row.visible_mcq_count||0);topicVisibilityMap[key]=Number(row.student_visible||0)===1;}});
                 renderTopics();updateSelectedTopicUI();renderQuestionCountBoard();if(!silent)setStatus(`Question Counts Refreshed ✅\n${FIXED_SUBJECT_NAME}: ${totalQuestionsInDb}`,"ok",true);
@@ -1299,7 +1332,7 @@
                 questionManagerStatus.textContent = `${FIXED_SUBJECT_NAME} → ${topic.topic_name}: Questions loading...`;
                 uploadedQuestionList.innerHTML = "";
                 const url = `${API_BASE_URL}/admin/questions?subject_key=${encodeURIComponent(FIXED_SUBJECT_KEY)}&topic_key=${encodeURIComponent(topic.topic_key)}&limit=500`;
-                const response = await fetch(url, { method: "GET", headers: adminHeaders() });
+                const response = await cbtFetch(url, { method: "GET", headers: adminHeaders() });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data.success) throw new Error(data.message || data.error || "Questions load failed.");
                 uploadedQuestionsForSelectedTopic = Array.isArray(data.questions) ? data.questions : [];
@@ -1328,7 +1361,7 @@
             const checkbox = document.getElementById(`qvis_${questionId}`);
             if (!topic || !checkbox) { setStatus("Question visibility control नहीं मिला।", "err", true); return; }
             try {
-                const response = await fetch(`${API_BASE_URL}/admin/question-visibility`, {
+                const response = await cbtFetch(`${API_BASE_URL}/admin/question-visibility`, {
                     method: "POST", headers: adminHeaders(),
                     body: JSON.stringify({subject_key: FIXED_SUBJECT_KEY, topic_key: topic.topic_key, question_ids: [Number(questionId)], visible: checkbox.checked})
                 });
@@ -1345,7 +1378,7 @@
             if (!topic) { setStatus("पहले Topic चुनें।", "err", true); return; }
             if (!confirm(`${topic.topic_name} के सभी active Questions ${visible ? "Students को Show" : "Hide"} करने हैं?`)) return;
             try {
-                const response = await fetch(`${API_BASE_URL}/admin/topic-question-visibility`, {
+                const response = await cbtFetch(`${API_BASE_URL}/admin/topic-question-visibility`, {
                     method: "POST", headers: adminHeaders(),
                     body: JSON.stringify({subject_key: FIXED_SUBJECT_KEY, topic_key: topic.topic_key, visible})
                 });
@@ -1376,7 +1409,7 @@
             }
             try {
                 setStatus(`${ids.length} Question(s) delete हो रहे हैं...`, "info", true);
-                const response = await fetch(`${API_BASE_URL}/admin/delete-questions`, {
+                const response = await cbtFetch(`${API_BASE_URL}/admin/delete-questions`, {
                     method: "POST",
                     headers: adminHeaders(),
                     body: JSON.stringify({
@@ -1422,7 +1455,7 @@
             try {
                 setStatus("Empty option / One-Liner type questions हट रहे हैं... कृपया wait करें।", "info", true);
 
-                const response = await fetch(`${API_BASE_URL}/admin/delete-empty-option-questions`, {
+                const response = await cbtFetch(`${API_BASE_URL}/admin/delete-empty-option-questions`, {
                     method: "POST",
                     headers: adminHeaders(),
                     body: JSON.stringify({
@@ -1481,7 +1514,7 @@ Confirm करने के लिए DELETE लिखें:`
             try {
                 setStatus(`${topic.topic_name} के सभी Questions delete हो रहे हैं...`, "info", true);
 
-                const response = await fetch(`${API_BASE_URL}/admin/delete-topic-questions`, {
+                const response = await cbtFetch(`${API_BASE_URL}/admin/delete-topic-questions`, {
                     method: "POST",
                     headers: adminHeaders(),
                     body: JSON.stringify({
@@ -1530,7 +1563,7 @@ Topic सुरक्षित है। अब आप इसी Topic में
             try {
                 setStatus("Deleting all questions... कृपया wait करें।", "info", true);
 
-                const response = await fetch(`${API_BASE_URL}/admin/delete-all`, {
+                const response = await cbtFetch(`${API_BASE_URL}/admin/delete-all`, {
                     method: "POST",
                     headers: adminHeaders()
                 });
@@ -1634,7 +1667,7 @@ Topic सुरक्षित है। अब आप इसी Topic में
             }
             try {
                 setStatus(`${topic.topic_name}: Visibility save हो रही है...`, "info", true);
-                const response = await fetch(`${API_BASE_URL}/admin/topic-visibility`, {
+                const response = await cbtFetch(`${API_BASE_URL}/admin/topic-visibility`, {
                     method: "POST",
                     headers: adminHeaders(),
                     body: JSON.stringify({
@@ -2413,7 +2446,7 @@ c. पश्चिमी हरियाणा
                    text.includes("चौथा विकल्प");
         }
 
-        const CBT_PARSER_VERSION = "12.18.0-10-format-strict";
+        const CBT_PARSER_VERSION = "12.20.0-10-format-strict";
 
         function parseQuestionsFromBox() {
             const rawText = questionsBox.value;
@@ -2604,7 +2637,7 @@ c. पश्चिमी हरियाणा
         }
 
         async function uploadBatchToTopic(topic, batch, difficulty) {
-            const response=await fetch(`${API_BASE_URL}/admin/upload-questions`,{method:"POST",headers:adminHeaders(),body:JSON.stringify({subject_key:FIXED_SUBJECT_KEY,subject_name:FIXED_SUBJECT_NAME,topic_key:topic.topic_key,topic_name:topic.topic_name,difficulty,raw_text:buildServerUploadText(batch)})});
+            const response=await cbtFetch(`${API_BASE_URL}/admin/upload-questions`,{method:"POST",headers:adminHeaders(),body:JSON.stringify({subject_key:FIXED_SUBJECT_KEY,subject_name:FIXED_SUBJECT_NAME,topic_key:topic.topic_key,topic_name:topic.topic_name,difficulty,raw_text:buildServerUploadText(batch)})});
             const data=await response.json().catch(()=>({}));if(!response.ok||!data.success)return{success:false,status:response.status,data};return{success:true,data};
         }
 

@@ -118,12 +118,9 @@ async function loadCatalog() {
             throw new Error(data.error || data.message || "Mock Test catalog load नहीं हुआ।");
         }
 
-        const localCatalog = (window.topicsData && typeof window.topicsData === "object") ? window.topicsData : {};
-        const allowedCatalog = new Map(Object.entries(localCatalog).map(([subjectKey, subject]) => [
-            clean(subjectKey),
-            new Set((Array.isArray(subject.topics) ? subject.topics : []).map((topic) => clean(typeof topic === "string" ? topic : (topic.key || topic.topic_key || topic.name))))
-        ]));
-
+        // Worker catalog पहले से केवल उन्हीं Subject/Topic को भेजता है जिनमें
+        // active + Show to Students MCQ मौजूद हैं। Local hard-coded list से
+        // filter नहीं करेंगे, ताकि नया live Subject/Topic अपने-आप दिखाई दे।
         catalogSubjects = data.subjects.map((subject, subjectIndex) => {
             const subjectKey = clean(subject.subject_key || subject.key);
             const topics = (Array.isArray(subject.topics) ? subject.topics : []).map((topic, topicIndex) => {
@@ -141,7 +138,7 @@ async function loadCatalog() {
                     name: clean(topic.topic_name || topic.name || topicKey),
                     display_order: Number(topic.display_order || topicIndex + 1)
                 };
-            }).filter((topic) => topic.key && topic.name && getTopicTotal(subjectKey, topic.key, "all") > 0 && allowedCatalog.has(subjectKey) && allowedCatalog.get(subjectKey).has(topic.key));
+            }).filter((topic) => topic.key && topic.name && getTopicTotal(subjectKey, topic.key, "all") > 0);
 
             return {
                 key: subjectKey,
@@ -149,7 +146,7 @@ async function loadCatalog() {
                 display_order: Number(subject.display_order || subjectIndex + 1),
                 topics
             };
-        }).filter((subject) => subject.key && subject.name && allowedCatalog.has(subject.key) && subject.topics.length > 0)
+        }).filter((subject) => subject.key && subject.name && subject.topics.length > 0)
           .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
 
         countsLoaded = true;
@@ -482,6 +479,21 @@ function renderDifficultyOptions() {
 
     const oldValue = clean(select.value || "");
     const hasSelectedTopic = getSelectedTopicKeysForDifficulty().length > 0;
+
+    if (!countsLoaded) {
+        select.innerHTML = '<option value="">Difficulty loading...</option>';
+        select.value = "";
+        select.disabled = true;
+        return;
+    }
+
+    if (!hasSelectedTopic) {
+        select.innerHTML = '<option value="">पहले Subject और Topic चुनें</option>';
+        select.value = "";
+        select.disabled = true;
+        return;
+    }
+
     const allDifficulties = [
         { value: "easy", name: "Easy" },
         { value: "normal", name: "Normal" },
@@ -498,9 +510,7 @@ function renderDifficultyOptions() {
             : true
     }));
 
-    if (hasSelectedTopic && countsLoaded) {
-        availableItems = availableItems.filter((item) => item.count > 0 && item.availableForEveryTopic);
-    }
+    availableItems = availableItems.filter((item) => item.count > 0 && item.availableForEveryTopic);
 
     if (!availableItems.length) {
         select.innerHTML = '<option value="">इस Topic में कोई Difficulty उपलब्ध नहीं</option>';
@@ -1558,7 +1568,7 @@ function getTelegramPromoHtml() {
 
 
 function getLogoWatermarkHtml() {
-    return `<img class="pdf-watermark-logo" src="assets/logo.webp" alt="GK BY PURUSHOTAM SIR Logo">`;
+    return `<img class="pdf-watermark-logo" src="cbt-logo.webp" alt="GK BY PURUSHOTAM SIR Logo">`;
 }
 
 function buildOneLinerPrintableHtml() {
@@ -2490,6 +2500,7 @@ async function initApp() {
     currentAuthUser = await requireAuth(); if (!currentAuthUser) return;
     currentProfile = await getProfile(currentAuthUser.id);
     if (!currentProfile || String(currentProfile.role || "student").toLowerCase() === "admin") { location.href = "q9v3x7k2-r8m4p6t1-z5n7c2w9.html"; return; }
+    if (currentProfile.is_active === false) { await sb.auth.signOut(); alert("आपका Student account Admin ने अभी Inactive किया हुआ है।"); location.href = "index.html"; return; }
     await refreshCbtSession();
     const nameEl=byId("cbtStudentName"), idEl=byId("cbtStudentId");
     if(nameEl) nameEl.textContent=currentProfile.full_name || currentAuthUser.email || "Student";
@@ -2518,3 +2529,319 @@ window.printOneLinerPdf = printOneLinerPdf;
 window.backToResult = backToResult;
 
 document.addEventListener("DOMContentLoaded", initApp);
+/* =====================================================================
+   V12.20 FINAL DOWNLOAD CENTER
+   3 प्रकार: Mock Test, Answer Key, Test with Answer + PDF/ZIP
+   ===================================================================== */
+function normalizeDownloadMode(mode) {
+    const value = clean(mode || "mock").toLowerCase();
+    if (value === "without") return "mock";
+    if (value === "with") return "with_answer";
+    if (["mock", "answer_key", "with_answer"].includes(value)) return value;
+    return "mock";
+}
+
+function downloadModeLabel(mode) {
+    const normalized = normalizeDownloadMode(mode);
+    if (normalized === "answer_key") return "Answer Key";
+    if (normalized === "with_answer") return "Test With Answer Key";
+    return "Mock Test";
+}
+
+function safeDownloadFilePart(value) {
+    return clean(value || "CBT-Test")
+        .replace(/[\\/:*?"<>|]+/g, "-")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 90) || "CBT-Test";
+}
+
+function getPdfFileTitle(mode) {
+    const normalized = normalizeDownloadMode(mode);
+    const topics = currentTestMeta && Array.isArray(currentTestMeta.topics)
+        ? currentTestMeta.topics.map((topic) => topic.topicName).filter(Boolean).join("-")
+        : "CBT-Test";
+    return `${safeDownloadFilePart(topics)}-${safeDownloadFilePart(downloadModeLabel(normalized))}`;
+}
+
+function getCorrectOptionData(question) {
+    const baseOptions = getDisplayOptions(question);
+    const fixedData = removeInlineOptionsFromQuestion(question.question || question.question_text || "", baseOptions);
+    const options = fixedData.options.slice(0, 4);
+    let answerIndex = Number(question.answerIndex);
+    if (!Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex > 3) {
+        answerIndex = Number(question.answer_index);
+    }
+    if (!Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex > 3) answerIndex = 0;
+    return {
+        questionText: clean(fixedData.questionText),
+        options,
+        answerIndex,
+        answerLetter: getOptionLetter(answerIndex),
+        answerText: clean(options[answerIndex] || question.answer_text || question.answerText || ""),
+        explanation: clean(question.explanation || "")
+    };
+}
+
+function buildPrintableQuestionHtml(question, index, mode) {
+    const normalized = normalizeDownloadMode(mode);
+    const data = getCorrectOptionData(question);
+
+    if (normalized === "answer_key") {
+        return `
+            <div class="pdf-key-row">
+                <div class="pdf-key-number">${index + 1}.</div>
+                <div class="pdf-key-answer">(${safeText(data.answerLetter)}) ${safeText(data.answerText)}</div>
+            </div>
+        `;
+    }
+
+    const optionHtml = data.options.map((option, optIndex) =>
+        `<div class="pdf-option">(${getOptionLetter(optIndex)}) ${safeText(option)}</div>`
+    ).join("");
+
+    const answerHtml = normalized === "with_answer" ? `
+        <div class="pdf-answer"><strong>सही उत्तर:</strong> (${safeText(data.answerLetter)}) ${safeText(data.answerText)}</div>
+        ${data.explanation ? `<div class="pdf-exp"><strong>व्याख्या:</strong> ${safeText(data.explanation)}</div>` : ""}
+    ` : "";
+
+    return `
+        <div class="pdf-question-block">
+            <div class="pdf-question">प्रश्न ${index + 1}. ${safeText(data.questionText)}</div>
+            <div class="pdf-options">${optionHtml}</div>
+            ${answerHtml}
+        </div>
+    `;
+}
+
+function buildPrintableHtml(mode) {
+    const normalized = normalizeDownloadMode(mode);
+    const studentName = currentStudent && currentStudent.student_name ? currentStudent.student_name : "";
+    const rollNumber = currentStudent ? (currentStudent.roll_number || currentStudent.student_id || "") : "";
+    const topicsText = currentTestMeta && Array.isArray(currentTestMeta.topics)
+        ? currentTestMeta.topics.map((topic) => topic.topicName).join(", ")
+        : "";
+    const questionHtml = currentQuestions.map((question, index) => buildPrintableQuestionHtml(question, index, normalized)).join("");
+    const title = downloadModeLabel(normalized);
+    const isBlankTest = normalized === "mock";
+    const isAnswerKey = normalized === "answer_key";
+
+    return `<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<title>${safeText(getPdfFileTitle(normalized))}</title>
+<style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 14mm 12mm; font-family: Arial, "Nirmala UI", sans-serif; color: #111; background: #fff; position: relative; }
+    .pdf-watermark-logo { position: fixed; top: 50%; left: 50%; width: 48%; max-width: 460px; opacity: 0.055; transform: translate(-50%, -50%); z-index: 0; }
+    .pdf-content { position: relative; z-index: 1; }
+    .pdf-head { text-align: center; border: 2px solid #111; padding: 10px; margin-bottom: 12px; background: rgba(255,255,255,0.94); }
+    .pdf-head h1 { margin: 0; font-size: 22px; font-weight: 900; }
+    .pdf-head h2 { margin: 6px 0 0; font-size: 18px; font-weight: 900; }
+    .pdf-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 10px 0; font-size: 13px; font-weight: 700; }
+    .pdf-line { border-bottom: 1px solid #555; display: inline-block; min-width: 150px; height: 15px; }
+    .pdf-topic { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+    .pdf-question-block { break-inside: avoid; page-break-inside: avoid; margin-bottom: 14px; padding-bottom: 9px; border-bottom: 1px dashed #999; }
+    .pdf-question { font-size: 15px; font-weight: 800; line-height: 1.45; margin-bottom: 7px; white-space: pre-wrap; }
+    .pdf-options { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; font-size: 14px; line-height: 1.35; }
+    .pdf-option { border: 1px solid #ddd; border-radius: 5px; padding: 5px; min-height: 27px; white-space: pre-wrap; }
+    .pdf-answer { margin-top: 7px; padding: 7px; border: 1px solid #111; font-size: 14px; font-weight: 800; background: #f0fdf4; }
+    .pdf-exp { margin-top: 5px; padding: 7px; background: #f5f5f5; border: 1px solid #ccc; font-size: 13px; line-height: 1.4; white-space: pre-wrap; }
+    .pdf-key-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 14px; }
+    .pdf-key-row { break-inside: avoid; display: grid; grid-template-columns: 34px 1fr; gap: 7px; align-items: start; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px; font-size: 14px; background: rgba(255,255,255,.95); }
+    .pdf-key-number { font-weight: 900; }
+    .pdf-key-answer { font-weight: 800; line-height: 1.4; }
+</style>
+</head>
+<body>
+    <img class="pdf-watermark-logo" src="cbt-logo.webp" alt="GK BY PURUSHOTAM SIR Logo">
+    <div class="pdf-content">
+        <div class="pdf-head"><h1>GK BY PURUSHOTAM SIR</h1><h2>${safeText(title)}</h2></div>
+        <div class="pdf-meta">
+            <div>नाम: ${isBlankTest ? '<span class="pdf-line"></span>' : safeText(studentName)}</div>
+            <div>दिनांक: <span class="pdf-line"></span></div>
+            <div>Student ID: ${isBlankTest ? '<span class="pdf-line"></span>' : safeText(rollNumber)}</div>
+            <div>कुल प्रश्न: ${currentQuestions.length}</div>
+            ${isBlankTest ? '<div>समय: <span class="pdf-line"></span></div><div>Score: <span class="pdf-line"></span></div>' : ''}
+        </div>
+        <div class="pdf-topic">Subject/Topic: ${safeText(topicsText)}</div>
+        ${isAnswerKey ? `<div class="pdf-key-grid">${questionHtml}</div>` : questionHtml}
+    </div>
+</body>
+</html>`;
+}
+
+function printableElementFromHtml(html) {
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    const holder = document.createElement("div");
+    holder.className = "cbt-pdf-render-holder";
+    holder.style.position = "fixed";
+    holder.style.left = "-100000px";
+    holder.style.top = "0";
+    holder.style.width = "794px";
+    holder.style.padding = "52px 45px";
+    holder.style.boxSizing = "border-box";
+    holder.style.color = "#111";
+    holder.style.background = "#fff";
+    holder.innerHTML = `${parsed.head.querySelector("style")?.outerHTML || ""}${parsed.body.innerHTML}`;
+    document.body.appendChild(holder);
+    return holder;
+}
+
+async function createPdfBlob(mode) {
+    if (typeof window.html2pdf !== "function") throw new Error("PDF library load नहीं हुई। Internet connection जाँचें।");
+    const normalized = normalizeDownloadMode(mode);
+    const holder = printableElementFromHtml(buildPrintableHtml(normalized));
+    try {
+        const options = {
+            margin: 0,
+            filename: `${getPdfFileTitle(normalized)}.pdf`,
+            image: { type: "jpeg", quality: 0.96 },
+            html2canvas: { scale: 1.6, useCORS: true, backgroundColor: "#ffffff", logging: false },
+            jsPDF: { unit: "mm", format: "a4", orientation: "portrait", compress: true },
+            pagebreak: { mode: ["css", "legacy"], avoid: [".pdf-question-block", ".pdf-key-row"] }
+        };
+        return await window.html2pdf().set(options).from(holder).outputPdf("blob");
+    } finally {
+        holder.remove();
+    }
+}
+
+function triggerBlobDownload(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function setPdfDownloadProgress(message, busy) {
+    const status = byId("pdfDownloadProgress");
+    if (status) {
+        status.textContent = message || "";
+        status.classList.toggle("hidden", !message);
+    }
+    document.querySelectorAll("[data-pdf-download-btn]").forEach((button) => { button.disabled = Boolean(busy); });
+}
+
+async function downloadPdfFile(mode) {
+    if (!currentQuestions.length) {
+        alert("Download के लिए पहले CBT Test load करें।");
+        return;
+    }
+    const normalized = normalizeDownloadMode(mode);
+    try {
+        setPdfDownloadProgress(`${downloadModeLabel(normalized)} PDF बन रही है...`, true);
+        const blob = await createPdfBlob(normalized);
+        triggerBlobDownload(blob, `${getPdfFileTitle(normalized)}.pdf`);
+        setPdfDownloadProgress("PDF download शुरू हो गई।", false);
+    } catch (error) {
+        console.error(error);
+        setPdfDownloadProgress("", false);
+        alert(error.message || "PDF नहीं बन सकी।");
+    }
+}
+
+async function downloadAllTestZip() {
+    if (!currentQuestions.length) {
+        alert("ZIP के लिए पहले CBT Test load करें।");
+        return;
+    }
+    if (typeof window.JSZip !== "function") {
+        alert("ZIP library load नहीं हुई। Internet connection जाँचें।");
+        return;
+    }
+    try {
+        setPdfDownloadProgress("ZIP के लिए 3 PDF बन रही हैं...", true);
+        const zip = new window.JSZip();
+        const modes = ["mock", "answer_key", "with_answer"];
+        for (let index = 0; index < modes.length; index += 1) {
+            const mode = modes[index];
+            setPdfDownloadProgress(`${index + 1}/3 — ${downloadModeLabel(mode)} PDF बन रही है...`, true);
+            const blob = await createPdfBlob(mode);
+            zip.file(`${getPdfFileTitle(mode)}.pdf`, blob);
+        }
+        setPdfDownloadProgress("ZIP तैयार हो रही है...", true);
+        const zipBlob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+        const topicName = currentTestMeta && Array.isArray(currentTestMeta.topics)
+            ? currentTestMeta.topics.map((topic) => topic.topicName).join("-")
+            : "CBT-Test";
+        triggerBlobDownload(zipBlob, `${safeDownloadFilePart(topicName)}-Complete-Test-Pack.zip`);
+        setPdfDownloadProgress("ZIP download शुरू हो गई।", false);
+    } catch (error) {
+        console.error(error);
+        setPdfDownloadProgress("", false);
+        alert(error.message || "ZIP नहीं बन सकी।");
+    }
+}
+
+function printTestPdf(mode) {
+    return downloadPdfFile(mode);
+}
+
+function openPdfOptionsModal() {
+    if (!currentQuestions.length) {
+        alert("Download के लिए CBT Test available नहीं है।");
+        return;
+    }
+    const old = byId("pdfChoiceOverlay");
+    if (old) old.remove();
+    const overlay = document.createElement("div");
+    overlay.id = "pdfChoiceOverlay";
+    overlay.className = "pdf-choice-overlay";
+    overlay.innerHTML = `
+        <div class="pdf-choice-card pdf-choice-card-wide">
+            <button type="button" class="pdf-choice-close" id="pdfChoiceCloseBtn">×</button>
+            <h2>Test Download</h2>
+            <p>एक PDF चुनें या तीनों PDF की Complete ZIP डाउनलोड करें।</p>
+            <div class="pdf-choice-grid">
+                <button type="button" class="pdf-choice-btn" data-pdf-download-btn id="pdfMockBtn">📝 Mock Test PDF<small>Questions + Options</small></button>
+                <button type="button" class="pdf-choice-btn answer-key-btn" data-pdf-download-btn id="pdfKeyBtn">🔑 Answer Key PDF<small>Question No. + Correct Answer</small></button>
+                <button type="button" class="pdf-choice-btn both" data-pdf-download-btn id="pdfWithAnswerBtn">✅ Test With Answer Key PDF<small>Answer + Explanation</small></button>
+                <button type="button" class="pdf-choice-btn zip-btn" data-pdf-download-btn id="pdfZipBtn">📦 Complete ZIP<small>ऊपर की तीनों PDF</small></button>
+            </div>
+            <div id="pdfDownloadProgress" class="share-progress-text hidden"></div>
+        </div>`;
+    document.body.appendChild(overlay);
+    byId("pdfChoiceCloseBtn").addEventListener("click", () => overlay.remove());
+    byId("pdfMockBtn").addEventListener("click", () => downloadPdfFile("mock"));
+    byId("pdfKeyBtn").addEventListener("click", () => downloadPdfFile("answer_key"));
+    byId("pdfWithAnswerBtn").addEventListener("click", () => downloadPdfFile("with_answer"));
+    byId("pdfZipBtn").addEventListener("click", downloadAllTestZip);
+}
+
+function renderPdfDownloadTab() {
+    const resultArea = byId("resultArea");
+    if (!resultArea) return;
+    if (!currentQuestions.length) {
+        alert("Download के लिए CBT Test available नहीं है।");
+        return;
+    }
+    resultArea.innerHTML = `
+        ${buildResultTabPatti("pdf")}
+        <div class="pdf-download-tab-panel">
+            <h2 class="result-title">📥 Test Download Center</h2>
+            <p class="pdf-download-note">तीनों प्रकार अलग PDF में या एक Complete ZIP में डाउनलोड करें।</p>
+            <div class="pdf-download-type-grid">
+                <button type="button" class="pdf-download-type-card" data-pdf-download-btn id="pdfDirectMockBtn"><b>📝 Mock Test</b><span>Questions और Options; उत्तर नहीं</span><small>Download PDF</small></button>
+                <button type="button" class="pdf-download-type-card" data-pdf-download-btn id="pdfDirectKeyBtn"><b>🔑 Answer Key</b><span>Question Number और Correct Answer</span><small>Download PDF</small></button>
+                <button type="button" class="pdf-download-type-card" data-pdf-download-btn id="pdfDirectWithAnswerBtn"><b>✅ Test With Answer Key</b><span>Questions, Answer और Explanation</span><small>Download PDF</small></button>
+                <button type="button" class="pdf-download-type-card zip-card" data-pdf-download-btn id="pdfDirectZipBtn"><b>📦 Complete ZIP</b><span>तीनों PDF एक ZIP में</span><small>Download ZIP</small></button>
+            </div>
+            <div id="pdfDownloadProgress" class="share-progress-text hidden"></div>
+        </div>`;
+    bindResultTabPatti();
+    byId("pdfDirectMockBtn")?.addEventListener("click", () => downloadPdfFile("mock"));
+    byId("pdfDirectKeyBtn")?.addEventListener("click", () => downloadPdfFile("answer_key"));
+    byId("pdfDirectWithAnswerBtn")?.addEventListener("click", () => downloadPdfFile("with_answer"));
+    byId("pdfDirectZipBtn")?.addEventListener("click", downloadAllTestZip);
+}
+
+window.openPdfOptionsModal = openPdfOptionsModal;
+window.printTestPdf = printTestPdf;
+window.downloadPdfFile = downloadPdfFile;
+window.downloadAllTestZip = downloadAllTestZip;
