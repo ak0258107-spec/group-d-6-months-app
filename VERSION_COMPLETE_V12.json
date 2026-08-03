@@ -1,7 +1,7 @@
 {
   "app": "GK BY PURUSHOTAM SIR GROUP-D SIMPLE APP",
-  "version": "12.20.0",
-  "release": "Simple Final",
+  "version": "12.22.0",
+  "release": "Student CBT Cache-Free + Exact Two Daily Targets",
   "features": [
     "YouTube Classes with date, time, duration and status",
     "Class PDFs without verification",
@@ -10,7 +10,11 @@
     "Mock Test, Answer Key and With Answer PDF downloads",
     "Complete ZIP containing all three CBT PDFs",
     "Posters, announcements and notifications",
-    "No Daily Submit, no PDF verification, no PDF unlock test"
+    "No Daily Submit, no PDF verification, no PDF unlock test",
+    "First five days show maximum two target classes per day",
+    "Student CBT uses a new cache-free JavaScript filename",
+    "Published CBT subjects, topics and only available difficulties load on Student panel",
+    "CBT startup timeout, clear error and reload recovery"
   ],
   "r2_change": "No new R2 bucket or binding required"
 }

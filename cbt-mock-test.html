@@ -39,8 +39,8 @@
     <link rel="stylesheet" href="cbt-mock-test.css?v=12.21.0">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=12.21.0"></script>
-    <script src="common.js?v=12.21.0"></script>
+    <script src="config.js?v=12.22.0"></script>
+    <script src="common.js?v=12.22.0"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -215,6 +215,23 @@
     <!-- CELEBRATION LAYER -->
     <div id="celebrationLayer" class="celebration-layer hidden"></div>
 
-    <script src="cbt-mock-test.js?v=12.21.0"></script>
+    <script>
+    (function(){
+      let ready=false;
+      window.addEventListener('cbt-student-app-ready',function(){ready=true;});
+      window.showCbtStudentLoadError=function(message){
+        const name=document.getElementById('cbtStudentName');
+        if(name&&name.textContent==='Loading...')name.textContent='Student';
+        const area=document.getElementById('selectedTopicsArea');
+        if(area)area.innerHTML='<div class="unit-card cbt-load-error-card"><div class="unit-title">CBT Test load नहीं हुआ</div><div class="selection-note">'+String(message||'नई CBT file load नहीं हुई।').replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];})+'</div><button type="button" class="small-btn" onclick="location.reload()">↻ Reload CBT</button></div>';
+      };
+      setTimeout(function(){
+        if(!ready&&!window.__CBT_STUDENT_V1222_READY){
+          window.showCbtStudentLoadError('Browser ने पुरानी file रोक रखी है। Reload CBT दबाएँ।');
+        }
+      },15000);
+    })();
+    </script>
+    <script src="cbt-student-v12-22.js?v=12.22.0" onerror="showCbtStudentLoadError('cbt-student-v12-22.js GitHub से load नहीं हुई। File को repository root में upload करें।')"></script>
 </body>
 </html>

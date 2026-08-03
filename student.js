@@ -1,4 +1,4 @@
-/* GK BY PURUSHOTAM SIR — V12.20 SIMPLE STUDENT APP */
+/* GK BY PURUSHOTAM SIR — V12.22 STUDENT CBT + EXACT 2 TARGETS FIX */
 let user=null,profile=null,classes=[],materials=[],announcements=[],notificationRows=[],posterRows=[],fiveDayTargets=[];
 let posterUrls=[],posterTimer=null,currentPoster=0;
 const STUDENT_TABS=['home','targets','classes','classpdfs','otherpdfs','cbt','announcements','notifications','profile'];
@@ -54,7 +54,9 @@ function groupFiveDayTargets(){
     if(!map.has(key))map.set(key,{day_number:row.day_number,day_date:row.day_date,items:[]});
     if(row.target_id)map.get(key).items.push(row);
   });
-  return [...map.values()].sort((a,b)=>Number(a.day_number)-Number(b.day_number));
+  return [...map.values()]
+    .sort((a,b)=>Number(a.day_number)-Number(b.day_number))
+    .map(day=>({...day,items:day.items.slice(0,2)}));
 }
 function renderFiveDayTargets(){
   const host=byId('targetsBox');if(!host)return;
