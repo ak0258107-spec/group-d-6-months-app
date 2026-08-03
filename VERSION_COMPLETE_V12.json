@@ -1,13 +1,14 @@
 {
-  "version": "12.16.0",
+  "version": "12.17.0",
   "type": "complete-project",
   "files_expected": 99,
   "changes": [
-    "Admin-selectable poster formats: 16:9, A4 portrait, A4 landscape, square and original/auto",
-    "Full-image contain mode is the default so posters are not cropped",
-    "Existing posters can be resized from Admin without re-uploading",
-    "Student poster frame follows the selected ratio and opens a full-screen viewer",
-    "Existing login, push notifications, timetable, PDF verification, visibility and mock-test systems preserved"
+    "CBT parser no longer counts correct-answer lines as separate one-liner questions",
+    "Ten MCQ layouts including matching, statement, assertion-reason, code and chronology are parsed safely",
+    "Student difficulty is strict: Easy, Normal or Tough never auto-falls back to mixed/all",
+    "Student PDF library uses explicit study_materials target foreign-key relation",
+    "Student-facing database/SQL error instructions removed",
+    "Previous V12.16 poster, push, visibility, timetable and verification systems preserved"
   ],
-  "name": "Responsive Poster Formats and Full-Screen Viewer"
+  "name": "CBT Ten-Format Parser, Strict Difficulty and Student PDF Relation Fix"
 }

@@ -464,7 +464,7 @@ async function shouldCreatePublicNotification(relatedType,relatedId){
   if(!relatedId||!['pdf','test','target','class'].includes(type))return true;
   try{
     if(type==='pdf'){
-      const q=await sb.from('study_materials').select('student_visible,schedule_days(day_date,manual_lock,manual_unlock),daily_targets(visibility_mode,class_status)').eq('id',relatedId).maybeSingle();
+      const q=await sb.from('study_materials').select('student_visible,schedule_days(day_date,manual_lock,manual_unlock),daily_targets!study_materials_target_id_fkey(visibility_mode,class_status)').eq('id',relatedId).maybeSingle();
       if(q.error||!q.data||q.data.student_visible!==true)return false;
       return adminDayAvailable(q.data.schedule_days)&&(!q.data.daily_targets||adminTargetAvailable(q.data.daily_targets,q.data.schedule_days));
     }
@@ -1299,7 +1299,7 @@ async function linkExistingPdfToTarget(materialId,dayId){
 
 loadMaterials=async function(){
   const [r,t]=await Promise.all([
-    sb.from('study_materials').select('*,schedule_days(day_number,day_date),daily_targets(subject,topic,target_order)').order('created_at',{ascending:false}),
+    sb.from('study_materials').select('*,schedule_days(day_number,day_date),daily_targets!study_materials_target_id_fkey(subject,topic,target_order)').order('created_at',{ascending:false}),
     sb.from('daily_targets').select('id,schedule_day_id,subject,topic,target_order,status').eq('status','published').order('target_order')
   ]);
   const rows=r.data||[],targets=t.data||[],host=document.getElementById('materialsList');if(!host)return;
@@ -1584,7 +1584,7 @@ async function setAllMaterialsVisibility(visible){
 }
 loadMaterials=async function(){
   const [r,t]=await Promise.all([
-    sb.from('study_materials').select('*,schedule_days(day_number,day_date),daily_targets(subject,topic,target_order)').order('created_at',{ascending:false}),
+    sb.from('study_materials').select('*,schedule_days(day_number,day_date),daily_targets!study_materials_target_id_fkey(subject,topic,target_order)').order('created_at',{ascending:false}),
     sb.from('daily_targets').select('id,schedule_day_id,subject,topic,target_order,status').eq('status','published').order('target_order')
   ]);
   const rows=r.data||[],targets=t.data||[],host=document.getElementById('materialsList');if(!host)return;

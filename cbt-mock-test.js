@@ -480,11 +480,10 @@ function renderDifficultyOptions() {
 
     if (!select) return;
 
-    const oldValue = clean(select.value || "all");
+    const oldValue = clean(select.value || "normal");
     const hasSelectedTopic = getSelectedTopicKeysForDifficulty().length > 0;
 
     const difficultyItems = [
-        { value: "all", name: "All Available" },
         { value: "easy", name: "Easy" },
         { value: "normal", name: "Normal" },
         { value: "tough", name: "Tough" }
@@ -493,19 +492,17 @@ function renderDifficultyOptions() {
         return { ...item, count };
     });
 
-    const totalAll = difficultyItems.find((item) => item.value === "all");
-    const hasAnyQuestion = totalAll ? Number(totalAll.count || 0) > 0 : false;
-
     let nextValue = oldValue;
 
     if (hasSelectedTopic && countsLoaded) {
         const oldItem = difficultyItems.find((item) => item.value === oldValue);
 
         if (!oldItem || Number(oldItem.count || 0) <= 0) {
-            nextValue = hasAnyQuestion ? "all" : oldValue;
+            const availableItem=difficultyItems.find(item=>Number(item.count||0)>0);
+            nextValue=availableItem?availableItem.value:"normal";
         }
-    } else if (!["all", "easy", "normal", "tough"].includes(nextValue)) {
-        nextValue = "all";
+    } else if (!["easy", "normal", "tough"].includes(nextValue)) {
+        nextValue = "normal";
     }
 
     select.innerHTML = difficultyItems.map((item) => {
@@ -516,7 +513,7 @@ function renderDifficultyOptions() {
         return `<option value="${item.value}" ${selected} ${disabled}>${item.name}${countText}</option>`;
     }).join("");
 
-    if (select.value !== nextValue && (!hasSelectedTopic || !countsLoaded || nextValue === "all" || getSelectedDifficultyTotal(nextValue) > 0)) {
+    if (select.value !== nextValue && (!hasSelectedTopic || !countsLoaded || getSelectedDifficultyTotal(nextValue) > 0)) {
         select.value = nextValue;
     }
 }
@@ -604,14 +601,6 @@ function validateTestSetup() {
     if (countsLoaded) {
         let totalAvailable = topics.reduce((sum, topic) => sum + Number(topic.available || 0), 0);
         let zeroTopic = topics.find((topic) => Number(topic.available || 0) <= 0);
-        if ((totalAvailable < limit || zeroTopic) && difficulty !== "all") {
-            const allTopics = collectSelectedTopics("all");
-            const allTotal = allTopics.reduce((sum, topic) => sum + Number(topic.available || 0), 0);
-            if (allTotal >= limit && !allTopics.find((topic) => Number(topic.available || 0) <= 0)) {
-                difficulty = "all"; topics = allTopics;
-                const select = byId("difficultySelect"); if (select) select.value = "all";
-            }
-        }
         totalAvailable = topics.reduce((sum, topic) => sum + Number(topic.available || 0), 0);
         zeroTopic = topics.find((topic) => Number(topic.available || 0) <= 0);
         if (totalAvailable < limit) { alert(`Selected topics में ${limit} questions उपलब्ध नहीं हैं। अभी ${totalAvailable} उपलब्ध हैं।`); return null; }
@@ -805,9 +794,6 @@ async function fetchTopicPool(topicUnit, difficulty, totalLimit) {
     const fetchMode = oneLinerMode ? "one_liner" : "mcq";
     let questions = [];
     try { questions = await fetchRandomQuestionsOnce(topicUnit.subjectKey, topicUnit.topicKey, difficulty, requestLimit, fetchMode); } catch (_) {}
-    if ((!questions || !questions.length) && difficulty && difficulty !== "all") {
-        try { questions = await fetchRandomQuestionsOnce(topicUnit.subjectKey, topicUnit.topicKey, "all", requestLimit, fetchMode); } catch (_) {}
-    }
     const seen = new Set(); const unique = [];
     (questions || []).forEach((question) => {
         const key = finalQuestionKey(question); if (seen.has(key)) return; seen.add(key);

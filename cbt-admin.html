@@ -902,7 +902,7 @@
                 <br>
 
                 <textarea id="questionsBox" placeholder="यहाँ selected Subject/Topic के questions paste करें..."></textarea>
-                <div class="help" style="margin-top:10px">10 MCQ formats accepted: सामान्य MCQ, क/ख/ग/घ, कथन–निष्कर्ष, कथन-1/2, Assertion–Reason, मिलान, सही कूट, कालानुक्रम, रिक्त स्थान और Odd One Out। सभी में 4 options और सही उत्तर जरूरी हैं।</div>
+                <div class="help" style="margin-top:10px">10 MCQ formats accepted (V12.17 parser): सामान्य MCQ, क/ख/ग/घ, कथन–निष्कर्ष, कथन-1/2, Assertion–Reason, मिलान, सही कूट, कालानुक्रम, रिक्त स्थान और Odd One Out। सभी में 4 options और सही उत्तर जरूरी हैं।</div>
 
                 <div class="btn-row">
                     <button type="button" class="blue" onclick="validateQuestions()">Validate Questions</button>
@@ -1739,52 +1739,131 @@ Topic सुरक्षित है। अब आप इसी Topic में
 
         function insertSampleFormat() {
             questionsBox.value =
-`प्रश्न 1. हरियाणा राज्य का गठन कब हुआ था?
-
-(A) 1 नवम्बर 1966
-(B) 1 नवम्बर 1967
-(C) 15 अगस्त 1947
-(D) 26 जनवरी 1950
-
-उत्तर: (A) 1 नवम्बर 1966
-
-व्याख्या: हरियाणा राज्य का गठन 1 नवम्बर 1966 को हुआ था।
+`प्रश्न 1. भारत की राजधानी क्या है?
+(A) दिल्ली
+(B) मुंबई
+(C) जयपुर
+(D) पटना
+सही उत्तर: (A)
+व्याख्या: नई दिल्ली भारत की राजधानी है।
 
 ---
 
-प्रश्न 2. निम्न में से कौन-सा युग्म गलत है?
-
-(A) सोनीपत — रोहतक
-(B) फरीदाबाद — गुरुग्राम
-(C) झज्जर — हिसार
-(D) यमुनानगर — अम्बाला
-
-उत्तर: (C) झज्जर — हिसार
-
-व्याख्या: झज्जर का गठन रोहतक से हुआ था, हिसार से नहीं।
+प्रश्न 2. हरियाणा का गठन कब हुआ?
+(क) 1 नवंबर 1966
+(ख) 1 नवंबर 1956
+(ग) 26 जनवरी 1950
+(घ) 15 अगस्त 1947
+उत्तर: क
+व्याख्या: हरियाणा 1 नवंबर 1966 को बना।
 
 ---
 
-प्रश्न 3.
+प्रश्न 3. कथन: सभी A, B हैं। कुछ B, C हैं।
+निष्कर्ष-I: कुछ A, C हैं।
+निष्कर्ष-II: कुछ C, B हैं।
+(A) केवल I
+(B) केवल II
+(C) I और II
+(D) कोई नहीं
+सही उत्तर: (B)
+व्याख्या: दूसरा निष्कर्ष कथन से सीधे सिद्ध है।
 
-कथन (A): हिसार जिले का सबसे अधिक बार विभाजन हुआ है।
-कारण (R): हिसार गठन के समय क्षेत्रफल की दृष्टि से सबसे बड़ा जिला था।
+---
 
-(A) A और R दोनों सही हैं तथा R, A की सही व्याख्या है।
-(B) A और R दोनों सही हैं, लेकिन R, A की सही व्याख्या नहीं है।
-(C) A सही है, R गलत है।
-(D) A गलत है, R सही है।
+प्रश्न 4. कथन-1: पृथ्वी सूर्य की परिक्रमा करती है।
+कथन-2: पृथ्वी अपने अक्ष पर घूमती है।
+(A) केवल कथन-1 सही
+(B) केवल कथन-2 सही
+(C) दोनों सही
+(D) दोनों गलत
+उत्तर: C
+व्याख्या: दोनों कथन सही हैं।
 
-उत्तर: (B)
+---
 
-व्याख्या: दोनों कथन सही हैं, लेकिन R, A की सही व्याख्या नहीं है।`;
+प्रश्न 5. अभिकथन (A): पौधे प्रकाश संश्लेषण करते हैं।
+कारण (R): उनमें क्लोरोफिल होता है।
+(A) A और R सही तथा R सही व्याख्या है
+(B) A और R सही, पर R सही व्याख्या नहीं
+(C) A सही, R गलत
+(D) A गलत, R सही
+सही उत्तर: A
+व्याख्या: क्लोरोफिल प्रकाश ऊर्जा ग्रहण करता है।
+
+---
+
+प्रश्न 6. सूची-I को सूची-II से मिलाइए—
+सूची-I
+1. ऋग्वेद
+2. सामवेद
+3. यजुर्वेद
+4. अथर्ववेद
+सूची-II
+a. मंत्र
+b. संगीत
+c. यज्ञ
+d. उपचार
+सही कूट चुनिए—
+(A) 1-a, 2-b, 3-c, 4-d
+(B) 1-b, 2-a, 3-d, 4-c
+(C) 1-c, 2-d, 3-a, 4-b
+(D) 1-d, 2-c, 3-b, 4-a
+सही उत्तर: (A) 1-a, 2-b, 3-c, 4-d
+व्याख्या: यही सही मिलान है।
+
+---
+
+प्रश्न 7. नीचे दिए गए कूट से सही उत्तर चुनिए।
+1. कथन एक सही है।
+2. कथन दो सही है।
+(A) केवल 1
+(B) केवल 2
+(C) 1 और 2
+(D) कोई नहीं
+उत्तर: C
+व्याख्या: दोनों कथन सही हैं।
+
+---
+
+प्रश्न 8. निम्न घटनाओं का सही कालानुक्रम चुनिए।
+1. घटना A
+2. घटना B
+3. घटना C
+4. घटना D
+(A) 1-2-3-4
+(B) 2-1-4-3
+(C) 3-2-1-4
+(D) 4-3-2-1
+सही उत्तर: A
+व्याख्या: घटनाओं का क्रम 1-2-3-4 है।
+
+---
+
+प्रश्न 9. हरियाणा की राजधानी ______ है।
+(A) चंडीगढ़
+(B) गुरुग्राम
+(C) रोहतक
+(D) हिसार
+उत्तर: A
+व्याख्या: चंडीगढ़ हरियाणा की राजधानी है।
+
+---
+
+प्रश्न 10. निम्न में से असंगत चुनिए।
+(A) आम
+(B) केला
+(C) आलू
+(D) सेब
+सही उत्तर: C
+व्याख्या: आलू सब्जी है, बाकी फल हैं।`;
 
             lastValidation = null;
             setStats({ found: 0, valid: 0, inserted: 0, duplicate: 0, errors: 0, dummy: 0 });
             showErrors([]);
             hidePreview();
             refreshUploadButton();
-            setStatus("Sample format डाल दिया गया है। पहले Validate करें।", "info");
+            setStatus("10 MCQ formats का tested sample डाल दिया गया है। पहले Validate करें।", "info");
         }
 
         function clearBox() {
@@ -2076,11 +2155,16 @@ Topic सुरक्षित है। अब आप इसी Topic में
         }
 
         function splitInlineOneLiner(line) {
-            const text = cleanQuestionStart(clean(line));
+            const raw = clean(line);
 
+            // Answer / explanation lines belong to the previous MCQ.
+            // Earlier "सही उत्तर: (B)..." was incorrectly counted as a new one-liner.
+            if (!raw || isAnswerLine(raw) || isExplanationLine(raw)) return null;
+
+            const text = cleanQuestionStart(raw);
             const match = text.match(/^(.+?)\s*(?:—|-|–|:)?\s*(?:उत्तर|Answer|Ans|जवाब)\s*[:：\-]\s*(.+)$/i);
 
-            if (!match) return null;
+            if (!match || !clean(match[1]) || !clean(match[2])) return null;
 
             return {
                 question: clean(match[1]),
@@ -2167,6 +2251,7 @@ Topic सुरक्षित है। अब आप इसी Topic में
             let explanationLines = [];
             let mode = "question";
             let oneLinerDetected = false;
+            let inMatchingList = false;
 
             lines.forEach(line => {
                 const text = clean(line);
@@ -2188,6 +2273,26 @@ Topic सुरक्षित है। अब आप इसी Topic में
                     answerRaw = ans.raw;
                     answerIndex = resolveAnswerIndexFromText(answerRaw, options);
                     mode = "answer";
+                    return;
+                }
+
+                if (/^(?:सूची|List)\s*[-–—]?\s*(?:I|II|1|2|१|२)\b/i.test(text)) {
+                    inMatchingList = true;
+                    questionLines.push(text);
+                    mode = "question";
+                    return;
+                }
+
+                if (inMatchingList && /^(?:सही\s*कूट|कूट\s*चुनिए|नीचे\s*दिए\s*गए\s*कूट|Select\s+the\s+correct\s+code)/i.test(text)) {
+                    inMatchingList = false;
+                    questionLines.push(text);
+                    mode = "question";
+                    return;
+                }
+
+                if (inMatchingList && /^(?:[1-9०-९]+|[a-d])\s*[\.\)\-:]\s*.+/i.test(text)) {
+                    questionLines.push(text);
+                    mode = "question";
                     return;
                 }
 
@@ -2339,7 +2444,9 @@ Topic सुरक्षित है। अब आप इसी Topic में
             let dummy = 0;
 
             blocks.forEach((block, index) => {
-                const parsed = parseOneQuestionBlock(block, index + 1);
+                const sourceLabelMatch = clean(block[0] || "").match(/^(?:प्रश्न|Question|Que|Q)?\s*([0-9०-९]+)\s*[\.\):：\-]?/i);
+                const sourceLabel = sourceLabelMatch ? sourceLabelMatch[1] : String(index + 1);
+                const parsed = parseOneQuestionBlock(block, sourceLabel);
 
                 if (!parsed.ok) {
                     errors.push(...parsed.errors);
