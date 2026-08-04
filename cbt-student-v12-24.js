@@ -1,4 +1,6 @@
-const CBT_DIFFICULTY_FILTER_VERSION = "12.18.0-strict";
+window.__CBT_STUDENT_V1224_LOADED = true;
+window.dispatchEvent(new CustomEvent("cbt-student-script-loaded"));
+const CBT_DIFFICULTY_FILTER_VERSION = "12.24.0-stable-catalog-and-profile-independent";
 // V12.6: Student dropdown shows only Admin-published topics that contain active MCQ questions.
 const API_BASE_URL = String((window.APP_CONFIG && window.APP_CONFIG.MOCK_TEST_API_URL) || "https://exam-arena-api-live.ak0258107.workers.dev/api").replace(/\/+$/, "");
 
@@ -7,7 +9,7 @@ const FIXED_SUBJECT_NAME = "All Subjects";
 let catalogSubjects = [];
 let currentAuthUser = null;
 let currentProfile = null;
-let currentAccessToken = "";
+let currentCbtAccessToken = "";
 
 const MAX_TOPICS = 5;
 const PER_QUESTION_SECONDS = 25;
@@ -18,6 +20,9 @@ const TELEGRAM_CHANNEL_LINK = "https://t.me/gkbypurushotamsir";
 
 let questionCounts = {};
 let countsLoaded = false;
+let catalogLoadError = "";
+let catalogLoading = true;
+let cbtEventsBound = false;
 
 let selectedTopics = [];
 let topicIdCounter = 1;
@@ -64,17 +69,58 @@ function byId(id) {
     return document.getElementById(id);
 }
 
-async function refreshCbtSession() {
-    const { data: { session } } = await sb.auth.getSession();
-    currentAccessToken = session && session.access_token ? session.access_token : "";
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function withTimeout(promise, ms, message) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message || "Request timeout")), ms);
+    });
+    return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
+}
+
+async function refreshCbtSession(forceRefresh = false) {
+    let result;
+    if (forceRefresh) result = await sb.auth.refreshSession();
+    else result = await sb.auth.getSession();
+    let session = result && result.data ? result.data.session : null;
+    if (!session && !forceRefresh) {
+        const refreshed = await sb.auth.refreshSession().catch(() => ({ data: { session: null } }));
+        session = refreshed && refreshed.data ? refreshed.data.session : null;
+    }
+    currentCbtAccessToken = session && session.access_token ? session.access_token : "";
     return session;
 }
 
-async function apiFetch(path, options = {}) {
-    if (!currentAccessToken) await refreshCbtSession();
+async function apiFetch(path, options = {}, allowAuthRetry = true) {
+    if (!currentCbtAccessToken) await refreshCbtSession(false);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), Number(options.timeoutMs || 25000));
     const headers = new Headers(options.headers || {});
-    if (currentAccessToken) headers.set("Authorization", `Bearer ${currentAccessToken}`);
-    return fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+    if (currentCbtAccessToken) headers.set("Authorization", `Bearer ${currentCbtAccessToken}`);
+    try {
+        const response = await fetch(`${API_BASE_URL}${path}`, {
+            ...options,
+            mode: "cors",
+            cache: "no-store",
+            headers,
+            signal: controller.signal
+        });
+        if (response.status === 401 && allowAuthRetry) {
+            await refreshCbtSession(true);
+            return apiFetch(path, options, false);
+        }
+        return response;
+    } catch (error) {
+        if (error && error.name === "AbortError") {
+            throw new Error("CBT Server ने समय पर जवाब नहीं दिया। Reload CBT दबाएँ।");
+        }
+        throw new Error("CBT Server से संपर्क नहीं हो पाया। Internet जाँचकर Reload CBT दबाएँ।");
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 function getCatalogSubjects() {
@@ -110,17 +156,18 @@ async function loadCatalog() {
     catalogSubjects = [];
     questionCounts = {};
     countsLoaded = false;
+    catalogLoadError = "";
+    catalogLoading = true;
+    renderTopics();
+    renderDifficultyOptions();
 
     try {
-        const response = await apiFetch(`/catalog?t=${Date.now()}`);
+        const response = await apiFetch(`/catalog?t=${Date.now()}`, { timeoutMs: 30000 }, true);
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success || !Array.isArray(data.subjects)) {
             throw new Error(data.error || data.message || "Mock Test catalog load नहीं हुआ।");
         }
 
-        // Worker catalog पहले से केवल उन्हीं Subject/Topic को भेजता है जिनमें
-        // active + Show to Students MCQ मौजूद हैं। Local hard-coded list से
-        // filter नहीं करेंगे, ताकि नया live Subject/Topic अपने-आप दिखाई दे।
         catalogSubjects = data.subjects.map((subject, subjectIndex) => {
             const subjectKey = clean(subject.subject_key || subject.key);
             const topics = (Array.isArray(subject.topics) ? subject.topics : []).map((topic, topicIndex) => {
@@ -150,11 +197,16 @@ async function loadCatalog() {
           .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
 
         countsLoaded = true;
+        return true;
     } catch (error) {
         console.warn("Published CBT catalog load failed:", error);
         catalogSubjects = [];
         questionCounts = {};
         countsLoaded = false;
+        catalogLoadError = error && error.message ? error.message : "Published CBT Test load नहीं हुआ।";
+        return false;
+    } finally {
+        catalogLoading = false;
     }
 }
 
@@ -344,22 +396,36 @@ function getHaryanaTopicName(topicKey) {
 }
 
 async function loadQuestionCounts() {
-    questionCounts = {};
-    countsLoaded = false;
+    // Catalog response में difficulty-wise counts पहले से आते हैं। इसलिए किसी
+    // दूसरे request के fail होने पर working catalog को खाली नहीं करेंगे।
     const subjects = getCatalogSubjects();
+    if (!subjects.length) {
+        countsLoaded = false;
+        return false;
+    }
+
+    countsLoaded = Object.keys(questionCounts).length > 0;
     try {
-        await Promise.all(subjects.map(async (subject) => {
+        const results = await Promise.allSettled(subjects.map(async (subject) => {
             const response = await apiFetch(`/questions/counts?subject_key=${encodeURIComponent(subject.key)}&t=${Date.now()}`);
             const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data.success) return;
+            if (!response.ok || !data.success) throw new Error(data.error || "Question count load नहीं हुआ।");
             const raw = data.counts || data.data || {};
             const subjectCounts = raw[subject.key] || raw;
-            questionCounts[subject.key] = subjectCounts.topics || {};
+            return { subjectKey: subject.key, topics: subjectCounts.topics || {} };
         }));
+        results.forEach((result) => {
+            if (result.status === "fulfilled" && result.value && Object.keys(result.value.topics || {}).length) {
+                questionCounts[result.value.subjectKey] = result.value.topics;
+            }
+        });
         countsLoaded = Object.keys(questionCounts).length > 0;
-        filterCatalogToTopicsWithQuestions();
+        if (countsLoaded) filterCatalogToTopicsWithQuestions();
+        return countsLoaded;
     } catch (error) {
-        console.warn("Question counts load failed:", error);
+        console.warn("Question counts refresh failed; catalog counts retained:", error);
+        countsLoaded = Object.keys(questionCounts).length > 0;
+        return countsLoaded;
     }
 }
 
@@ -388,7 +454,7 @@ function addTopic(defaultTopicKey = "", defaultSubjectKey = "") {
         alert(`Maximum ${MAX_TOPICS} topics ही select कर सकते हैं।`);
         return;
     }
-    const firstSubject = defaultSubjectKey || (getCatalogSubjects()[0] || {}).key || "";
+    const firstSubject = defaultSubjectKey || "";
     selectedTopics.push({ id: topicIdCounter++, subjectKey: firstSubject, topicKey: defaultTopicKey });
     renderDifficultyOptions(); renderTopics(); updateLimitOptions();
 }
@@ -431,9 +497,35 @@ function renderTopics() {
     if (!area) return;
     const subjects = getCatalogSubjects();
     const difficulty = getSelectedDifficulty();
+    const addButton = byId("addTopicBtn");
+
+    if (catalogLoading) {
+        if (addButton) { addButton.disabled = true; addButton.textContent = "Loading Subjects..."; }
+        area.innerHTML = `<div class="unit-card">
+            <div class="unit-title">Selection 1</div>
+            <div class="unit-grid">
+              <div><div class="unit-select-label">Subject</div><select disabled><option>Subjects load हो रहे हैं...</option></select></div>
+              <div><div class="unit-select-label">Topic</div><select disabled><option>पहले Subject load होने दें</option></select></div>
+            </div>
+            <div class="selection-note">Published CBT Test जाँचा जा रहा है।</div>
+        </div>`;
+        return;
+    }
+
+    if (addButton) { addButton.disabled = false; addButton.textContent = "+ Add Topic"; }
 
     if (!subjects.length) {
-        area.innerHTML = `<div class="unit-card"><div class="unit-title">अभी Mock Test उपलब्ध नहीं है</div><div class="selection-note">Admin जिस Subject/Topic में MCQ Questions upload करेगा, केवल वही Subject और Topic यहाँ अपने-आप दिखाई देगा।</div></div>`;
+        const hasError = !!catalogLoadError;
+        const errorText = hasError
+            ? safeText(catalogLoadError)
+            : "Admin ने अभी कोई visible CBT Test publish नहीं किया है।";
+        area.innerHTML = `<div class="unit-card cbt-load-error-card">
+            <div class="unit-title">${hasError ? "CBT Test load नहीं हुआ" : "अभी कोई CBT Test उपलब्ध नहीं है"}</div>
+            <div class="selection-note">${errorText}</div>
+            <button type="button" id="retryCatalogBtn" class="small-btn">↻ Reload CBT</button>
+        </div>`;
+        const retryBtn = byId("retryCatalogBtn");
+        if (retryBtn) retryBtn.addEventListener("click", retryCatalogLoad);
         return;
     }
 
@@ -480,8 +572,8 @@ function renderDifficultyOptions() {
     const oldValue = clean(select.value || "");
     const hasSelectedTopic = getSelectedTopicKeysForDifficulty().length > 0;
 
-    if (!countsLoaded) {
-        select.innerHTML = '<option value="">Difficulty loading...</option>';
+    if (catalogLoading || !countsLoaded) {
+        select.innerHTML = '<option value="">CBT catalog load हो रहा है...</option>';
         select.value = "";
         select.disabled = true;
         return;
@@ -607,7 +699,7 @@ function validateTestSetup() {
     }
     let topics = collectSelectedTopics(difficulty);
     const limit = getSelectedLimit();
-    if (!currentAuthUser || !currentProfile) { alert("Student login required है।"); return null; }
+    if (!currentAuthUser) { alert("Student login required है।"); return null; }
     if (!topics.length) { alert("कम से कम एक Subject और Topic select करें।"); return null; }
     if (topics.length > MAX_TOPICS) { alert(`Maximum ${MAX_TOPICS} topics ही select कर सकते हैं।`); return null; }
     const duplicateSet = new Set();
@@ -628,7 +720,7 @@ function validateTestSetup() {
 }
 
 async function registerStudent(studentName, mobile) {
-    const response = await fetch(`${API_BASE_URL}/register`, {
+    const response = await apiFetch(`/register`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -2380,6 +2472,8 @@ function triggerCelebrationByPercentage(percentage) {
 }
 
 function bindEvents() {
+    if (cbtEventsBound) return;
+    cbtEventsBound = true;
     const addTopicBtn = byId("addTopicBtn");
     const startBtn = byId("startTestBtn");
     const difficultySelect = byId("difficultySelect");
@@ -2495,22 +2589,112 @@ function injectOneLinerPdfStyles() {
     document.head.appendChild(style);
 }
 
-async function initApp() {
-    injectOneLinerPdfStyles(); showScreen("setup");
-    currentAuthUser = await requireAuth(); if (!currentAuthUser) return;
-    currentProfile = await getProfile(currentAuthUser.id);
-    if (!currentProfile || String(currentProfile.role || "student").toLowerCase() === "admin") { location.href = "q9v3x7k2-r8m4p6t1-z5n7c2w9.html"; return; }
-    if (currentProfile.is_active === false) { await sb.auth.signOut(); alert("आपका Student account Admin ने अभी Inactive किया हुआ है।"); location.href = "index.html"; return; }
-    await refreshCbtSession();
-    const nameEl=byId("cbtStudentName"), idEl=byId("cbtStudentId");
-    if(nameEl) nameEl.textContent=currentProfile.full_name || currentAuthUser.email || "Student";
-    if(idEl) idEl.textContent=`Student ID: ${currentAuthUser.id.slice(0,8).toUpperCase()}`;
-    await loadCatalog(); await loadQuestionCounts();
-    selectedTopics=[]; topicIdCounter=1; addTopic(); bindEvents(); updateLimitOptions();
-    const selectionHeadText=document.querySelector(".selection-head p"); if(selectionHeadText) selectionHeadText.textContent=`Maximum ${MAX_TOPICS} Subject/Topic selections कर सकते हैं।`;
-    const note=document.querySelector(".selection-note"); if(note) note.textContent="1 से 5 Subject/Topics select करें और 10 से 100 questions तक CBT test लगाएँ।";
+async function retryCatalogLoad() {
+    const retryBtn = byId("retryCatalogBtn");
+    if (retryBtn) { retryBtn.disabled = true; retryBtn.textContent = "Loading..."; }
+    catalogLoadError = "";
+    catalogLoading = true;
+    selectedTopics = [];
+    topicIdCounter = 1;
+    renderTopics();
+    renderDifficultyOptions();
+    await refreshCbtSession(true).catch(() => null);
+    await loadCatalog();
+    selectedTopics = [];
+    topicIdCounter = 1;
+    addTopic();
+    updateLimitOptions();
 }
 
+async function initApp() {
+    window.__CBT_STUDENT_V1224_READY = false;
+    injectOneLinerPdfStyles();
+    showScreen("setup");
+    bindEvents();
+
+    const nameEl = byId("cbtStudentName");
+    const idEl = byId("cbtStudentId");
+    catalogLoading = true;
+    selectedTopics = [];
+    topicIdCounter = 1;
+    renderTopics();
+    renderDifficultyOptions();
+
+    try {
+        const session = await withTimeout(
+            refreshCbtSession(false),
+            10000,
+            "Login session load नहीं हुई। Student App में दोबारा Login करें।"
+        );
+        if (!session || !session.user) {
+            location.href = "index.html";
+            return;
+        }
+
+        currentAuthUser = session.user;
+        const quickName = clean(
+            currentAuthUser.user_metadata?.full_name ||
+            currentAuthUser.user_metadata?.name ||
+            currentAuthUser.email?.split("@")[0] ||
+            "Student"
+        );
+        currentProfile = {
+            id: currentAuthUser.id,
+            full_name: quickName || "Student",
+            student_name: quickName || "Student",
+            phone: "",
+            role: "student",
+            is_active: true
+        };
+        if (nameEl) nameEl.textContent = quickName || "Student";
+        if (idEl) idEl.textContent = `Student ID: ${String(currentAuthUser.id || "").slice(0,8).toUpperCase()}`;
+
+        // Profile और CBT catalog अलग-अलग load होते हैं। Profile slow होने से Test list नहीं रुकेगी।
+        const profileTask = withTimeout(getProfile(currentAuthUser.id), 10000, "Student profile load नहीं हुई।")
+            .then(async (loadedProfile) => {
+                if (!loadedProfile) return;
+                currentProfile = loadedProfile;
+                if (String(loadedProfile.role || "student").toLowerCase() === "admin") {
+                    location.href = "q9v3x7k2-r8m4p6t1-z5n7c2w9.html";
+                    return;
+                }
+                if (loadedProfile.is_active === false) {
+                    await sb.auth.signOut();
+                    alert("आपका Student account Admin ने अभी Inactive किया हुआ है।");
+                    location.href = "index.html";
+                    return;
+                }
+                if (nameEl) nameEl.textContent = loadedProfile.full_name || loadedProfile.student_name || quickName || "Student";
+            })
+            .catch((error) => console.warn("Student profile warning:", error));
+
+        await loadCatalog();
+        selectedTopics = [];
+        topicIdCounter = 1;
+        addTopic();
+        updateLimitOptions();
+        profileTask.catch(() => null);
+    } catch (error) {
+        console.warn("Student CBT initialization failed:", error);
+        catalogLoading = false;
+        catalogSubjects = [];
+        questionCounts = {};
+        countsLoaded = false;
+        catalogLoadError = error && error.message ? error.message : "CBT Test load नहीं हुआ।";
+        if (nameEl && nameEl.textContent === "Loading...") nameEl.textContent = "Student";
+        selectedTopics = [];
+        topicIdCounter = 1;
+        addTopic();
+        updateLimitOptions();
+    }
+
+    const selectionHeadText = document.querySelector(".selection-head p");
+    if (selectionHeadText) selectionHeadText.textContent = `Maximum ${MAX_TOPICS} Subject/Topic selections कर सकते हैं।`;
+    window.__CBT_STUDENT_V1224_READY = true;
+    window.dispatchEvent(new CustomEvent("cbt-student-app-ready"));
+}
+
+window.retryCatalogLoad = retryCatalogLoad;
 window.startTest = startTest;
 window.goPrevious = goPrevious;
 window.goNext = goNext;

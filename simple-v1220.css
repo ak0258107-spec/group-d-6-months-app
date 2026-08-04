@@ -13,3 +13,11 @@
 
 /* V12.21 — simple first five day target */
 .five-day-target-grid{display:grid;gap:13px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}.five-day-card{background:#fff;border:1px solid #d7e1ee;border-radius:18px;padding:14px;box-shadow:0 8px 24px rgba(24,44,76,.06)}.five-day-head{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid #edf1f6}.five-day-head span{background:#1458d6;color:#fff;border-radius:999px;padding:6px 10px;font-weight:900;font-size:12px}.five-day-head b{font-size:12px;color:#667085}.five-day-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px dashed #e2e8f0}.five-day-item:last-child{border-bottom:0}.five-day-item>div{display:flex;flex-direction:column;gap:3px}.five-day-item span{font-size:13px;color:#5d6a7f}.cbt-load-error-card #retryCatalogBtn{margin-top:12px}.cbt-load-error-card{border:2px solid #f3c15b;background:#fffaf0}
+
+/* V12.24 — Admin wide form/list layout fix */
+.grid>.span-5{grid-column:span 5;min-width:0}.grid>.span-7{grid-column:span 7;min-width:0}
+.simple-admin-main>.hidden,.simple-admin-main>section{min-width:0}.simple-form-card,.simple-admin-main .card{min-width:0}
+.simple-form-card input,.simple-form-card select,.simple-form-card textarea{min-width:0;max-width:100%}
+.simple-content-card,.simple-card-main,.simple-card-actions{word-break:normal;overflow-wrap:anywhere}
+@media(max-width:1120px){.grid>.span-5,.grid>.span-7{grid-column:span 12}}
+@media(max-width:650px){.two-col,.three-col{grid-template-columns:1fr}.smart-pick-row{grid-template-columns:1fr 1fr}.smart-pick-row select{grid-column:1/-1}}

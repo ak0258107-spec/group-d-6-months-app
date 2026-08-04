@@ -1,4 +1,4 @@
-/* GK BY PURUSHOTAM SIR — V12.22 STUDENT CBT + EXACT 2 TARGETS FIX */
+/* GK BY PURUSHOTAM SIR — V12.24 COMPLETE STUDENT APP + EXACT 2 TARGETS */
 let user=null,profile=null,classes=[],materials=[],announcements=[],notificationRows=[],posterRows=[],fiveDayTargets=[];
 let posterUrls=[],posterTimer=null,currentPoster=0;
 const STUDENT_TABS=['home','targets','classes','classpdfs','otherpdfs','cbt','announcements','notifications','profile'];
