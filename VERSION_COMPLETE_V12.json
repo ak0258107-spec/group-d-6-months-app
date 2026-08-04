@@ -1,14 +1,15 @@
 {
   "app": "GK BY PURUSHOTAM SIR GROUP-D APP",
-  "version": "12.24.0",
-  "build": "COMPLETE_FINAL_ADMIN_LAYOUT_STUDENT_CBT_TWO_TARGETS",
-  "base": "V12.20 Simple Final",
+  "version": "12.25.0",
+  "build": "COMPLETE_FINAL_AUTO_ROLLING_5_DAY_TARGET_CBT_ADMIN_BACK",
+  "base": "V12.24 Complete Final Fixed App",
   "changes": [
-    "Complete GitHub package; no patch-only upload",
-    "Admin YouTube/Class/PDF form and list layout fixed",
-    "Student CBT opens unique V12.24 page to bypass stale V12.21 cache",
-    "CBT profile loading no longer blocks published Subject/Topic catalog",
-    "Only live Subject, Topic and Difficulty are shown",
-    "First five days show maximum two enabled published classes per day"
+    "Complete GitHub package; not a patch-only upload",
+    "Full 3 Aug–31 Dec 2026 target plan is seeded from the supplied Target Batch PDF",
+    "Days 1–5 remain visible initially; after that the five-card window advances automatically with India date",
+    "Each teaching day contains exactly two planned classes; Saturday and Sunday contain Current Affairs",
+    "Student target refreshes automatically when the calendar date changes while the app is open",
+    "CBT Admin has a clearly visible Back to Admin Dashboard button",
+    "Working Student CBT, Admin, PDF, R2 and Cloudflare systems are otherwise unchanged"
   ]
 }

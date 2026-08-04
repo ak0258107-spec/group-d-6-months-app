@@ -1,6 +1,6 @@
 window.__CBT_STUDENT_V1224_LOADED = true;
 window.dispatchEvent(new CustomEvent("cbt-student-script-loaded"));
-const CBT_DIFFICULTY_FILTER_VERSION = "12.24.0-stable-catalog-and-profile-independent";
+const CBT_DIFFICULTY_FILTER_VERSION = "12.25.0-stable-catalog-and-profile-independent";
 // V12.6: Student dropdown shows only Admin-published topics that contain active MCQ questions.
 const API_BASE_URL = String((window.APP_CONFIG && window.APP_CONFIG.MOCK_TEST_API_URL) || "https://exam-arena-api-live.ak0258107.workers.dev/api").replace(/\/+$/, "");
 
