@@ -3,39 +3,90 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071f3d">
 <title>GK BY PURUSHOTAM SIR</title>
-<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css?v=12.25.0"><link rel="stylesheet" href="simple-v1220.css?v=12.25.0">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=12.25.0"></script><script src="common.js?v=12.25.0"></script>
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css?v=12.26.0"><link rel="stylesheet" href="simple-v1220.css?v=12.26.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=12.26.0"></script><script src="common.js?v=12.26.0"></script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body class="simple-student-body">
 <div class="simple-student-shell">
 <header class="simple-student-header">
   <div class="simple-brand"><span>GK</span><div><b>GK BY PURUSHOTAM SIR</b><small>GROUP-D TARGET BATCH</small></div></div>
-  <button class="notification-bell" onclick="openNotifications()">🔔<span id="notificationBadge" class="notification-badge hidden">0</span></button>
+  <div class="student-header-actions">
+    <button class="student-menu-toggle" type="button" onclick="toggleStudentMenu()" aria-label="Menu खोलें">☰ Menu</button>
+    <button class="notification-bell" onclick="openNotifications()" aria-label="Notifications">🔔<span id="notificationBadge" class="notification-badge hidden">0</span></button>
+  </div>
 </header>
-<nav class="simple-student-nav" aria-label="Student sections">
-  <button class="active" data-tab="home" onclick="tab('home',this)">⌂ Home</button>
-  <button data-tab="targets" onclick="tab('targets',this)">🎯 5-Day Target</button>
-  <button data-tab="classes" onclick="tab('classes',this)">▶ Classes</button>
-  <button data-tab="classpdfs" onclick="tab('classpdfs',this)">📘 Class PDFs</button>
-  <button data-tab="otherpdfs" onclick="tab('otherpdfs',this)">📄 Other PDFs</button>
-  <button data-tab="cbt" onclick="tab('cbt',this)">🖥 CBT Tests</button>
-  <button data-tab="announcements" onclick="tab('announcements',this)">📣 Messages</button>
-  <button data-tab="profile" onclick="tab('profile',this)">○ Profile</button>
-</nav>
-<main class="simple-student-main">
-  <section id="homeTab"><div id="homePosterSection" class="simple-home-posters hidden"><div id="homePosterSlider"></div><div id="homePosterDots"></div></div><div class="simple-section-head"><span>⌂</span><div><h1>Home</h1><p>आज की Class, नई PDF और जरूरी सूचना</p></div></div><div id="homeBox"></div></section>
-  <section id="targetsTab" class="hidden"><div class="simple-section-head"><span>🎯</span><div><h1>5-Day Target</h1><p>पहले 5 दिन तुरंत दिखेंगे; आगे का Target तारीख बदलते ही अपने-आप अपडेट होगा</p></div></div><div id="targetsBox" class="five-day-target-grid"></div></section>
-  <section id="classesTab" class="hidden"><div class="simple-section-head"><span>▶</span><div><h1>YouTube Classes</h1><p>Class का दिन, समय और Watch Link</p></div></div><div id="classesBox" class="student-card-list"></div></section>
-  <section id="classpdfsTab" class="hidden"><div class="simple-section-head"><span>📘</span><div><h1>Class PDFs</h1><p>Class से जुड़ी Notes PDF</p></div></div><div id="classPdfsBox" class="student-card-list"></div></section>
-  <section id="otherpdfsTab" class="hidden"><div class="simple-section-head"><span>📄</span><div><h1>Other PDFs</h1><p>Current Affairs, Revision और Extra Notes</p></div></div><div id="otherPdfsBox" class="student-card-list"></div></section>
-  <section id="cbtTab" class="hidden"><div class="simple-section-head"><span>🖥</span><div><h1>CBT Tests</h1><p>केवल live Subject, Topic और Difficulty दिखाई देंगे</p></div></div><div class="cbt-entry-card"><div class="cbt-entry-icon">CBT</div><h2>All Subjects CBT Exam Arena</h2><p>10 प्रकार के MCQ, Result, Explanation और Test Download</p><div class="simple-feature-chips"><span>Mock Test PDF</span><span>Answer Key</span><span>With Answer</span><span>ZIP</span></div><a class="btn btn-blue full-btn" href="cbt-exam-v12-24.html?build=12.25.0">Start CBT Test</a></div></section>
-  <section id="announcementsTab" class="hidden"><div class="simple-section-head"><span>📣</span><div><h1>Announcements</h1><p>Class update और Admin message</p></div></div><div id="announcementsBox" class="student-card-list"></div></section>
-  <section id="notificationsTab" class="hidden"><div class="simple-section-head"><span>🔔</span><div><h1>Notifications</h1><p>नई Class, PDF, CBT और Message</p></div></div><div id="notificationsList" class="student-card-list"></div></section>
-  <section id="profileTab" class="hidden"><div class="simple-section-head"><span>○</span><div><h1>My Profile</h1><p>Account और App settings</p></div></div><div id="profileBox"></div></section>
-</main>
+
+<div class="simple-student-workspace">
+  <div id="studentNavScrim" class="student-nav-scrim" onclick="closeStudentMenu()"></div>
+  <aside id="studentSidebar" class="simple-student-sidebar" aria-label="Student sections">
+    <div class="student-sidebar-title"><b>STUDENT MENU</b><small>किसी भी section पर सीधे जाएँ</small></div>
+    <nav class="simple-student-nav">
+      <button class="active" data-tab="home" onclick="tab('home',this)"><span>1</span><b>Home</b><small>मुख्य स्क्रीन</small></button>
+      <button data-tab="targets" onclick="tab('targets',this)"><span>2</span><b>5-Day Target</b><small>रोज का अध्ययन</small></button>
+      <button data-tab="classes" onclick="tab('classes',this)"><span>3</span><b>आज की Classes</b><small>YouTube Class</small></button>
+      <button data-tab="classpdfs" onclick="tab('classpdfs',this)"><span>4</span><b>Class PDFs</b><small>Class Notes</small></button>
+      <button data-tab="otherpdfs" onclick="tab('otherpdfs',this)"><span>5</span><b>Other PDFs</b><small>Extra Material</small></button>
+      <button data-tab="cbt" onclick="tab('cbt',this)"><span>6</span><b>CBT Tests</b><small>Practice Test</small></button>
+      <button data-tab="announcements" onclick="tab('announcements',this)"><span>7</span><b>Messages</b><small>Admin सूचना</small></button>
+      <button data-tab="notifications" onclick="tab('notifications',this)"><span>8</span><b>Notifications</b><small>नई जानकारी</small></button>
+      <button data-tab="profile" onclick="tab('profile',this)"><span>9</span><b>My Profile</b><small>Progress & Avatar</small></button>
+    </nav>
+  </aside>
+
+  <main class="simple-student-main">
+    <section id="homeTab">
+      <div id="homePosterSection" class="simple-home-posters hidden"><div id="homePosterSlider"></div><div id="homePosterDots"></div></div>
+      <div class="simple-section-head"><span>⌂</span><div><h1>Home</h1><p>आज की Class, Target, PDF और जरूरी सूचना</p></div></div><div id="homeBox"></div>
+    </section>
+
+    <section id="targetsTab" class="hidden">
+      <button class="student-back-home" onclick="goStudentHome()">← वापस Home</button>
+      <div class="simple-section-head"><span>🎯</span><div><h1>5-Day Target</h1><p>पहले पाँच दिन तुरंत; आगे तारीख के साथ अपने-आप Target जारी होगा</p></div></div>
+      <div class="target-progress-note">“पूरा किया” वैकल्पिक है। इससे केवल आपकी Progress बनेगी; कोई Class, PDF या Test lock नहीं होगा।</div>
+      <div id="targetsBox" class="five-day-target-grid"></div>
+    </section>
+
+    <section id="classesTab" class="hidden">
+      <button class="student-back-home" onclick="goStudentHome()">← वापस Home</button>
+      <div class="simple-section-head"><span>▶</span><div><h1>YouTube Classes</h1><p>Class का दिन, समय, Status और Watch Link</p></div></div><div id="classesBox" class="student-card-list"></div>
+    </section>
+
+    <section id="classpdfsTab" class="hidden">
+      <button class="student-back-home" onclick="goStudentHome()">← वापस Home</button>
+      <div class="simple-section-head"><span>📘</span><div><h1>Class PDFs</h1><p>Class से जुड़ी Notes PDF</p></div></div><div id="classPdfsBox" class="student-card-list"></div>
+    </section>
+
+    <section id="otherpdfsTab" class="hidden">
+      <button class="student-back-home" onclick="goStudentHome()">← वापस Home</button>
+      <div class="simple-section-head"><span>📄</span><div><h1>Other PDFs</h1><p>Current Affairs, Revision और Extra Notes</p></div></div><div id="otherPdfsBox" class="student-card-list"></div>
+    </section>
+
+    <section id="cbtTab" class="hidden">
+      <button class="student-back-home" onclick="goStudentHome()">← वापस Home</button>
+      <div class="simple-section-head"><span>🖥</span><div><h1>CBT Tests</h1><p>केवल Live Subject, Topic और Difficulty दिखाई देंगे</p></div></div>
+      <div class="cbt-entry-card"><div class="cbt-entry-icon">CBT</div><h2>All Subjects CBT Exam Arena</h2><p>10 प्रकार के MCQ, Result, Explanation और Test Download</p><div class="simple-feature-chips"><span>Mock Test PDF</span><span>Answer Key</span><span>With Answer</span><span>ZIP</span></div><a class="btn btn-blue full-btn" href="cbt-exam-v12-26.html?build=12.26.0">Start CBT Test</a></div>
+    </section>
+
+    <section id="announcementsTab" class="hidden">
+      <button class="student-back-home" onclick="goStudentHome()">← वापस Home</button>
+      <div class="simple-section-head"><span>📣</span><div><h1>Announcements</h1><p>Class update और Admin message</p></div></div><div id="announcementsBox" class="student-card-list"></div>
+    </section>
+
+    <section id="notificationsTab" class="hidden">
+      <button class="student-back-home" onclick="goStudentHome()">← वापस Home</button>
+      <div class="simple-section-head"><span>🔔</span><div><h1>Notifications</h1><p>नई Class, PDF, CBT और Message</p></div></div><div id="notificationsList" class="student-card-list"></div>
+    </section>
+
+    <section id="profileTab" class="hidden">
+      <button class="student-back-home" onclick="goStudentHome()">← वापस Home</button>
+      <div class="simple-section-head"><span>👤</span><div><h1>Student Progress Profile</h1><p>Avatar, आज का Target और आपकी तैयारी की Progress</p></div></div><div id="profileBox"></div>
+    </section>
+  </main>
+</div>
+
 <footer class="simple-student-footer"><button id="studentInstallBtn" class="btn btn-purple hidden" onclick="installApp()">⬇ Install App</button></footer>
 </div>
-<script src="student.js?v=12.25.0"></script>
+<script src="student.js?v=12.26.0"></script>
 </body>
 </html>

@@ -1,15 +1,19 @@
 {
   "app": "GK BY PURUSHOTAM SIR GROUP-D APP",
-  "version": "12.25.0",
-  "build": "COMPLETE_FINAL_AUTO_ROLLING_5_DAY_TARGET_CBT_ADMIN_BACK",
-  "base": "V12.24 Complete Final Fixed App",
+  "version": "12.26.0",
+  "build": "COMPLETE_TARGET_ADMIN_LEFT_NAV_PROGRESS_PROFILE_COLORED_BACK",
+  "base": "V12.25 Complete Auto Target",
   "changes": [
     "Complete GitHub package; not a patch-only upload",
-    "Full 3 Aug–31 Dec 2026 target plan is seeded from the supplied Target Batch PDF",
-    "Days 1–5 remain visible initially; after that the five-card window advances automatically with India date",
-    "Each teaching day contains exactly two planned classes; Saturday and Sunday contain Current Affairs",
-    "Student target refreshes automatically when the calendar date changes while the app is open",
-    "CBT Admin has a clearly visible Back to Admin Dashboard button",
-    "Working Student CBT, Admin, PDF, R2 and Cloudflare systems are otherwise unchanged"
+    "All 3 Aug–31 Dec 2026 planned Targets appear in Admin day-by-day and can be edited",
+    "Day 1–5 show immediately; future Targets auto-release on India date",
+    "Admin can choose Auto by Date, Show Now or Hide for every Target/Class",
+    "Class time, YouTube link, duration, status, cancellation and notes remain editable",
+    "Student horizontal tabs replaced with a numbered left-side menu and mobile drawer",
+    "Every Student section has a clearly visible colored Back to Home button",
+    "CBT Student and CBT Admin have bright colored Back buttons",
+    "Registration offers Boy, Girl or Neutral avatar choice",
+    "Profile shows optional Target completion and progress without locking content",
+    "Existing CBT, PDF, Poster, Announcement, R2 and Worker systems are otherwise unchanged"
   ]
 }

@@ -1,15 +1,29 @@
-/* GK BY PURUSHOTAM SIR — V12.25 COMPLETE STUDENT APP + AUTO-ROLLING 5-DAY TARGET */
-let user=null,profile=null,classes=[],materials=[],announcements=[],notificationRows=[],posterRows=[],fiveDayTargets=[];
-let posterUrls=[],posterTimer=null,currentPoster=0,targetDateSnapshot=localDateKey();
+/* GK BY PURUSHOTAM SIR — V12.26 COMPLETE STUDENT APP + LEFT NAV + TARGET PROGRESS PROFILE */
+let user=null,profile=null,classes=[],materials=[],announcements=[],notificationRows=[],posterRows=[],fiveDayTargets=[],releasedTargets=[];
+let targetProgress=new Set(),posterUrls=[],posterTimer=null,currentPoster=0,targetDateSnapshot=localDateKey(),selectedProfileGender="neutral";
 const STUDENT_TABS=['home','targets','classes','classpdfs','otherpdfs','cbt','announcements','notifications','profile'];
 function byId(id){return document.getElementById(id)}
 function localDateKey(date=new Date()){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return `${y}-${m}-${d}`}
 function tab(name,el){
+  if(!STUDENT_TABS.includes(name))name='home';
   STUDENT_TABS.forEach(x=>byId(x+'Tab')?.classList.toggle('hidden',x!==name));
   document.querySelectorAll('.simple-student-nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   if(el)el.classList.add('active');
+  closeStudentMenu();
   if(name==='notifications')markAllNotificationsRead();
+  const url=new URL(location.href);url.searchParams.set('tab',name);history.replaceState({tab:name},'',url);
   window.scrollTo({top:0,behavior:'smooth'});
+}
+function goStudentHome(){tab('home',document.querySelector('.simple-student-nav button[data-tab="home"]'))}
+function toggleStudentMenu(){
+  byId('studentSidebar')?.classList.toggle('open');
+  byId('studentNavScrim')?.classList.toggle('open');
+  document.body.classList.toggle('student-menu-open');
+}
+function closeStudentMenu(){
+  byId('studentSidebar')?.classList.remove('open');
+  byId('studentNavScrim')?.classList.remove('open');
+  document.body.classList.remove('student-menu-open');
 }
 function statusLabel(status){return ({scheduled:'Scheduled',live:'Live Now',completed:'Completed / Recording',cancelled:'Cancelled',time_changed:'Time Changed',partial:'Time Changed'})[status]||status||'Scheduled'}
 function classDateTime(row){
@@ -34,13 +48,13 @@ async function init(){
   if(String(profile?.role||'student').toLowerCase()==='admin'){location.href='q9v3x7k2-r8m4p6t1-z5n7c2w9.html';return}
   if(profile?.is_active===false){await sb.auth.signOut();alert('आपका Student account Admin ने अभी Inactive किया हुआ है।');location.href='index.html';return}
   registerSW();initInstallUI('studentInstallBtn');initPushNotifications();
-  await Promise.all([loadFiveDayTargets(),loadClasses(),loadMaterials(),loadAnnouncements(),loadNotifications(),loadPosters()]);
-  renderProfile();renderHome();
+  await Promise.all([loadFiveDayTargets(),loadReleasedTargetProgress(),loadClasses(),loadMaterials(),loadAnnouncements(),loadNotifications(),loadPosters()]);
+  renderFiveDayTargets();renderProfile();renderHome();
   const requested=new URLSearchParams(location.search).get('tab');if(STUDENT_TABS.includes(requested))tab(requested);else tab('home');
   setInterval(async()=>{
     renderClasses();
     const today=localDateKey();
-    if(today!==targetDateSnapshot){targetDateSnapshot=today;await loadFiveDayTargets()}
+    if(today!==targetDateSnapshot){targetDateSnapshot=today;await Promise.all([loadFiveDayTargets(),loadReleasedTargetProgress()]);renderProfile()}
     renderHome();
   },60000);
   setInterval(()=>{if(document.visibilityState==='visible')loadNotifications()},30000);
@@ -51,6 +65,12 @@ async function loadFiveDayTargets(){
   const r=await sb.rpc('student_list_first_five_targets');
   if(r.error){console.warn(r.error);fiveDayTargets=[];if(host)host.innerHTML=`<div class="student-empty">Target Plan load नहीं हुआ: ${esc(r.error.message)}</div>`;return}
   fiveDayTargets=r.data||[];renderFiveDayTargets();
+}
+async function loadReleasedTargetProgress(){
+  const r=await sb.rpc('student_list_released_target_progress');
+  if(r.error){console.warn('Target progress load failed',r.error);releasedTargets=[];targetProgress=new Set();return}
+  releasedTargets=r.data||[];
+  targetProgress=new Set(releasedTargets.filter(x=>x.completed===true).map(x=>String(x.target_id)));
 }
 function groupFiveDayTargets(){
   const map=new Map();
@@ -63,10 +83,24 @@ function groupFiveDayTargets(){
     .sort((a,b)=>Number(a.day_number)-Number(b.day_number))
     .map(day=>({...day,items:day.items.slice(0,2)}));
 }
+function targetCompleteButton(item){
+  const done=targetProgress.has(String(item.target_id));
+  return `<button class="target-complete-btn ${done?'done':''}" onclick="toggleTargetComplete('${esc(item.target_id)}',${done?'false':'true'})">${done?'✓ पूरा किया':'○ पूरा किया'}</button>`;
+}
 function renderFiveDayTargets(){
   const host=byId('targetsBox');if(!host)return;
   const days=groupFiveDayTargets();
-  host.innerHTML=days.map(day=>`<article class="five-day-card"><div class="five-day-head"><span>DAY ${Number(day.day_number||0)}</span><b>${esc(fmtDate(day.day_date||''))}</b></div>${day.items.length?day.items.map(item=>`<div class="five-day-item"><div><b>${esc(item.subject||'Target')}</b><span>${esc(item.topic||item.class_title||'')}</span></div>${item.youtube_url?`<a class="btn btn-blue btn-mini" href="${esc(item.youtube_url)}" target="_blank" rel="noopener">Class</a>`:''}</div>`).join(''):'<div class="student-empty compact">इस Day का content अभी नहीं जोड़ा गया है।</div>'}</article>`).join('')||'<div class="student-empty">5-Day Target अभी उपलब्ध नहीं है।</div>';
+  host.innerHTML=days.map(day=>`<article class="five-day-card"><div class="five-day-head"><span>DAY ${Number(day.day_number||0)}</span><b>${esc(fmtDate(day.day_date||''))}</b></div>${day.items.length?day.items.map(item=>{const state=item.class_status||'scheduled';const time=item.start_time?classDateTime({day_date:day.day_date,start_time:item.start_time}).time:'Time not set';return `<div class="five-day-item"><div class="five-day-item-copy"><b>${esc(item.subject||'Target')}</b><span>${esc(item.topic||item.class_title||'')}</span><div class="five-day-target-meta"><span class="badge ${classBadge(state)}">${esc(statusLabel(state))}</span><small>⏰ ${esc(time)}</small></div><div class="five-day-item-actions">${item.youtube_url&&state!=='cancelled'?`<a class="btn ${state==='live'?'btn-red':'btn-blue'} btn-mini" href="${esc(item.youtube_url)}" target="_blank" rel="noopener">${state==='live'?'Join Live':'Class देखें'}</a>`:''}${targetCompleteButton(item)}</div></div></div>`}).join(''):'<div class="student-empty compact">इस Day का content अभी नहीं जोड़ा गया है।</div>'}</article>`).join('')||'<div class="student-empty">5-Day Target अभी उपलब्ध नहीं है।</div>';
+}
+async function toggleTargetComplete(targetId,completed){
+  if(!targetId)return;
+  try{
+    const r=await sb.rpc('student_set_target_completed',{p_target_id:targetId,p_completed:completed});
+    if(r.error)throw r.error;
+    await loadReleasedTargetProgress();
+    renderFiveDayTargets();renderProfile();renderHome();
+    toast(completed?'Target Progress में पूरा दर्ज हो गया।':'Target फिर Pending में कर दिया गया।','success');
+  }catch(e){toast(e.message||'Target progress save नहीं हुई।','error')}
 }
 
 async function loadClasses(){
@@ -161,15 +195,91 @@ function renderHome(){
   const latestPdfs=materials.slice(0,4),latestMessage=announcements[0];
   byId('homeBox').innerHTML=`
     ${latestMessage?`<div class="home-important-message"><b>📣 ${esc(latestMessage.title)}</b><p>${esc(latestMessage.message)}</p><button class="btn btn-light btn-mini" onclick="tab('announcements')">सभी संदेश देखें</button></div>`:''}
-    <div class="home-quick-grid"><button onclick="tab('targets')"><span>🎯</span><b>5-Day Target</b><small>${groupFiveDayTargets().length} Days</small></button><button onclick="tab('classes')"><span>▶</span><b>Classes</b><small>${classes.length} available</small></button><button onclick="tab('classpdfs')"><span>📘</span><b>Class PDFs</b><small>${materials.filter(x=>(x.pdf_type||'class')==='class').length} PDFs</small></button><button onclick="tab('otherpdfs')"><span>📄</span><b>Other PDFs</b><small>${materials.filter(x=>x.pdf_type==='direct').length} PDFs</small></button><button onclick="tab('cbt')"><span>🖥</span><b>CBT Tests</b><small>Start Test</small></button></div>
+    <div class="home-quick-grid"><button onclick="tab('targets')"><span>🎯</span><b>5-Day Target</b><small>${groupFiveDayTargets().length} Days</small></button><button onclick="tab('classes')"><span>▶</span><b>Classes</b><small>${classes.length} available</small></button><button onclick="tab('classpdfs')"><span>📘</span><b>Class PDFs</b><small>${materials.filter(x=>(x.pdf_type||'class')==='class').length} PDFs</small></button><button onclick="tab('otherpdfs')"><span>📄</span><b>Other PDFs</b><small>${materials.filter(x=>x.pdf_type==='direct').length} PDFs</small></button><button onclick="tab('cbt')"><span>🖥</span><b>CBT Tests</b><small>Start Test</small></button><button onclick="tab('profile')"><span>👤</span><b>My Progress</b><small>${releasedTargets.filter(x=>x.completed).length}/${releasedTargets.length} Target</small></button></div>
+    <div class="home-block home-progress-mini"><div class="home-block-head"><h2>मेरी Target Progress</h2><button onclick="tab('profile')">Profile देखें</button></div><div class="profile-progress-track"><div style="width:${releasedTargets.length?Math.round(releasedTargets.filter(x=>x.completed).length/releasedTargets.length*100):0}%"></div></div><small>${releasedTargets.filter(x=>x.completed).length} पूरे • ${Math.max(0,releasedTargets.length-releasedTargets.filter(x=>x.completed).length)} बाकी</small></div>
     <div class="home-block"><div class="home-block-head"><h2>5-Day Target</h2><button onclick="tab('targets')">View All</button></div>${groupFiveDayTargets().slice(0,5).map(day=>`<div class="home-row"><div><b>Day ${Number(day.day_number||0)}</b><small>${esc(fmtDate(day.day_date||''))} • ${day.items.length} Target</small></div><span class="badge badge-green">Available</span></div>`).join('')||'<div class="student-empty compact">Target अभी उपलब्ध नहीं है।</div>'}</div>
     <div class="home-block"><div class="home-block-head"><h2>आने वाली Classes</h2><button onclick="tab('classes')">View All</button></div>${upcoming.length?upcoming.map(x=>{const s=effectiveClassStatus(x),dt=classDateTime(x);return `<div class="home-row"><div><b>${esc(x.class_title||x.topic)}</b><small>${esc(fmtDate(dt.date))} • ${esc(dt.time)}</small></div><span class="badge ${classBadge(s)}">${esc(statusLabel(s))}</span></div>`}).join(''):'<div class="student-empty compact">अभी कोई upcoming Class नहीं है।</div>'}</div>
     <div class="home-block"><div class="home-block-head"><h2>नई PDFs</h2></div>${latestPdfs.length?latestPdfs.map(x=>`<div class="home-row"><div><b>${esc(x.title)}</b><small>${(x.pdf_type||'class')==='class'?'Class PDF':'Other PDF'}</small></div><button class="btn btn-blue btn-mini" onclick='readPdf(${JSON.stringify(x.id)},${JSON.stringify(x.storage_path||"")},${JSON.stringify(x.title||"PDF")})'>Open</button></div>`).join(''):'<div class="student-empty compact">अभी कोई PDF नहीं है।</div>'}</div>`;
 }
 
+function avatarPath(gender){
+  return gender==='boy'?'avatar-boy.svg':gender==='girl'?'avatar-girl.svg':'avatar-student.svg';
+}
+function currentTargetRows(){
+  const today=localDateKey();
+  const exact=releasedTargets.filter(x=>String(x.day_date||'')===today);
+  if(exact.length)return exact;
+  const days=[...new Set(releasedTargets.map(x=>Number(x.day_number||0)))].sort((a,b)=>b-a);
+  const latest=days[0]||0;
+  return releasedTargets.filter(x=>Number(x.day_number||0)===latest);
+}
 function renderProfile(){
   const name=profile?.full_name||user?.user_metadata?.full_name||user?.email?.split('@')[0]||'Student';
-  byId('profileBox').innerHTML=`<div class="simple-profile-card"><div class="simple-profile-avatar">${esc(name.slice(0,1).toUpperCase())}</div><h2>${esc(name)}</h2><p>${esc(user?.email||'')}</p><p>${esc(profile?.phone||'Mobile not added')}</p><div class="profile-simple-actions"><button class="btn btn-blue" onclick="sendPasswordReset()">Reset Password</button><button class="btn btn-purple" onclick="enablePushNotifications()">Enable Notifications</button><button class="btn btn-red" onclick="logout()">Logout</button></div></div>`;
+  const gender=profile?.gender||user?.user_metadata?.gender||'neutral';
+  selectedProfileGender=gender;
+  const total=releasedTargets.length;
+  const completed=releasedTargets.filter(x=>x.completed===true).length;
+  const pending=Math.max(0,total-completed);
+  const percent=total?Math.round((completed/total)*100):0;
+  const todayRows=currentTargetRows();
+  const currentDay=todayRows[0]?.day_number||groupFiveDayTargets().at(-1)?.day_number||1;
+  const nextDay=groupFiveDayTargets().find(x=>String(x.day_date||'')>localDateKey());
+  byId('profileBox').innerHTML=`
+  <div class="student-progress-profile">
+    <section class="profile-hero">
+      <div class="profile-avatar-ring"><img src="${avatarPath(gender)}" alt="Student Avatar"></div>
+      <div class="profile-identity"><span>GROUP-D TARGET BATCH</span><h2>${esc(name)}</h2><p>${esc(user?.email||'')}</p><p>${esc(profile?.phone||'Mobile not added')}</p></div>
+      <button class="profile-edit-btn" onclick="toggleProfileEditor()">✎ Avatar बदलें</button>
+    </section>
+
+    <section class="profile-stat-grid">
+      <article><span>आज / Current Day</span><b>Day ${Number(currentDay||1)}</b></article>
+      <article><span>Released Targets</span><b>${total}</b></article>
+      <article class="good"><span>पूरा किया</span><b>${completed}</b></article>
+      <article class="pending"><span>बाकी Targets</span><b>${pending}</b></article>
+    </section>
+
+    <section class="profile-progress-card">
+      <div class="profile-progress-head"><div><span>आपकी Target Progress</span><b>${percent}%</b></div><small>${completed} पूरे • ${pending} बाकी</small></div>
+      <div class="profile-progress-track"><div style="width:${percent}%"></div></div>
+      <p>${pending?`आपके ${pending} Target अभी बाकी हैं। उन्हें अपनी सुविधा से पूरा कर सकते हैं।`:'बहुत बढ़िया! अभी जारी सभी Targets पूरे हैं।'}</p>
+    </section>
+
+    <section class="profile-today-card">
+      <div class="profile-block-title"><div><span>🎯</span><div><b>${todayRows.some(x=>String(x.day_date)===localDateKey())?'आज का Target':'वर्तमान Target'}</b><small>${todayRows[0]?.day_date?fmtDate(todayRows[0].day_date):'Target जारी होने पर यहाँ दिखेगा'}</small></div></div>${nextDay?`<span class="profile-next-day">Next: Day ${Number(nextDay.day_number)}</span>`:''}</div>
+      <div class="profile-target-list">${todayRows.length?todayRows.map(x=>`<div><span><b>${esc(x.subject||'Target')}</b><small>${esc(x.topic||x.class_title||'')}</small></span><button class="target-complete-btn ${x.completed?'done':''}" onclick="toggleTargetComplete('${esc(x.target_id)}',${x.completed?'false':'true'})">${x.completed?'✓ पूरा':'○ बाकी'}</button></div>`).join(''):'<div class="student-empty compact">आज का Target अभी जारी नहीं हुआ है।</div>'}</div>
+    </section>
+
+    <section id="profileEditor" class="profile-avatar-editor hidden">
+      <h3>अपना Avatar चुनें</h3>
+      <p>यह केवल Avatar के लिए है। “बताना नहीं चाहते” चुनने पर सामान्य Student Avatar रहेगा।</p>
+      <div class="profile-avatar-options">
+        <button class="${gender==='boy'?'selected':''}" data-gender="boy" onclick="chooseProfileGender('boy',this)"><img src="avatar-boy.svg" alt=""><b>Boy</b></button>
+        <button class="${gender==='girl'?'selected':''}" data-gender="girl" onclick="chooseProfileGender('girl',this)"><img src="avatar-girl.svg" alt=""><b>Girl</b></button>
+        <button class="${gender==='neutral'?'selected':''}" data-gender="neutral" onclick="chooseProfileGender('neutral',this)"><img src="avatar-student.svg" alt=""><b>सामान्य</b></button>
+      </div>
+      <button class="btn btn-green full-btn" onclick="saveProfileGender()">Save Avatar</button>
+    </section>
+
+    <section class="profile-action-grid">
+      <button class="btn btn-blue" onclick="sendPasswordReset()">Reset Password</button>
+      <button class="btn btn-purple" onclick="enablePushNotifications()">Enable Notifications</button>
+      <button class="btn btn-red" onclick="logout()">Logout</button>
+    </section>
+  </div>`;
+}
+function toggleProfileEditor(){byId('profileEditor')?.classList.toggle('hidden')}
+function chooseProfileGender(gender,el){
+  selectedProfileGender=['boy','girl','neutral'].includes(gender)?gender:'neutral';
+  document.querySelectorAll('.profile-avatar-options button').forEach(x=>x.classList.toggle('selected',x===el));
+}
+async function saveProfileGender(){
+  try{
+    const r=await sb.rpc('student_update_avatar_gender',{p_gender:selectedProfileGender});
+    if(r.error)throw r.error;
+    profile={...(profile||{}),gender:selectedProfileGender};
+    renderProfile();toast('Avatar update हो गया।','success');
+  }catch(e){toast(e.message||'Avatar save नहीं हुआ।','error')}
 }
 async function sendPasswordReset(){try{const redirectTo=new URL('./s4n8v2k7-r1p6x9m3-c5t8q4z2.html',location.href).href;const r=await sb.auth.resetPasswordForEmail(user.email,{redirectTo});if(r.error)throw r.error;toast('Password Reset Link Email पर भेज दिया गया।','success')}catch(e){toast(e.message||'Reset link नहीं भेजा गया।','error')}}
 

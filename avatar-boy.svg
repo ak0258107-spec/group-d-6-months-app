@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Boy student avatar">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dbeafe"/><stop offset="1" stop-color="#bfdbfe"/></linearGradient><linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1d4ed8"/><stop offset="1" stop-color="#0f3b8f"/></linearGradient></defs>
+<rect width="256" height="256" rx="48" fill="url(#bg)"/>
+<circle cx="128" cy="100" r="58" fill="#f4c59e"/>
+<path d="M70 93c2-43 27-66 61-66 35 0 58 24 58 61-17-8-30-22-38-37-18 21-44 35-81 42z" fill="#222b3a"/>
+<path d="M85 100c-8 0-14 7-14 16s6 16 15 16M171 100c8 0 14 7 14 16s-6 16-15 16" fill="none" stroke="#f4c59e" stroke-width="12" stroke-linecap="round"/>
+<circle cx="106" cy="105" r="5" fill="#263238"/><circle cx="150" cy="105" r="5" fill="#263238"/>
+<path d="M111 132c10 9 24 9 34 0" fill="none" stroke="#a64b45" stroke-width="5" stroke-linecap="round"/>
+<path d="M48 256c4-58 34-91 80-91s76 33 80 91z" fill="url(#shirt)"/>
+<path d="M104 166l24 28 24-28" fill="#fff"/><path d="M128 194v62" stroke="#facc15" stroke-width="8"/>
+<circle cx="128" cy="217" r="7" fill="#fff"/>
+</svg>

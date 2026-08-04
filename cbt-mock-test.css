@@ -1559,3 +1559,8 @@ body::before {
 .pdf-download-type-card.zip-card small{background:#b45309}
 .cbt-pdf-render-holder{font-family:Arial,"Nirmala UI",sans-serif}
 @media(max-width:640px){.pdf-choice-grid,.pdf-download-type-grid{grid-template-columns:1fr}.pdf-download-type-card{min-height:125px}}
+
+/* V12.26 clearly visible Student Home back button */
+.cbt-student-back-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#ff7a00,#d62828);color:#fff!important;border:2px solid #fff;border-radius:12px;padding:10px 16px;font-weight:1000;text-decoration:none;box-shadow:0 7px 18px rgba(104,22,0,.34);white-space:nowrap}
+.cbt-student-back-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+@media(max-width:650px){.app-header{align-items:center;gap:8px}.cbt-student-back-btn{padding:8px 10px;font-size:12px}.brand-subtitle{font-size:9px}}

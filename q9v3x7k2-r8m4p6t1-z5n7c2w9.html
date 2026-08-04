@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin Panel | GK BY PURUSHOTAM SIR</title>
-<link rel="stylesheet" href="styles.css?v=12.25.0"><link rel="stylesheet" href="simple-v1220.css?v=12.25.0">
+<link rel="stylesheet" href="styles.css?v=12.26.0"><link rel="stylesheet" href="simple-v1220.css?v=12.26.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=12.25.0"></script><script src="common.js?v=12.25.0"></script>
+<script src="config.js?v=12.26.0"></script><script src="common.js?v=12.26.0"></script>
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="favicon.png"><meta name="theme-color" content="#8b0000">
 <style id="adminGateCriticalV1220">
 html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-height:100dvh!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important}body.admin-security-pending .admin-shell{display:none!important}body.admin-authorized .admin-shell{display:grid!important}body.admin-security-pending .admin-gate-overlay{position:relative!important;inset:auto!important;width:100%!important;min-height:100dvh!important;height:auto!important;display:block!important;overflow:visible!important;padding:16px 12px 56px!important}body.admin-security-pending .admin-gate-card{width:min(460px,calc(100vw - 24px))!important;max-width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;margin:0 auto!important;padding:20px!important}body.admin-security-pending .admin-mfa-qr img,body.admin-security-pending .admin-mfa-qr svg{width:min(180px,48vw)!important;height:auto!important}
@@ -27,7 +27,7 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
 <nav class="sidebar simple-sidebar">
   <div class="logo">GK BY PURUSHOTAM SIR<small>SIMPLE CONTROL PANEL</small></div>
   <a class="active" onclick="tab('dashboard',this)">▣ Dashboard</a>
-  <a onclick="tab('classes',this)">▶ YouTube Classes</a>
+  <a onclick="tab('classes',this)">🎯 Daily Targets & Classes</a>
   <a onclick="tab('classpdfs',this)">📘 Class PDFs</a>
   <a onclick="tab('otherpdfs',this)">📄 Other PDFs</a>
   <a href="cbt-admin.html">🖥 CBT Question Bank</a>
@@ -39,29 +39,45 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
 </nav>
 <main class="main simple-admin-main">
 <section id="dashboardTab">
-  <div class="admin-head"><div><span class="simple-kicker">LIGHTWEIGHT APP CONTROL</span><h1>Simple Admin Dashboard</h1><div class="muted">Class, PDF, CBT और सूचना — केवल जरूरी चीजें</div></div><div id="todayDate"></div></div>
+  <div class="admin-head"><div><span class="simple-kicker">LIGHTWEIGHT APP CONTROL</span><h1>Simple Admin Dashboard</h1><div class="muted">पूरा Target Plan, Class Timing, PDF, CBT और सूचना — सब पर आपका Control</div></div><div id="todayDate"></div></div>
   <div id="kpis" class="grid"></div>
-  <div class="simple-flow-row"><div><b>1</b><span>YouTube Class</span></div><div><b>2</b><span>Class PDF</span></div><div><b>3</b><span>Other PDF</span></div><div><b>4</b><span>CBT Test</span></div></div>
-  <div class="card simple-note"><b>सीधा नियम:</b> जिस content पर <b>Show to Students</b> ON करके Save करेंगे, वही विद्यार्थियों को दिखाई देगा। Verification, Daily Submit और PDF Unlock system हटाया गया है।</div>
+  <div class="simple-flow-row"><div><b>1</b><span>Daily Target</span></div><div><b>2</b><span>YouTube Class</span></div><div><b>3</b><span>Class / Other PDF</span></div><div><b>4</b><span>CBT Test</span></div></div>
+  <div class="card simple-note"><b>Target नियम:</b> Day 1–5 तुरंत दिखाई देंगे। आगे का Target उसकी तारीख पर अपने-आप खुलेगा। आप किसी भी Target को <b>Show Now, Auto by Date या Hide</b> कर सकते हैं। Verification और Daily Submit हटे हुए हैं।</div>
 </section>
 
 <section id="classesTab" class="hidden">
-  <div class="admin-head"><div><h1>YouTube Classes</h1><div class="muted">Class का दिन, समय, status और link एक ही जगह manage करें</div></div><button class="btn btn-light" onclick="resetClassForm()">＋ New Class</button></div>
-  <div class="grid">
+  <div class="admin-head target-admin-head">
+    <div><span class="simple-kicker">FULL 3 AUG – 31 DEC PLAN</span><h1>Daily Target & Class Schedule</h1><div class="muted">पूरे Target Plan में Day चुनें, Class timing/link/status Edit करें और Student visibility control करें</div></div>
+    <button class="btn btn-light" onclick="resetClassForm()">＋ Extra Class जोड़ें</button>
+  </div>
+
+  <div class="target-admin-toolbar card">
+    <button class="btn btn-light btn-mini" onclick="changeClassDay(-1)">← पिछला Day</button>
+    <div class="target-admin-day-select"><label>Target Day / Date</label><select id="classDay" onchange="onClassDayChange()"></select></div>
+    <button class="btn btn-blue btn-mini" onclick="selectSuggestedDay('today')">आज</button>
+    <button class="btn btn-light btn-mini" onclick="selectSuggestedDay('next')">अगला Day</button>
+    <button class="btn btn-light btn-mini" onclick="changeClassDay(1)">अगला Day →</button>
+  </div>
+  <div id="classPlanSummary" class="target-plan-summary"></div>
+
+  <div class="grid target-admin-grid">
     <div class="card span-5 simple-form-card">
+      <div class="target-form-title"><div><b id="classFormHeading">Target / Class Edit</b><small>Right side से Edit दबाएँ या Extra Class जोड़ें</small></div><button class="btn btn-light btn-mini" onclick="resetClassForm()">Reset</button></div>
       <input id="classId" type="hidden">
-      <label>Class Day / Date</label><div class="smart-pick-row"><select id="classDay"></select><button class="btn btn-blue btn-mini" onclick="selectSuggestedDay('today')">आज</button><button class="btn btn-light btn-mini" onclick="selectSuggestedDay('next')">अगला Day</button></div>
-      <label>Class Title</label><input id="classTitle" placeholder="जैसे: हरियाणा का परिचय — Class 01">
-      <div class="two-col"><div><label>Subject</label><input id="classSubject" placeholder="हरियाणा GK"></div><div><label>Topic</label><input id="classTopic" placeholder="हरियाणा का परिचय"></div></div>
+      <label>Class Title</label><input id="classTitle" placeholder="जैसे: हरियाणा का परिचय एवं नामकरण">
+      <div class="two-col"><div><label>Subject</label><input id="classSubject" placeholder="हरियाणा GK"></div><div><label>Topic</label><input id="classTopic" placeholder="हरियाणा का परिचय एवं नामकरण"></div></div>
       <label>YouTube Link</label><input id="classYoutube" type="url" placeholder="https://youtube.com/...">
       <div class="three-col"><div><label>Start Time</label><input id="classStartTime" type="time"></div><div><label>Duration (Minutes)</label><input id="classDuration" type="number" min="1" max="600" value="60"></div><div><label>Class Type</label><select id="classType"><option value="live">Live Class</option><option value="recorded">Recorded Class</option></select></div></div>
-      <label>Class Status</label><select id="classStatus"><option value="scheduled">Scheduled</option><option value="live">Live Now</option><option value="completed">Completed / Recording</option><option value="time_changed">Time Changed</option><option value="cancelled">Cancelled</option></select>
-      <label>Short Note (Optional)</label><textarea id="classNote" rows="3" placeholder="आज की class का जरूरी संदेश"></textarea>
-      <label class="simple-toggle"><input id="classVisible" type="checkbox" checked><span>Show to Students</span></label>
+      <div class="two-col"><div><label>Class Status</label><select id="classStatus"><option value="scheduled">Scheduled</option><option value="live">Live Now</option><option value="completed">Completed / Recording</option><option value="time_changed">Time Changed</option><option value="cancelled">Cancelled</option></select></div><div><label>Student Visibility</label><select id="classVisibilityMode"><option value="auto">Auto — तारीख पर Show</option><option value="show">Show Now</option><option value="hide">Hide from Students</option></select></div></div>
+      <label>Short Note (Optional)</label><textarea id="classNote" rows="3" placeholder="Class cancelled, timing changed या जरूरी संदेश"></textarea>
       <label class="simple-toggle"><input id="classNotify" type="checkbox" checked><span>Save होने पर विद्यार्थियों को सूचना भेजें</span></label>
-      <button id="saveClassBtn" class="btn btn-green full-btn" onclick="saveClass()">Save Class</button>
+      <button id="saveClassBtn" class="btn btn-green full-btn" onclick="saveClass()">Save Target / Class</button>
     </div>
-    <div class="card span-7"><div class="list-head"><h2>Saved Classes</h2><button class="btn btn-light btn-mini" onclick="loadClasses()">↻ Refresh</button></div><div id="classesList" class="list"></div></div>
+
+    <div class="card span-7">
+      <div class="list-head"><div><h2 id="classesListHeading">Selected Day Targets</h2><small class="muted">हर Teaching Day में 2 planned Classes; Saturday/Sunday Current Affairs</small></div><button class="btn btn-light btn-mini" onclick="loadClasses()">↻ Refresh</button></div>
+      <div id="classesList" class="list"></div>
+    </div>
   </div>
 </section>
 
@@ -135,6 +151,6 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
 </section>
 </main>
 </div>
-<script src="admin.js?v=12.25.0"></script>
+<script src="admin.js?v=12.26.0"></script>
 </body>
 </html>

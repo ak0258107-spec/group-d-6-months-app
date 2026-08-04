@@ -276,33 +276,62 @@ async function loadDays(){
   byId('classDay').innerHTML=opts||'<option value="">कोई Day नहीं मिला</option>';
   selectSuggestedDay('today',false);
 }
+function selectedScheduleDay(){return days.find(d=>String(d.id)===String(byId('classDay')?.value||''))||null}
 function selectSuggestedDay(mode,notify=true){
   const select=byId('classDay');if(!select||!days.length)return;
   const today=localDateKey();
   let selected=mode==='next'?days.find(d=>String(d.day_date)>today):days.find(d=>String(d.day_date)===today);
   if(!selected)selected=mode==='next'?days.find(d=>String(d.day_date)>=today):days[0];
   if(selected)select.value=selected.id;
+  onClassDayChange(false);
   if(notify)toast(mode==='next'?'अगला उपलब्ध Day चुन लिया गया।':'आज का Day चुन लिया गया।','success');
+}
+function changeClassDay(delta){
+  const select=byId('classDay');if(!select||!days.length)return;
+  const index=Math.max(0,days.findIndex(d=>String(d.id)===String(select.value)));
+  const next=Math.min(days.length-1,Math.max(0,index+Number(delta||0)));
+  select.value=days[next].id;onClassDayChange();
+}
+function onClassDayChange(scroll=true){
+  const day=selectedScheduleDay();
+  renderClasses();
+  if(byId('classesListHeading'))byId('classesListHeading').textContent=day?`Day ${day.day_number} — ${fmtDate(day.day_date)}`:'Selected Day Targets';
+  renderClassPlanSummary();
+  if(scroll&&window.innerWidth<780)byId('classesList')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 async function loadDashboard(){
   const [studentR,classR,pdfR]=await Promise.all([
     sb.from('profiles').select('id',{count:'exact',head:true}).eq('role','student'),
-    sb.from('daily_targets').select('id',{count:'exact',head:true}).eq('status','published').eq('simple_class_enabled',true).eq('student_visible',true),
+    sb.from('daily_targets').select('id',{count:'exact',head:true}).eq('status','published').eq('simple_class_enabled',true),
     sb.from('study_materials').select('id,pdf_type,student_visible').eq('status','published')
   ]);
   const pdfRows=pdfR.data||[];
   byId('kpis').innerHTML=`
     <div class="kpi-card kpi-blue span-3"><div class="muted">Students</div><div class="kpi">${Number(studentR.count||0)}</div></div>
-    <div class="kpi-card kpi-red span-3"><div class="muted">Live Classes</div><div class="kpi">${Number(classR.count||0)}</div></div>
+    <div class="kpi-card kpi-red span-3"><div class="muted">Target Classes</div><div class="kpi">${Number(classR.count||0)}</div></div>
     <div class="kpi-card kpi-green span-3"><div class="muted">Class PDFs</div><div class="kpi">${pdfRows.filter(x=>(x.pdf_type||'class')==='class'&&x.student_visible).length}</div></div>
     <div class="kpi-card kpi-purple span-3"><div class="muted">Other PDFs</div><div class="kpi">${pdfRows.filter(x=>x.pdf_type==='direct'&&x.student_visible).length}</div></div>`;
 }
 
+function visibilityModeLabel(mode){
+  return mode==='show'?'Show Now':mode==='hide'?'Hidden':'Auto by Date';
+}
+function visibilityModeClass(mode){
+  return mode==='show'?'badge-green':mode==='hide'?'badge-gray':'badge-blue';
+}
+function isClassCurrentlyVisible(row){
+  const mode=row.visibility_mode||'auto';
+  if(mode==='show')return true;
+  if(mode==='hide')return false;
+  const day=row.schedule_days||selectedScheduleDay()||{};
+  return Number(day.day_number||0)<=5||String(day.day_date||'')<=localDateKey();
+}
 function resetClassForm(){
-  byId('classId').value='';byId('classTitle').value='';byId('classSubject').value='';byId('classTopic').value='';byId('classYoutube').value='';byId('classStartTime').value='';byId('classDuration').value='60';byId('classType').value='live';byId('classStatus').value='scheduled';byId('classNote').value='';byId('classVisible').checked=true;byId('classNotify').checked=true;selectSuggestedDay('today',false);byId('saveClassBtn').textContent='Save Class';
+  byId('classId').value='';byId('classTitle').value='';byId('classSubject').value='';byId('classTopic').value='';byId('classYoutube').value='';byId('classStartTime').value='';byId('classDuration').value='60';byId('classType').value='live';byId('classStatus').value='scheduled';byId('classNote').value='';byId('classVisibilityMode').value='auto';byId('classNotify').checked=true;byId('saveClassBtn').textContent='Save Target / Class';if(byId('classFormHeading'))byId('classFormHeading').textContent='Extra Class जोड़ें / Target Edit';
 }
 async function saveClass(){
+  const visibilityMode=byId('classVisibilityMode').value;
   const payload={
     p_class_id:byId('classId').value||null,
     p_schedule_day_id:byId('classDay').value||null,
@@ -315,49 +344,70 @@ async function saveClass(){
     p_class_type:byId('classType').value,
     p_class_status:byId('classStatus').value,
     p_class_note:byId('classNote').value.trim()||null,
-    p_student_visible:byId('classVisible').checked
+    p_visibility_mode:visibilityMode
   };
   if(!payload.p_schedule_day_id||!payload.p_class_title||!payload.p_subject||!payload.p_topic){toast('Day, Class Title, Subject और Topic जरूरी हैं।','error');return}
   const btn=byId('saveClassBtn'),old=btn.textContent;btn.disabled=true;btn.textContent='Saving...';
   try{
-    const r=await sb.rpc('admin_save_simple_class',payload);
+    const r=await sb.rpc('admin_save_target_class_v1226',payload);
     if(r.error)throw r.error;
     const saved=r.data;
-    if(payload.p_student_visible&&byId('classNotify').checked){
+    if(visibilityMode!=='hide'&&byId('classNotify').checked){
       const day=days.find(d=>String(d.id)===String(payload.p_schedule_day_id));
+      const status=payload.p_class_status==='cancelled'?'Class Cancelled':payload.p_class_status==='time_changed'?'Class Time Changed':'▶ Class Update';
       const msg=`${payload.p_class_title} • ${fmtDate(day?.day_date||'')} • ${classTimeLabel({start_time:payload.p_start_time,class_type:payload.p_class_type})}`;
-      await createGlobalNotification(payload.p_class_status==='cancelled'?'Class Cancelled':'▶ Class Update',msg,'class',saved?.id||payload.p_class_id);
+      await createGlobalNotification(status,msg,'class',saved?.id||payload.p_class_id);
     }
-    toast('Class save हो गई।','success');resetClassForm();await Promise.all([loadClasses(),loadDashboard()]);
-  }catch(e){toast(e.message||'Class save नहीं हुई।','error')}
+    toast('Target / Class save हो गई।','success');resetClassForm();await Promise.all([loadClasses(),loadDashboard()]);
+  }catch(e){toast(e.message||'Target / Class save नहीं हुई।','error')}
   finally{btn.disabled=false;btn.textContent=old}
 }
 function editClass(id){
   const x=classes.find(c=>String(c.id)===String(id));if(!x)return;
-  byId('classId').value=x.id;byId('classDay').value=x.schedule_day_id||'';byId('classTitle').value=x.class_title||x.topic||'';byId('classSubject').value=x.subject||'';byId('classTopic').value=x.topic||'';byId('classYoutube').value=x.youtube_url||'';byId('classStartTime').value=String(x.start_time||'').slice(0,5);byId('classDuration').value=Number(x.duration_minutes||60);byId('classType').value=x.class_type||'live';byId('classStatus').value=x.class_status==='partial'?'time_changed':(x.class_status||'scheduled');byId('classNote').value=x.class_note||'';byId('classVisible').checked=x.student_visible===true;byId('classNotify').checked=false;byId('saveClassBtn').textContent='Update Class';window.scrollTo({top:0,behavior:'smooth'});
+  byId('classId').value=x.id;byId('classDay').value=x.schedule_day_id||'';byId('classTitle').value=x.class_title||x.topic||'';byId('classSubject').value=x.subject||'';byId('classTopic').value=x.topic||'';byId('classYoutube').value=x.youtube_url||'';byId('classStartTime').value=String(x.start_time||'').slice(0,5);byId('classDuration').value=Number(x.duration_minutes||60);byId('classType').value=x.class_type||'live';byId('classStatus').value=x.class_status==='partial'?'time_changed':(x.class_status||'scheduled');byId('classNote').value=x.class_note||'';byId('classVisibilityMode').value=x.visibility_mode||'auto';byId('classNotify').checked=false;byId('saveClassBtn').textContent='Update Target / Class';if(byId('classFormHeading'))byId('classFormHeading').textContent=`Edit: Day ${x.schedule_days?.day_number||'-'} • Class ${x.target_order||'-'}`;onClassDayChange(false);window.scrollTo({top:0,behavior:'smooth'});
 }
 async function saveClassVisibility(id){
-  const visible=byId('classVisible_'+id)?.checked===true;
-  const r=await sb.rpc('admin_set_simple_class_visibility',{p_class_id:id,p_visible:visible});
+  const mode=byId('classMode_'+id)?.value||'auto';
+  const r=await sb.rpc('admin_set_target_visibility_mode_v1226',{p_class_id:id,p_mode:mode});
   if(r.error){toast(r.error.message,'error');return}
-  toast(visible?'Class Students को दिखाई देगी।':'Class hide कर दी गई।','success');await Promise.all([loadClasses(),loadDashboard()]);
+  toast(mode==='show'?'Target अभी Students को दिखेगा।':mode==='hide'?'Target Students से hide कर दिया गया।':'Target अपनी तारीख पर अपने-आप दिखेगा।','success');
+  await Promise.all([loadClasses(),loadDashboard()]);
 }
 async function deleteClass(id){
-  if(!(await adminConfirmDelete('यह Class delete करनी है? उससे linked Class PDFs Other PDF में नहीं जाएँगी; वे unlinked हो सकती हैं।')))return;
+  const row=classes.find(x=>String(x.id)===String(id));
+  if(row&&row.is_extra_class===false){toast('Planned Target delete नहीं होगा। जरूरत हो तो Hide करें या Edit करें।','error');return}
+  if(!(await adminConfirmDelete('यह Extra Class delete करनी है?')))return;
   const r=await sb.rpc('admin_delete_simple_class',{p_class_id:id});
   if(r.error){toast(r.error.message,'error');return}
-  toast('Class delete हो गई।','success');await Promise.all([loadClasses(),loadMaterials(),loadDashboard()]);
+  toast('Extra Class delete हो गई।','success');await Promise.all([loadClasses(),loadMaterials(),loadDashboard()]);
+}
+function renderClassPlanSummary(){
+  const host=byId('classPlanSummary');if(!host)return;
+  const day=selectedScheduleDay();
+  if(!day){host.innerHTML='';return}
+  const rows=classes.filter(x=>String(x.schedule_day_id)===String(day.id)).sort((a,b)=>Number(a.target_order||0)-Number(b.target_order||0));
+  const visible=rows.filter(isClassCurrentlyVisible).length;
+  const planType=rows.length===1&&String(rows[0]?.subject||'').includes('करंट')?'Current Affairs':`${rows.filter(x=>x.is_extra_class===false).length} Planned Class`;
+  host.innerHTML=`<article><span>Selected Day</span><b>Day ${day.day_number}</b><small>${fmtDate(day.day_date)}</small></article><article><span>Plan</span><b>${planType}</b><small>${rows.length} total item</small></article><article><span>Student Status</span><b>${visible} Visible</b><small>${rows.length-visible} hidden / future</small></article><article><span>Auto Release</span><b>${String(day.day_date)<=localDateKey()||Number(day.day_number)<=5?'Released':'Scheduled'}</b><small>${Number(day.day_number)<=5?'First 5 immediate':'Date: '+fmtDate(day.day_date)}</small></article>`;
+}
+function renderClasses(){
+  const host=byId('classesList');if(!host)return;
+  const day=selectedScheduleDay();
+  const rows=classes.filter(x=>!day||String(x.schedule_day_id)===String(day.id)).sort((a,b)=>Number(a.target_order||0)-Number(b.target_order||0));
+  host.innerHTML=rows.map(x=>`<article class="simple-content-card target-class-card">
+    <div class="target-order-badge">${x.is_extra_class===false?`CLASS ${Number(x.target_order||1)}`:'EXTRA'}</div>
+    <div class="simple-card-main"><div class="simple-card-top"><span class="badge ${statusClass(x.class_status)}">${esc(statusLabel(x.class_status))}</span><span class="badge ${visibilityModeClass(x.visibility_mode||'auto')}">${esc(visibilityModeLabel(x.visibility_mode||'auto'))}</span><span class="badge ${isClassCurrentlyVisible(x)?'badge-green':'badge-gray'}">${isClassCurrentlyVisible(x)?'Student Visible':'Not Visible Yet'}</span></div>
+    <h3>${esc(x.class_title||x.topic||'Class')}</h3><p><b>${esc(x.subject||'')}</b> • ${esc(x.topic||'')}</p><p>📅 ${esc(classDayLabel(x))} • ⏰ ${esc(classTimeLabel(x))} • ${Number(x.duration_minutes||60)} मिनट</p>${x.youtube_url?'<p class="small">✓ YouTube Link added</p>':'<p class="small text-error">YouTube Link अभी नहीं जोड़ा गया</p>'}${x.class_note?`<p class="student-note">${esc(x.class_note)}</p>`:''}</div>
+    <div class="simple-card-actions target-card-actions"><select id="classMode_${x.id}" class="mini-select"><option value="auto" ${(x.visibility_mode||'auto')==='auto'?'selected':''}>Auto by Date</option><option value="show" ${x.visibility_mode==='show'?'selected':''}>Show Now</option><option value="hide" ${x.visibility_mode==='hide'?'selected':''}>Hide</option></select><button class="btn btn-blue btn-mini" onclick="saveClassVisibility('${x.id}')">Save Visibility</button><button class="btn btn-light btn-mini" onclick="editClass('${x.id}')">Edit</button>${x.is_extra_class!==false?`<button class="btn btn-red btn-mini" onclick="deleteClass('${x.id}')">Delete</button>`:''}</div>
+  </article>`).join('')||'<div class="item">इस Day का Target अभी नहीं मिला। V12.26 SQL एक बार चलाएँ।</div>';
+  renderClassPlanSummary();
 }
 async function loadClasses(){
   const r=await sb.from('daily_targets').select('*,schedule_days(day_number,day_date)').eq('status','published').eq('simple_class_enabled',true).order('schedule_day_id').order('target_order');
   const host=byId('classesList');if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}</div>`;return}
   classes=r.data||[];
   byId('classPdfTarget').innerHTML='<option value="">Class चुनें</option>'+classes.map(x=>`<option value="${x.id}">${esc(classDayLabel(x))} — ${esc(x.class_title||x.topic||'Class')}</option>`).join('');
-  host.innerHTML=classes.map(x=>`<article class="simple-content-card">
-    <div class="simple-card-main"><div class="simple-card-top"><span class="badge ${statusClass(x.class_status)}">${esc(statusLabel(x.class_status))}</span><span class="badge ${x.student_visible?'badge-green':'badge-gray'}">${x.student_visible?'Student Visible':'Hidden'}</span></div>
-    <h3>${esc(x.class_title||x.topic||'Class')}</h3><p>${esc(x.subject||'')} • ${esc(x.topic||'')}</p><p>📅 ${esc(classDayLabel(x))} • ⏰ ${esc(classTimeLabel(x))} • ${Number(x.duration_minutes||60)} मिनट</p>${x.class_note?`<p class="small">${esc(x.class_note)}</p>`:''}</div>
-    <div class="simple-card-actions"><label class="simple-toggle compact"><input id="classVisible_${x.id}" type="checkbox" ${x.student_visible?'checked':''}><span>Show</span></label><button class="btn btn-blue btn-mini" onclick="saveClassVisibility('${x.id}')">Save</button><button class="btn btn-light btn-mini" onclick="editClass('${x.id}')">Edit</button><button class="btn btn-red btn-mini" onclick="deleteClass('${x.id}')">Delete</button></div>
-  </article>`).join('')||'<div class="item">अभी कोई Class नहीं है।</div>';
+  renderClasses();
 }
 
 function resetPdfForm(type){
