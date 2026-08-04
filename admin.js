@@ -229,6 +229,8 @@ async function guard(){
    V12.20 SIMPLE APP — केवल Class, PDFs, CBT, Poster और Announcement
    ===================================================================== */
 let adminUser=null,days=[],students=[],classes=[],materials=[],posters=[];
+let adminTargetDateKey='';
+let adminTargetDateTimer=null;
 const ADMIN_TABS=['dashboard','classes','classpdfs','otherpdfs','posters','announcements','students'];
 
 function byId(id){return document.getElementById(id)}
@@ -258,6 +260,51 @@ function classTimeLabel(row){
 }
 function statusLabel(status){return ({scheduled:'Scheduled',live:'Live Now',completed:'Completed',cancelled:'Cancelled',time_changed:'Time Changed',partial:'Time Changed'})[status]||status||'Scheduled'}
 function statusClass(status){return status==='live'?'badge-red':status==='completed'?'badge-green':status==='cancelled'?'badge-gray':status==='time_changed'||status==='partial'?'badge-orange':'badge-blue'}
+function targetDayDate(row){return String(row?.schedule_days?.day_date||'9999-12-31')}
+function targetDayNumber(row){return Number(row?.schedule_days?.day_number||999999)}
+function targetOrderNumber(row){return Number(row?.target_order||999)}
+function compareTargetRows(a,b){
+  return targetDayDate(a).localeCompare(targetDayDate(b))
+    ||targetDayNumber(a)-targetDayNumber(b)
+    ||targetOrderNumber(a)-targetOrderNumber(b)
+    ||String(a?.class_title||a?.topic||'').localeCompare(String(b?.class_title||b?.topic||''),'hi');
+}
+function rowBelongsToDay(row,day){
+  if(!day)return true;
+  const rowScheduleId=String(row?.schedule_day_id||'');
+  const selectedScheduleId=String(day?.id||'');
+  if(rowScheduleId&&selectedScheduleId)return rowScheduleId===selectedScheduleId;
+  const rowDate=String(row?.schedule_days?.day_date||'');
+  const selectedDate=String(day?.day_date||'');
+  if(rowDate&&selectedDate)return rowDate===selectedDate;
+  const rowNumber=Number(row?.schedule_days?.day_number);
+  const selectedNumber=Number(day?.day_number);
+  return Number.isFinite(rowNumber)&&Number.isFinite(selectedNumber)&&rowNumber===selectedNumber;
+}
+function rowsForScheduleDay(day=selectedScheduleDay()){
+  return classes.filter(row=>rowBelongsToDay(row,day)).sort(compareTargetRows);
+}
+function startAdminTargetDateSync(){
+  adminTargetDateKey=localDateKey();
+  if(adminTargetDateTimer)clearInterval(adminTargetDateTimer);
+  adminTargetDateTimer=setInterval(async()=>{
+    const nextKey=localDateKey();
+    if(nextKey===adminTargetDateKey)return;
+    adminTargetDateKey=nextKey;
+    selectSuggestedDay('today',false);
+    await loadClasses();
+    toast('नई तारीख के अनुसार आज का Target अपने-आप load हो गया।','success');
+  },60000);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden)return;
+    const nextKey=localDateKey();
+    if(nextKey!==adminTargetDateKey){
+      adminTargetDateKey=nextKey;
+      selectSuggestedDay('today',false);
+      loadClasses();
+    }
+  });
+}
 
 async function init(){
   if(!(await guard()))return;
@@ -266,12 +313,13 @@ async function init(){
   initInstallUI('adminInstallBtn');
   await loadDays();
   await Promise.all([loadDashboard(),loadClasses(),loadMaterials(),loadBroadcasts(),loadStudents()]);
+  startAdminTargetDateSync();
 }
 
 async function loadDays(){
-  const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_number');
+  const r=await sb.from('schedule_days').select('*').eq('batch_id',APP_CONFIG.BATCH_ID).order('day_date').order('day_number');
   if(r.error){toast(r.error.message,'error');return}
-  days=r.data||[];
+  days=(r.data||[]).sort((a,b)=>String(a.day_date||'').localeCompare(String(b.day_date||''))||Number(a.day_number||0)-Number(b.day_number||0));
   const opts=days.map(d=>`<option value="${d.id}">Day ${d.day_number} — ${fmtDate(d.day_date)}</option>`).join('');
   byId('classDay').innerHTML=opts||'<option value="">कोई Day नहीं मिला</option>';
   selectSuggestedDay('today',false);
@@ -280,23 +328,26 @@ function selectedScheduleDay(){return days.find(d=>String(d.id)===String(byId('c
 function selectSuggestedDay(mode,notify=true){
   const select=byId('classDay');if(!select||!days.length)return;
   const today=localDateKey();
-  let selected=mode==='next'?days.find(d=>String(d.day_date)>today):days.find(d=>String(d.day_date)===today);
-  if(!selected)selected=mode==='next'?days.find(d=>String(d.day_date)>=today):days[0];
+  let selected;
+  if(mode==='next')selected=days.find(d=>String(d.day_date)>today)||days[days.length-1];
+  else selected=days.find(d=>String(d.day_date)===today)||days.find(d=>String(d.day_date)>today)||days[days.length-1];
   if(selected)select.value=selected.id;
-  onClassDayChange(false);
+  onClassDayChange(false,true);
   if(notify)toast(mode==='next'?'अगला उपलब्ध Day चुन लिया गया।':'आज का Day चुन लिया गया।','success');
 }
 function changeClassDay(delta){
   const select=byId('classDay');if(!select||!days.length)return;
   const index=Math.max(0,days.findIndex(d=>String(d.id)===String(select.value)));
   const next=Math.min(days.length-1,Math.max(0,index+Number(delta||0)));
-  select.value=days[next].id;onClassDayChange();
+  select.value=days[next].id;onClassDayChange(true,true);
 }
-function onClassDayChange(scroll=true){
+function onClassDayChange(scroll=true,autoLoadForm=true){
   const day=selectedScheduleDay();
   renderClasses();
+  renderTargetClassQuickPick();
   if(byId('classesListHeading'))byId('classesListHeading').textContent=day?`Day ${day.day_number} — ${fmtDate(day.day_date)}`:'Selected Day Targets';
   renderClassPlanSummary();
+  if(autoLoadForm)loadSelectedDayTarget(1,true,false);
   if(scroll&&window.innerWidth<780)byId('classesList')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
@@ -328,7 +379,43 @@ function isClassCurrentlyVisible(row){
   return Number(day.day_number||0)<=5||String(day.day_date||'')<=localDateKey();
 }
 function resetClassForm(){
-  byId('classId').value='';byId('classTitle').value='';byId('classSubject').value='';byId('classTopic').value='';byId('classYoutube').value='';byId('classStartTime').value='';byId('classDuration').value='60';byId('classType').value='live';byId('classStatus').value='scheduled';byId('classNote').value='';byId('classVisibilityMode').value='auto';byId('classNotify').checked=true;byId('saveClassBtn').textContent='Save Target / Class';if(byId('classFormHeading'))byId('classFormHeading').textContent='Extra Class जोड़ें / Target Edit';
+  byId('classId').value='';byId('classTitle').value='';byId('classSubject').value='';byId('classTopic').value='';byId('classYoutube').value='';byId('classStartTime').value='';byId('classDuration').value='60';byId('classType').value='live';byId('classStatus').value='scheduled';byId('classNote').value='';byId('classVisibilityMode').value='auto';byId('classNotify').checked=true;byId('saveClassBtn').textContent='Save Target / Class';if(byId('classFormHeading'))byId('classFormHeading').textContent='Extra Class जोड़ें';renderTargetClassQuickPick();
+}
+function fillClassForm(x,scroll=false){
+  if(!x)return;
+  byId('classId').value=x.id||'';
+  if(x.schedule_day_id)byId('classDay').value=x.schedule_day_id;
+  byId('classTitle').value=x.class_title||x.topic||'';
+  byId('classSubject').value=x.subject||'';
+  byId('classTopic').value=x.topic||'';
+  byId('classYoutube').value=x.youtube_url||'';
+  byId('classStartTime').value=String(x.start_time||'').slice(0,5);
+  byId('classDuration').value=Number(x.duration_minutes||60);
+  byId('classType').value=x.class_type||'live';
+  byId('classStatus').value=x.class_status==='partial'?'time_changed':(x.class_status||'scheduled');
+  byId('classNote').value=x.class_note||'';
+  byId('classVisibilityMode').value=x.visibility_mode||'auto';
+  byId('classNotify').checked=false;
+  byId('saveClassBtn').textContent='Update Target / Class';
+  if(byId('classFormHeading'))byId('classFormHeading').textContent=`Day ${x.schedule_days?.day_number||'-'} • Class ${x.target_order||'-'} Edit`;
+  renderTargetClassQuickPick();
+  if(scroll)window.scrollTo({top:0,behavior:'smooth'});
+}
+function loadTargetIntoForm(id,scroll=true){
+  const row=classes.find(item=>String(item.id)===String(id));
+  if(row)fillClassForm(row,scroll);
+}
+function loadSelectedDayTarget(order=1,force=false,scroll=false){
+  if(!force&&byId('classId')?.value)return;
+  const rows=rowsForScheduleDay();
+  const row=rows.find(item=>Number(item.target_order||0)===Number(order))||rows[0];
+  if(row)fillClassForm(row,scroll);
+}
+function renderTargetClassQuickPick(){
+  const host=byId('targetClassQuickPick');if(!host)return;
+  const rows=rowsForScheduleDay();
+  const activeId=String(byId('classId')?.value||'');
+  host.innerHTML=rows.map(row=>`<button type="button" class="target-quick-btn ${String(row.id)===activeId?'active':''}" onclick="loadTargetIntoForm('${row.id}',false)">Class ${Number(row.target_order||1)}<small>${esc(row.topic||row.class_title||'Target')}</small></button>`).join('')||'<span class="muted">इस Day का Target उपलब्ध नहीं है।</span>';
 }
 async function saveClass(){
   const visibilityMode=byId('classVisibilityMode').value;
@@ -364,7 +451,9 @@ async function saveClass(){
 }
 function editClass(id){
   const x=classes.find(c=>String(c.id)===String(id));if(!x)return;
-  byId('classId').value=x.id;byId('classDay').value=x.schedule_day_id||'';byId('classTitle').value=x.class_title||x.topic||'';byId('classSubject').value=x.subject||'';byId('classTopic').value=x.topic||'';byId('classYoutube').value=x.youtube_url||'';byId('classStartTime').value=String(x.start_time||'').slice(0,5);byId('classDuration').value=Number(x.duration_minutes||60);byId('classType').value=x.class_type||'live';byId('classStatus').value=x.class_status==='partial'?'time_changed':(x.class_status||'scheduled');byId('classNote').value=x.class_note||'';byId('classVisibilityMode').value=x.visibility_mode||'auto';byId('classNotify').checked=false;byId('saveClassBtn').textContent='Update Target / Class';if(byId('classFormHeading'))byId('classFormHeading').textContent=`Edit: Day ${x.schedule_days?.day_number||'-'} • Class ${x.target_order||'-'}`;onClassDayChange(false);window.scrollTo({top:0,behavior:'smooth'});
+  fillClassForm(x,true);
+  renderClasses();
+  renderClassPlanSummary();
 }
 async function saveClassVisibility(id){
   const mode=byId('classMode_'+id)?.value||'auto';
@@ -385,29 +474,75 @@ function renderClassPlanSummary(){
   const host=byId('classPlanSummary');if(!host)return;
   const day=selectedScheduleDay();
   if(!day){host.innerHTML='';return}
-  const rows=classes.filter(x=>String(x.schedule_day_id)===String(day.id)).sort((a,b)=>Number(a.target_order||0)-Number(b.target_order||0));
+  const rows=rowsForScheduleDay(day);
   const visible=rows.filter(isClassCurrentlyVisible).length;
   const planType=rows.length===1&&String(rows[0]?.subject||'').includes('करंट')?'Current Affairs':`${rows.filter(x=>x.is_extra_class===false).length} Planned Class`;
   host.innerHTML=`<article><span>Selected Day</span><b>Day ${day.day_number}</b><small>${fmtDate(day.day_date)}</small></article><article><span>Plan</span><b>${planType}</b><small>${rows.length} total item</small></article><article><span>Student Status</span><b>${visible} Visible</b><small>${rows.length-visible} hidden / future</small></article><article><span>Auto Release</span><b>${String(day.day_date)<=localDateKey()||Number(day.day_number)<=5?'Released':'Scheduled'}</b><small>${Number(day.day_number)<=5?'First 5 immediate':'Date: '+fmtDate(day.day_date)}</small></article>`;
 }
+function compactTargetCard(x){
+  const mainTopic=x.topic||x.class_title||'Class';
+  const secondary=x.class_title&&String(x.class_title).trim()!==String(mainTopic).trim()?x.class_title:'';
+  const classLabel=x.is_extra_class===false?`CLASS ${Number(x.target_order||1)}`:'EXTRA';
+  return `<article class="target-compact-card">
+    <div class="target-compact-head"><span class="target-order-chip">${classLabel}</span><span class="target-day-chip">Day ${Number(x.schedule_days?.day_number||0)} • ${esc(fmtDate(x.schedule_days?.day_date||''))}</span><span class="badge ${statusClass(x.class_status)}">${esc(statusLabel(x.class_status))}</span></div>
+    <h3>${esc(mainTopic)}</h3>${secondary?`<p class="target-secondary-title">${esc(secondary)}</p>`:''}
+    <p class="target-subject-line">${esc(x.subject||'')}</p>
+    <div class="target-compact-meta"><span>⏰ ${esc(classTimeLabel(x))}</span><span>• ${Number(x.duration_minutes||60)} मिनट</span></div>
+    <div class="target-youtube-status ${x.youtube_url?'ready':'missing'}">${x.youtube_url?'✓ YouTube Link जोड़ा गया':'YouTube Link अभी नहीं जोड़ा गया'}</div>
+    ${x.class_note?`<p class="student-note">${esc(x.class_note)}</p>`:''}
+    <div class="target-compact-actions">
+      <select id="classMode_${x.id}" class="mini-select"><option value="auto" ${(x.visibility_mode||'auto')==='auto'?'selected':''}>Auto by Date</option><option value="show" ${x.visibility_mode==='show'?'selected':''}>Show Now</option><option value="hide" ${x.visibility_mode==='hide'?'selected':''}>Hide</option></select>
+      <button class="btn btn-blue btn-mini" onclick="saveClassVisibility('${x.id}')">Save</button>
+      <button class="btn btn-light btn-mini" onclick="editClass('${x.id}')">Edit</button>
+      ${x.is_extra_class!==false?`<button class="btn btn-red btn-mini" onclick="deleteClass('${x.id}')">Delete</button>`:''}
+    </div>
+    <div class="target-visible-line ${isClassCurrentlyVisible(x)?'visible':'waiting'}">${isClassCurrentlyVisible(x)?'Student को दिखाई दे रहा है':'अभी Student को दिखाई नहीं देगा'}</div>
+  </article>`;
+}
 function renderClasses(){
   const host=byId('classesList');if(!host)return;
-  const day=selectedScheduleDay();
-  const rows=classes.filter(x=>!day||String(x.schedule_day_id)===String(day.id)).sort((a,b)=>Number(a.target_order||0)-Number(b.target_order||0));
-  host.innerHTML=rows.map(x=>`<article class="simple-content-card target-class-card">
-    <div class="target-order-badge">${x.is_extra_class===false?`CLASS ${Number(x.target_order||1)}`:'EXTRA'}</div>
-    <div class="simple-card-main"><div class="simple-card-top"><span class="badge ${statusClass(x.class_status)}">${esc(statusLabel(x.class_status))}</span><span class="badge ${visibilityModeClass(x.visibility_mode||'auto')}">${esc(visibilityModeLabel(x.visibility_mode||'auto'))}</span><span class="badge ${isClassCurrentlyVisible(x)?'badge-green':'badge-gray'}">${isClassCurrentlyVisible(x)?'Student Visible':'Not Visible Yet'}</span></div>
-    <h3>${esc(x.class_title||x.topic||'Class')}</h3><p><b>${esc(x.subject||'')}</b> • ${esc(x.topic||'')}</p><p>📅 ${esc(classDayLabel(x))} • ⏰ ${esc(classTimeLabel(x))} • ${Number(x.duration_minutes||60)} मिनट</p>${x.youtube_url?'<p class="small">✓ YouTube Link added</p>':'<p class="small text-error">YouTube Link अभी नहीं जोड़ा गया</p>'}${x.class_note?`<p class="student-note">${esc(x.class_note)}</p>`:''}</div>
-    <div class="simple-card-actions target-card-actions"><select id="classMode_${x.id}" class="mini-select"><option value="auto" ${(x.visibility_mode||'auto')==='auto'?'selected':''}>Auto by Date</option><option value="show" ${x.visibility_mode==='show'?'selected':''}>Show Now</option><option value="hide" ${x.visibility_mode==='hide'?'selected':''}>Hide</option></select><button class="btn btn-blue btn-mini" onclick="saveClassVisibility('${x.id}')">Save Visibility</button><button class="btn btn-light btn-mini" onclick="editClass('${x.id}')">Edit</button>${x.is_extra_class!==false?`<button class="btn btn-red btn-mini" onclick="deleteClass('${x.id}')">Delete</button>`:''}</div>
-  </article>`).join('')||'<div class="item">इस Day का Target अभी नहीं मिला। V12.26 SQL एक बार चलाएँ।</div>';
+  const rows=rowsForScheduleDay();
+  host.innerHTML=rows.map(compactTargetCard).join('')||'<div class="item">इस Day का Target अभी नहीं मिला।</div>';
   renderClassPlanSummary();
+  renderTargetClassQuickPick();
 }
 async function loadClasses(){
-  const r=await sb.from('daily_targets').select('*,schedule_days(day_number,day_date)').eq('status','published').eq('simple_class_enabled',true).order('schedule_day_id').order('target_order');
+  const r=await sb.from('daily_targets').select('*,schedule_days(day_number,day_date)').eq('status','published').eq('simple_class_enabled',true);
   const host=byId('classesList');if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}</div>`;return}
-  classes=r.data||[];
-  byId('classPdfTarget').innerHTML='<option value="">Class चुनें</option>'+classes.map(x=>`<option value="${x.id}">${esc(classDayLabel(x))} — ${esc(x.class_title||x.topic||'Class')}</option>`).join('');
+  classes=(r.data||[]).sort(compareTargetRows);
+  byId('classPdfTarget').innerHTML='<option value="">Class चुनें</option>'+classes.map(x=>`<option value="${x.id}">${esc(classDayLabel(x))} — ${esc(x.topic||x.class_title||'Class')}</option>`).join('');
   renderClasses();
+  if(!byId('classId')?.value)loadSelectedDayTarget(1,true,false);
+}
+
+const pdfUploadBusy={class:false,direct:false};
+function pdfUploadControlIds(type){
+  const isClass=type==='class';
+  return {
+    button:isClass?'classPdfSaveBtn':'otherPdfSaveBtn',
+    status:isClass?'classPdfUploadStatus':'otherPdfUploadStatus'
+  };
+}
+function setPdfUploadStatus(type,message,state='info'){
+  const host=byId(pdfUploadControlIds(type).status);
+  if(!host)return;
+  host.className=`pdf-upload-status ${state}`;
+  host.textContent=message||'';
+  host.classList.toggle('hidden',!message);
+}
+function bindPdfUploadControls(){
+  [['class','classPdfSaveBtn'],['direct','otherPdfSaveBtn']].forEach(([type,id])=>{
+    const button=byId(id);
+    if(!button||button.dataset.pdfUploadBound==='1')return;
+    button.dataset.pdfUploadBound='1';
+    button.type='button';
+    button.removeAttribute('onclick');
+    button.addEventListener('click',event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      uploadSimplePdf(type);
+    });
+  });
 }
 
 function resetPdfForm(type){
@@ -421,6 +556,7 @@ function resetPdfForm(type){
   if(isClass)byId('classPdfTarget').value='';else byId('otherPdfCategory').value='';
   byId(isClass?'classPdfSaveBtn':'otherPdfSaveBtn').textContent=isClass?'Upload Class PDF':'Upload Other PDF';
   byId(isClass?'classPdfCancelBtn':'otherPdfCancelBtn').classList.add('hidden');
+  setPdfUploadStatus(type,'');
 }
 function editPdf(id){
   const m=materials.find(x=>String(x.id)===String(id));if(!m)return;
@@ -438,30 +574,50 @@ function editPdf(id){
 }
 async function uploadSimplePdf(type){
   const isClass=type==='class';
-  const id=byId(isClass?'classPdfId':'otherPdfId').value||null;
+  const normalizedType=isClass?'class':'direct';
+  if(pdfUploadBusy[normalizedType]){
+    setPdfUploadStatus(normalizedType,'PDF upload पहले से चल रही है। कृपया पूरा होने दें।','loading');
+    return;
+  }
+  const id=byId(isClass?'classPdfId':'otherPdfId')?.value||null;
   const existing=id?materials.find(x=>String(x.id)===String(id)):null;
   const file=byId(isClass?'classPdfFile':'otherPdfFile')?.files?.[0]||null;
-  const title=byId(isClass?'classPdfTitle':'otherPdfTitle').value.trim()||file?.name||existing?.title||'';
-  const targetId=isClass?byId('classPdfTarget').value:null;
-  const category=isClass?'Class PDF':(byId('otherPdfCategory').value.trim()||'Other PDF');
-  const access=byId(isClass?'classPdfDownload':'otherPdfDownload').value;
-  const visible=byId(isClass?'classPdfVisible':'otherPdfVisible').checked;
-  const notify=byId(isClass?'classPdfNotify':'otherPdfNotify').checked;
-  if(!id&&!file){toast('PDF file चुनें।','error');return}
-  if(!title){toast('PDF Title लिखें।','error');return}
-  if(file&&file.type&&file.type!=='application/pdf'){toast('केवल PDF upload करें।','error');return}
-  if(file&&file.size>95*1024*1024){toast('एक PDF अधिकतम 95 MB रखें।','error');return}
-  if(isClass&&!targetId){toast('Related Class चुनें।','error');return}
+  const title=String(byId(isClass?'classPdfTitle':'otherPdfTitle')?.value||'').trim()||file?.name||existing?.title||'';
+  const targetId=isClass?(byId('classPdfTarget')?.value||''):null;
+  const category=isClass?'Class PDF':(String(byId('otherPdfCategory')?.value||'').trim()||'Other PDF');
+  const access=byId(isClass?'classPdfDownload':'otherPdfDownload')?.value||'direct_download';
+  const visible=byId(isClass?'classPdfVisible':'otherPdfVisible')?.checked===true;
+  const notify=byId(isClass?'classPdfNotify':'otherPdfNotify')?.checked===true;
+  if(!id&&!file){setPdfUploadStatus(normalizedType,'PDF file चुनें।','error');toast('PDF file चुनें।','error');return}
+  if(!title){setPdfUploadStatus(normalizedType,'PDF Title लिखें।','error');toast('PDF Title लिखें।','error');return}
+  if(file&&file.type&&file.type!=='application/pdf'){setPdfUploadStatus(normalizedType,'केवल PDF file upload करें।','error');toast('केवल PDF upload करें।','error');return}
+  if(file&&file.size>95*1024*1024){setPdfUploadStatus(normalizedType,'PDF 95 MB से बड़ी है।','error');toast('एक PDF अधिकतम 95 MB रखें।','error');return}
+  if(isClass&&!targetId){setPdfUploadStatus(normalizedType,'Related Class चुनें।','error');toast('Related Class चुनें।','error');return}
   const target=classes.find(x=>String(x.id)===String(targetId));
-  const button=byId(isClass?'classPdfSaveBtn':'otherPdfSaveBtn'),oldText=button.textContent;
-  let newKey='';button.disabled=true;button.textContent=id?'Updating...':'Uploading...';
+  const ids=pdfUploadControlIds(normalizedType);
+  const button=byId(ids.button);
+  if(!button){toast('PDF Upload button उपलब्ध नहीं है। Page reload करें।','error');return}
+  const oldText=button.textContent;
+  let newKey='';
+  pdfUploadBusy[normalizedType]=true;
+  button.disabled=true;
+  button.textContent=id?'Updating PDF...':'Uploading PDF...';
+  setPdfUploadStatus(normalizedType,'1/4 Admin session जाँच रही है…','loading');
   try{
+    const sessionResult=await sb.auth.getSession();
+    if(sessionResult.error)throw sessionResult.error;
+    const session=sessionResult.data?.session;
+    if(!session?.access_token)throw new Error('Admin login session समाप्त हो गया है। दोबारा Login करें।');
+    adminUser=adminUser||session.user;
     if(file){
-      toast('PDF existing R2 storage में upload हो रही है...','info');
+      setPdfUploadStatus(normalizedType,`2/4 ${file.name} R2 में upload हो रही है…`,'loading');
       const up=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(file.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':file.name},body:file});
-      if(!up.ok)throw new Error(await r2ErrorMessage(up,'R2 upload failed'));
-      newKey=(await up.json()).key;if(!newKey)throw new Error('R2 file key नहीं मिला।');
+      if(!up.ok)throw new Error(await r2ErrorMessage(up,`R2 upload failed (${up.status})`));
+      const uploadData=await up.json().catch(()=>({}));
+      newKey=uploadData.key||'';
+      if(!newKey)throw new Error('R2 file key नहीं मिला।');
     }
+    setPdfUploadStatus(normalizedType,'3/4 PDF की जानकारी database में save हो रही है…','loading');
     const row={
       schedule_day_id:isClass?(target?.schedule_day_id||null):null,target_id:isClass?targetId:null,title,category,
       material_type:'pdf',pdf_type:isClass?'class':'direct',storage_path:newKey||existing?.storage_path,
@@ -477,14 +633,25 @@ async function uploadSimplePdf(type){
     if(id&&newKey&&existing?.storage_path&&existing.storage_path!==newKey&&isR2PdfPath(existing.storage_path)){
       try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(existing.storage_path)}`,{method:'DELETE'})}catch(e){console.warn('Old PDF cleanup:',e)}
     }
+    setPdfUploadStatus(normalizedType,'4/4 PDF Students के लिए publish की जा रही है…','loading');
     if(visible&&notify)await createGlobalNotification(id?'📄 PDF Updated':'📄 नई PDF उपलब्ध',title,'pdf',db.data.id);
-    resetPdfForm(type);toast(id?'PDF update हो गई।':'PDF upload हो गई और setting save हो गई।','success');
+    setPdfUploadStatus(normalizedType,id?'PDF सफलतापूर्वक update हो गई।':'PDF सफलतापूर्वक upload होकर Students के लिए save हो गई।','success');
+    toast(id?'PDF update हो गई।':'PDF upload हो गई और setting save हो गई।','success');
     await Promise.all([loadMaterials(),loadDashboard()]);
+    setTimeout(()=>resetPdfForm(normalizedType),1200);
   }catch(e){
     if(newKey){try{await r2ApiFetch(`/admin/file?key=${encodeURIComponent(newKey)}`,{method:'DELETE'})}catch(_) {}}
-    toast(e.message||'PDF save नहीं हुई।','error');
-  }finally{button.disabled=false;if(button.textContent==='Updating...'||button.textContent==='Uploading...')button.textContent=oldText}
+    const message=e?.message||'PDF save नहीं हुई।';
+    setPdfUploadStatus(normalizedType,`PDF upload नहीं हुई: ${message}`,'error');
+    toast(message,'error');
+    console.error('PDF upload error:',e);
+  }finally{
+    pdfUploadBusy[normalizedType]=false;
+    button.disabled=false;
+    if(button.textContent==='Updating PDF...'||button.textContent==='Uploading PDF...')button.textContent=oldText;
+  }
 }
+window.uploadSimplePdf=uploadSimplePdf;
 
 async function saveMaterialSettings(id){
   const visible=byId('materialVisible_'+id)?.checked===true;
@@ -608,4 +775,5 @@ async function toggleStudentStatus(id,current){
 function renderStudents(rows){byId('studentsBody').innerHTML=rows.map(s=>`<tr><td><b>${esc(s.full_name||'Student')}</b></td><td>${esc(s.email||'')}</td><td>${esc(s.phone||'')}</td><td><span class="badge ${s.is_active===false?'badge-gray':'badge-green'}">${s.is_active===false?'Inactive':'Active'}</span></td><td><button class="btn ${s.is_active===false?'btn-green':'btn-red'} btn-mini" onclick="toggleStudentStatus('${s.id}',${s.is_active!==false})">${s.is_active===false?'Activate':'Deactivate'}</button></td></tr>`).join('')||'<tr><td colspan="5">कोई Student नहीं मिला।</td></tr>'}
 function filterStudents(){const q=byId('studentSearch').value.trim().toLowerCase();renderStudents(students.filter(s=>[s.full_name,s.email,s.phone].some(v=>String(v||'').toLowerCase().includes(q))))}
 
+bindPdfUploadControls();
 init();

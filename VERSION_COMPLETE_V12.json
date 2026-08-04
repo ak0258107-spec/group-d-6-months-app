@@ -1,19 +1,18 @@
 {
   "app": "GK BY PURUSHOTAM SIR GROUP-D APP",
-  "version": "12.26.0",
-  "build": "COMPLETE_TARGET_ADMIN_LEFT_NAV_PROGRESS_PROFILE_COLORED_BACK",
-  "base": "V12.25 Complete Auto Target",
+  "version": "12.28.0",
+  "build": "COMPLETE_PDF_UPLOAD_AND_EXACT_TARGET_SEQUENCE_FIX",
+  "base": "V12.27 Complete Target Sequence Compact Admin",
   "changes": [
     "Complete GitHub package; not a patch-only upload",
-    "All 3 Aug–31 Dec 2026 planned Targets appear in Admin day-by-day and can be edited",
-    "Day 1–5 show immediately; future Targets auto-release on India date",
-    "Admin can choose Auto by Date, Show Now or Hide for every Target/Class",
-    "Class time, YouTube link, duration, status, cancellation and notes remain editable",
-    "Student horizontal tabs replaced with a numbered left-side menu and mobile drawer",
-    "Every Student section has a clearly visible colored Back to Home button",
-    "CBT Student and CBT Admin have bright colored Back buttons",
-    "Registration offers Boy, Girl or Neutral avatar choice",
-    "Profile shows optional Target completion and progress without locking content",
-    "Existing CBT, PDF, Poster, Announcement, R2 and Worker systems are otherwise unchanged"
+    "Class PDF and Other PDF upload buttons use direct JavaScript event listeners instead of fragile inline-only handlers",
+    "PDF upload immediately shows session, R2 upload, database save and publish status",
+    "Real upload errors remain visible under the form",
+    "Duplicate clicks are blocked while an upload is active",
+    "Existing R2 bucket, binding, PDF Worker and Supabase schema are unchanged",
+    "Selected Day Targets use non-empty schedule_day_id matching and no longer mix unrelated Days",
+    "Target order remains Date, numeric Day and Class 1/Class 2",
+    "Existing Student, CBT, Profile, Poster, Announcement and PDF delivery systems are otherwise unchanged",
+    "No Supabase SQL or Cloudflare deployment is required"
   ]
 }

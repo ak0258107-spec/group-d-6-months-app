@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin Panel | GK BY PURUSHOTAM SIR</title>
-<link rel="stylesheet" href="styles.css?v=12.26.0"><link rel="stylesheet" href="simple-v1220.css?v=12.26.0">
+<link rel="stylesheet" href="styles.css?v=12.28.0"><link rel="stylesheet" href="simple-v1220.css?v=12.28.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=12.26.0"></script><script src="common.js?v=12.26.0"></script>
+<script src="config.js?v=12.28.0"></script><script src="common.js?v=12.28.0"></script>
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="favicon.png"><meta name="theme-color" content="#8b0000">
 <style id="adminGateCriticalV1220">
 html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-height:100dvh!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important}body.admin-security-pending .admin-shell{display:none!important}body.admin-authorized .admin-shell{display:grid!important}body.admin-security-pending .admin-gate-overlay{position:relative!important;inset:auto!important;width:100%!important;min-height:100dvh!important;height:auto!important;display:block!important;overflow:visible!important;padding:16px 12px 56px!important}body.admin-security-pending .admin-gate-card{width:min(460px,calc(100vw - 24px))!important;max-width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;margin:0 auto!important;padding:20px!important}body.admin-security-pending .admin-mfa-qr img,body.admin-security-pending .admin-mfa-qr svg{width:min(180px,48vw)!important;height:auto!important}
@@ -47,7 +47,7 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
 
 <section id="classesTab" class="hidden">
   <div class="admin-head target-admin-head">
-    <div><span class="simple-kicker">FULL 3 AUG – 31 DEC PLAN</span><h1>Daily Target & Class Schedule</h1><div class="muted">पूरे Target Plan में Day चुनें, Class timing/link/status Edit करें और Student visibility control करें</div></div>
+    <div><span class="simple-kicker">DATE-WISE TARGET PLAN</span><h1>Daily Target & Class Schedule</h1><div class="muted">Targets तारीख, Day और Class क्रम में हैं। Day चुनते ही उसकी Class 1 बाईं तरफ Edit के लिए अपने-आप खुलेगी।</div></div>
     <button class="btn btn-light" onclick="resetClassForm()">＋ Extra Class जोड़ें</button>
   </div>
 
@@ -61,8 +61,9 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
   <div id="classPlanSummary" class="target-plan-summary"></div>
 
   <div class="grid target-admin-grid">
-    <div class="card span-5 simple-form-card">
-      <div class="target-form-title"><div><b id="classFormHeading">Target / Class Edit</b><small>Right side से Edit दबाएँ या Extra Class जोड़ें</small></div><button class="btn btn-light btn-mini" onclick="resetClassForm()">Reset</button></div>
+    <div class="card span-7 simple-form-card target-form-panel">
+      <div class="target-form-title"><div><b id="classFormHeading">Target / Class Edit</b><small>Day बदलते ही Class 1 अपने-आप load होगी; नीचे से Class 1 या Class 2 चुनें</small></div><button class="btn btn-light btn-mini" onclick="resetClassForm()">＋ Extra Class</button></div>
+      <div id="targetClassQuickPick" class="target-class-quick-pick"></div>
       <input id="classId" type="hidden">
       <label>Class Title</label><input id="classTitle" placeholder="जैसे: हरियाणा का परिचय एवं नामकरण">
       <div class="two-col"><div><label>Subject</label><input id="classSubject" placeholder="हरियाणा GK"></div><div><label>Topic</label><input id="classTopic" placeholder="हरियाणा का परिचय एवं नामकरण"></div></div>
@@ -74,8 +75,8 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
       <button id="saveClassBtn" class="btn btn-green full-btn" onclick="saveClass()">Save Target / Class</button>
     </div>
 
-    <div class="card span-7">
-      <div class="list-head"><div><h2 id="classesListHeading">Selected Day Targets</h2><small class="muted">हर Teaching Day में 2 planned Classes; Saturday/Sunday Current Affairs</small></div><button class="btn btn-light btn-mini" onclick="loadClasses()">↻ Refresh</button></div>
+    <div class="card span-5 target-list-panel">
+      <div class="list-head"><div><h2 id="classesListHeading">Selected Day Targets</h2><small class="muted">तारीख → Day → Class 1/Class 2 क्रम</small></div><button class="btn btn-light btn-mini" onclick="loadClasses()">↻ Refresh</button></div>
       <div id="classesList" class="list"></div>
     </div>
   </div>
@@ -92,7 +93,8 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
       <label>Download</label><select id="classPdfDownload"><option value="direct_download">Allow — Read + Download</option><option value="read_only">Block — केवल Read</option></select>
       <label class="simple-toggle"><input id="classPdfVisible" type="checkbox" checked><span>Show to Students</span></label>
       <label class="simple-toggle"><input id="classPdfNotify" type="checkbox" checked><span>Upload होने पर सूचना भेजें</span></label>
-      <button id="classPdfSaveBtn" class="btn btn-blue full-btn" onclick="uploadSimplePdf('class')">Upload Class PDF</button>
+      <button id="classPdfSaveBtn" type="button" class="btn btn-blue full-btn">Upload Class PDF</button>
+      <div id="classPdfUploadStatus" class="pdf-upload-status hidden" role="status" aria-live="polite"></div>
       <button id="classPdfCancelBtn" class="btn btn-light full-btn hidden" onclick="resetPdfForm('class')">Cancel Edit</button>
     </div>
     <div class="card span-7"><div class="list-head"><h2>Class PDF List</h2><button class="btn btn-light btn-mini" onclick="loadMaterials()">↻ Refresh</button></div><div id="classPdfList" class="list"></div></div>
@@ -110,7 +112,8 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
       <label>Download</label><select id="otherPdfDownload"><option value="direct_download">Allow — Read + Download</option><option value="read_only">Block — केवल Read</option></select>
       <label class="simple-toggle"><input id="otherPdfVisible" type="checkbox" checked><span>Show to Students</span></label>
       <label class="simple-toggle"><input id="otherPdfNotify" type="checkbox" checked><span>Upload होने पर सूचना भेजें</span></label>
-      <button id="otherPdfSaveBtn" class="btn btn-green full-btn" onclick="uploadSimplePdf('direct')">Upload Other PDF</button>
+      <button id="otherPdfSaveBtn" type="button" class="btn btn-green full-btn">Upload Other PDF</button>
+      <div id="otherPdfUploadStatus" class="pdf-upload-status hidden" role="status" aria-live="polite"></div>
       <button id="otherPdfCancelBtn" class="btn btn-light full-btn hidden" onclick="resetPdfForm('direct')">Cancel Edit</button>
     </div>
     <div class="card span-7"><div class="list-head"><h2>Other PDF List</h2><button class="btn btn-light btn-mini" onclick="loadMaterials()">↻ Refresh</button></div><div id="otherPdfList" class="list"></div></div>
@@ -151,6 +154,6 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
 </section>
 </main>
 </div>
-<script src="admin.js?v=12.26.0"></script>
+<script src="admin.js?v=12.28.0"></script>
 </body>
 </html>
