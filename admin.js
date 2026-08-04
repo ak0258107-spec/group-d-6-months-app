@@ -611,7 +611,8 @@ async function uploadSimplePdf(type){
     adminUser=adminUser||session.user;
     if(file){
       setPdfUploadStatus(normalizedType,`2/4 ${file.name} R2 में upload हो रही है…`,'loading');
-      const up=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(file.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf','X-File-Name':file.name},body:file});
+      // Unicode/Hindi filename is sent only in the URL query. Raw non-ASCII header values make the browser Headers constructor fail.
+      const up=await r2ApiFetch(`/admin/upload?filename=${encodeURIComponent(file.name)}`,{method:'PUT',headers:{'Content-Type':'application/pdf'},body:file});
       if(!up.ok)throw new Error(await r2ErrorMessage(up,`R2 upload failed (${up.status})`));
       const uploadData=await up.json().catch(()=>({}));
       newKey=uploadData.key||'';
@@ -746,7 +747,7 @@ async function publishPoster(){
   if(!id&&!f){toast('Poster image चुनें।','error');return}if(f&&f.size>5*1024*1024){toast('Poster 5 MB से कम रखें।','error');return}
   const btn=byId('posterSaveBtn'),oldText=btn.textContent;let newKey='';btn.disabled=true;btn.textContent=id?'Updating...':'Publishing...';
   try{
-    if(f){const up=await r2ApiFetch(`/admin/poster-upload?filename=${encodeURIComponent(f.name)}`,{method:'POST',headers:{'Content-Type':f.type,'X-File-Name':f.name},body:f});if(!up.ok)throw new Error(await r2ErrorMessage(up,'Poster upload failed'));newKey=(await up.json()).key}
+    if(f){const up=await r2ApiFetch(`/admin/poster-upload?filename=${encodeURIComponent(f.name)}`,{method:'POST',headers:{'Content-Type':f.type||'application/octet-stream'},body:f});if(!up.ok)throw new Error(await r2ErrorMessage(up,'Poster upload failed'));newKey=(await up.json()).key}
     const payload={title:byId('posterTitle').value.trim()||'Poster',image_key:newKey||oldKey,click_url:byId('posterLink').value.trim()||null,start_at:isoOrNull(byId('posterStart').value),end_at:isoOrNull(byId('posterEnd').value),is_active:byId('posterActive').value==='true',sort_order:Number(byId('posterOrder').value||0),poster_format:'ratio_16_9',fit_mode:'contain'};
     let db=id?await sb.from('app_posters').update(payload).eq('id',id).select().single():await sb.from('app_posters').insert({...payload,created_by:adminUser.id}).select().single();
     if(db.error)throw db.error;
