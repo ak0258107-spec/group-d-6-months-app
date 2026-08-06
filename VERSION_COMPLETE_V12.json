@@ -1,18 +1,17 @@
 {
   "app": "GK BY PURUSHOTAM SIR GROUP-D APP",
-  "version": "12.29.0",
-  "build": "COMPLETE_PDF_UPLOAD_AND_EXACT_TARGET_SEQUENCE_FIX",
-  "base": "V12.27 Complete Target Sequence Compact Admin",
+  "version": "12.30.0",
+  "build": "COMPLETE_REGISTERED_STUDENTS_AND_EXTRA_CLASS_FIX",
+  "base": "V12.29 Complete Hindi PDF Upload Fix",
   "changes": [
     "Complete GitHub package; not a patch-only upload",
-    "Class PDF and Other PDF upload buttons use direct JavaScript event listeners instead of fragile inline-only handlers",
-    "PDF upload immediately shows session, R2 upload, database save and publish status",
-    "Real upload errors remain visible under the form",
-    "Duplicate clicks are blocked while an upload is active",
-    "Existing R2 bucket, binding, PDF Worker and Supabase schema are unchanged",
-    "Selected Day Targets use non-empty schedule_day_id matching and no longer mix unrelated Days",
-    "Target order remains Date, numeric Day and Class 1/Class 2",
-    "Existing Student, CBT, Profile, Poster, Announcement and PDF delivery systems are otherwise unchanged",
-    "No Supabase SQL or Cloudflare deployment is required"
+    "Registered Students are loaded through a secure Admin RPC that joins Supabase Auth users with profile details",
+    "Student email, mobile, registration date, active status and Activate/Deactivate control are visible",
+    "Students list shows count, loading state, refresh, search and real database errors",
+    "Extra Class button opens a dedicated form for the selected Day",
+    "Extra Class receives the next Class number automatically and supports title, subject, topic, YouTube link, time, duration, status and visibility",
+    "Extra Classes can be edited and deleted while planned Target classes stay protected",
+    "Existing PDF upload, Hindi filename fix, CBT, R2, Target Plan, Student Panel, Profile, Poster and Announcement systems are unchanged",
+    "One safe Supabase SQL must be run once; no Cloudflare or R2 change is required"
   ]
 }

@@ -378,6 +378,72 @@ function isClassCurrentlyVisible(row){
   const day=row.schedule_days||selectedScheduleDay()||{};
   return Number(day.day_number||0)<=5||String(day.day_date||'')<=localDateKey();
 }
+function setExtraClassStatus(message,state='info'){
+  const host=byId('extraClassStatusMessage');if(!host)return;
+  host.textContent=message||'';
+  host.className=`extra-class-status ${message?state:'hidden'}`;
+}
+function extraClassNextOrder(dayId){
+  const rows=classes.filter(row=>String(row.schedule_day_id||'')===String(dayId||''));
+  return Math.max(0,...rows.map(row=>Number(row.target_order||0)))+1;
+}
+function openExtraClassModal(){
+  const day=selectedScheduleDay();
+  if(!day){toast('पहले Target Day चुनें।','error');return}
+  const modal=byId('extraClassModal');if(!modal)return;
+  byId('extraClassDayId').value=day.id;
+  byId('extraClassDayLabel').textContent=`Day ${day.day_number} — ${fmtDate(day.day_date)}`;
+  byId('extraClassNumberLabel').textContent=`Class ${extraClassNextOrder(day.id)}`;
+  byId('extraClassTitle').value='';byId('extraClassSubject').value='';byId('extraClassTopic').value='';byId('extraClassYoutube').value='';
+  byId('extraClassStartTime').value='';byId('extraClassDuration').value='60';byId('extraClassType').value='live';byId('extraClassStatus').value='scheduled';
+  byId('extraClassVisibility').value='auto';byId('extraClassNote').value='';byId('extraClassNotify').checked=true;
+  setExtraClassStatus('');
+  modal.classList.remove('hidden');document.body.classList.add('simple-modal-open');
+  setTimeout(()=>byId('extraClassTitle')?.focus(),80);
+}
+function closeExtraClassModal(){
+  byId('extraClassModal')?.classList.add('hidden');document.body.classList.remove('simple-modal-open');setExtraClassStatus('');
+}
+function extraClassBackdropClose(event){if(event?.target?.id==='extraClassModal')closeExtraClassModal()}
+async function saveExtraClass(){
+  const dayId=byId('extraClassDayId')?.value||'';
+  const payload={
+    p_class_id:null,p_schedule_day_id:dayId,
+    p_class_title:String(byId('extraClassTitle')?.value||'').trim(),
+    p_subject:String(byId('extraClassSubject')?.value||'').trim(),
+    p_topic:String(byId('extraClassTopic')?.value||'').trim(),
+    p_youtube_url:String(byId('extraClassYoutube')?.value||'').trim()||null,
+    p_start_time:byId('extraClassStartTime')?.value||null,
+    p_duration_minutes:Math.max(1,Number(byId('extraClassDuration')?.value||60)),
+    p_class_type:byId('extraClassType')?.value||'live',
+    p_class_status:byId('extraClassStatus')?.value||'scheduled',
+    p_class_note:String(byId('extraClassNote')?.value||'').trim()||null,
+    p_visibility_mode:byId('extraClassVisibility')?.value||'auto'
+  };
+  if(!payload.p_schedule_day_id){setExtraClassStatus('Target Day नहीं मिला। Modal बंद करके Day दोबारा चुनें।','error');return}
+  if(!payload.p_class_title||!payload.p_subject||!payload.p_topic){setExtraClassStatus('Class Title, Subject और Topic तीनों जरूरी हैं।','error');return}
+  const btn=byId('saveExtraClassBtn'),old=btn?.textContent||'Save Extra Class';if(btn){btn.disabled=true;btn.textContent='Saving Extra Class...'}
+  setExtraClassStatus('Extra Class save की जा रही है…','loading');
+  try{
+    const r=await sb.rpc('admin_save_target_class_v1226',payload);if(r.error)throw r.error;
+    const saved=r.data;
+    if(payload.p_visibility_mode!=='hide'&&byId('extraClassNotify')?.checked){
+      const day=days.find(d=>String(d.id)===String(dayId));
+      const status=payload.p_class_status==='cancelled'?'Class Cancelled':payload.p_class_status==='time_changed'?'Class Time Changed':'▶ Extra Class Added';
+      const msg=`${payload.p_class_title} • ${fmtDate(day?.day_date||'')} • ${classTimeLabel({start_time:payload.p_start_time,class_type:payload.p_class_type})}`;
+      await createGlobalNotification(status,msg,'class',saved?.id||null);
+    }
+    setExtraClassStatus('Extra Class सफलतापूर्वक जुड़ गई।','success');
+    toast('Extra Class selected Day में जोड़ दी गई।','success');
+    await Promise.all([loadClasses(),loadDashboard()]);
+    byId('classDay').value=dayId;renderClasses();renderClassPlanSummary();renderTargetClassQuickPick();
+    if(saved?.id)loadTargetIntoForm(saved.id,false);
+    setTimeout(closeExtraClassModal,650);
+  }catch(e){setExtraClassStatus(e.message||'Extra Class save नहीं हुई।','error');toast(e.message||'Extra Class save नहीं हुई।','error')}
+  finally{if(btn){btn.disabled=false;btn.textContent=old}}
+}
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!byId('extraClassModal')?.classList.contains('hidden'))closeExtraClassModal()});
+
 function resetClassForm(){
   byId('classId').value='';byId('classTitle').value='';byId('classSubject').value='';byId('classTopic').value='';byId('classYoutube').value='';byId('classStartTime').value='';byId('classDuration').value='60';byId('classType').value='live';byId('classStatus').value='scheduled';byId('classNote').value='';byId('classVisibilityMode').value='auto';byId('classNotify').checked=true;byId('saveClassBtn').textContent='Save Target / Class';if(byId('classFormHeading'))byId('classFormHeading').textContent='Extra Class जोड़ें';renderTargetClassQuickPick();
 }
@@ -765,16 +831,44 @@ async function loadPosters(){
   host.innerHTML=out.join('')||'<div class="item">अभी कोई Poster नहीं है।</div>';
 }
 
+function setStudentListStatus(message,state='info'){
+  const host=byId('studentListStatus');if(!host)return;
+  host.textContent=message||'';host.className=`student-list-status ${state}`;host.classList.toggle('hidden',!message);
+}
+function studentRegisteredDate(value){
+  if(!value)return '—';const d=new Date(value);if(Number.isNaN(d.getTime()))return '—';
+  return d.toLocaleDateString('hi-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
 async function loadStudents(){
-  const r=await sb.from('profiles').select('id,full_name,email,phone,is_active,created_at').eq('role','student').order('created_at',{ascending:false});
-  if(r.error){toast(r.error.message,'error');return}students=r.data||[];renderStudents(students);
+  const body=byId('studentsBody');if(body)body.innerHTML='<tr><td colspan="6">Registered Students load हो रहे हैं…</td></tr>';
+  if(byId('studentsCount'))byId('studentsCount').textContent='Loading Students…';
+  setStudentListStatus('Supabase से सभी registered student accounts load किए जा रहे हैं…','loading');
+  const r=await sb.rpc('admin_list_students_v1230');
+  if(r.error){
+    students=[];if(body)body.innerHTML=`<tr><td colspan="6" class="text-error">${esc(r.error.message||'Students load नहीं हुए।')}</td></tr>`;
+    if(byId('studentsCount'))byId('studentsCount').textContent='Students unavailable';
+    setStudentListStatus(`Students load नहीं हुए: ${r.error.message||'Unknown error'}`,'error');toast(r.error.message||'Students load नहीं हुए।','error');return;
+  }
+  students=(r.data||[]).sort((a,b)=>String(b.registered_at||'').localeCompare(String(a.registered_at||'')));
+  if(byId('studentsCount'))byId('studentsCount').textContent=`${students.length} Registered Student${students.length===1?'':'s'}`;
+  setStudentListStatus(students.length?'सभी registered students की सूची load हो गई।':'अभी कोई registered Student नहीं मिला।',students.length?'success':'info');
+  renderStudents(students);
 }
 async function toggleStudentStatus(id,current){
-  const r=await sb.from('profiles').update({is_active:!current}).eq('id',id).eq('role','student');
-  if(r.error){toast(r.error.message,'error');return}toast(!current?'Student account Active हो गया।':'Student account Inactive हो गया।','success');loadStudents();
+  const next=!current;
+  const r=await sb.rpc('admin_set_student_active_v1230',{p_student_id:id,p_active:next});
+  if(r.error){toast(r.error.message,'error');setStudentListStatus(`Status save नहीं हुआ: ${r.error.message}`,'error');return}
+  toast(next?'Student account Active हो गया।':'Student account Inactive हो गया।','success');await loadStudents();
 }
-function renderStudents(rows){byId('studentsBody').innerHTML=rows.map(s=>`<tr><td><b>${esc(s.full_name||'Student')}</b></td><td>${esc(s.email||'')}</td><td>${esc(s.phone||'')}</td><td><span class="badge ${s.is_active===false?'badge-gray':'badge-green'}">${s.is_active===false?'Inactive':'Active'}</span></td><td><button class="btn ${s.is_active===false?'btn-green':'btn-red'} btn-mini" onclick="toggleStudentStatus('${s.id}',${s.is_active!==false})">${s.is_active===false?'Activate':'Deactivate'}</button></td></tr>`).join('')||'<tr><td colspan="5">कोई Student नहीं मिला।</td></tr>'}
-function filterStudents(){const q=byId('studentSearch').value.trim().toLowerCase();renderStudents(students.filter(s=>[s.full_name,s.email,s.phone].some(v=>String(v||'').toLowerCase().includes(q))))}
+function renderStudents(rows){
+  const body=byId('studentsBody');if(!body)return;
+  body.innerHTML=rows.map(s=>`<tr><td><b>${esc(s.full_name||'Student')}</b></td><td>${esc(s.email||'—')}</td><td>${esc(s.phone||'—')}</td><td>${esc(studentRegisteredDate(s.registered_at))}</td><td><span class="badge ${s.is_active===false?'badge-gray':'badge-green'}">${s.is_active===false?'Inactive':'Active'}</span></td><td><button class="btn ${s.is_active===false?'btn-green':'btn-red'} btn-mini" onclick="toggleStudentStatus('${s.id}',${s.is_active!==false})">${s.is_active===false?'Activate':'Deactivate'}</button></td></tr>`).join('')||'<tr><td colspan="6">कोई Student नहीं मिला।</td></tr>';
+}
+function filterStudents(){
+  const q=String(byId('studentSearch')?.value||'').trim().toLowerCase();
+  const filtered=!q?students:students.filter(s=>[s.full_name,s.email,s.phone].some(v=>String(v||'').toLowerCase().includes(q)));
+  renderStudents(filtered);setStudentListStatus(q?`${filtered.length} matching Student मिले।`:`${students.length} Registered Student उपलब्ध हैं।`,'info');
+}
 
 bindPdfUploadControls();
 init();

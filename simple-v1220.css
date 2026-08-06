@@ -144,3 +144,21 @@
 .pdf-upload-status.success{display:block;background:#eaf9f0;border-color:#a9e2bf;color:#17683a}
 .pdf-upload-status.error{display:block;background:#fff0f0;border-color:#f0b5b5;color:#a22626}
 .pdf-upload-status.info{display:block;background:#fff8e6;border-color:#eed49b;color:#785612}
+
+
+/* =========================================================
+   V12.30 — REGISTERED STUDENTS + WORKING EXTRA CLASS MODAL
+   ========================================================= */
+.btn-orange{background:linear-gradient(135deg,#ea580c,#f97316)!important;color:#fff!important;border-color:#c2410c!important;box-shadow:0 9px 18px rgba(234,88,12,.22)!important}
+.simple-modal{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(4,18,36,.72);backdrop-filter:blur(5px);overflow:auto}
+.simple-modal.hidden{display:none!important}.simple-modal-open{overflow:hidden!important}
+.simple-modal-card{width:min(820px,100%);max-height:calc(100dvh - 36px);overflow:auto;background:#fff;border-radius:22px;border:1px solid #d7e1ed;box-shadow:0 26px 80px rgba(0,0,0,.32);padding:22px}
+.simple-modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px}.simple-modal-head h2{margin:3px 0 4px;font-size:27px;color:#102d4e}.simple-modal-head p{margin:0;color:#607087;font-weight:800}
+.modal-close-btn{width:42px;height:42px;border:0;border-radius:13px;background:#fee2e2;color:#991b1b;font-size:28px;line-height:1;cursor:pointer;font-weight:900}
+.extra-class-number-line{display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,#eff6ff,#eef2ff);border:1px solid #c7d8f4;border-radius:14px;padding:12px 14px;margin:0 0 14px}.extra-class-number-line span{color:#52657b;font-weight:850}.extra-class-number-line b{background:#135bd3;color:#fff;border-radius:10px;padding:7px 12px}
+.simple-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.simple-modal-actions .btn{min-width:150px}
+.extra-class-status{margin-top:12px;padding:11px 12px;border-radius:12px;font-size:12px;font-weight:850;line-height:1.45}.extra-class-status.loading{background:#eef6ff;color:#165aa7;border:1px solid #b8d9ff}.extra-class-status.success{background:#eaf9f0;color:#17683a;border:1px solid #a9e2bf}.extra-class-status.error{background:#fff0f0;color:#a22626;border:1px solid #f0b5b5}.extra-class-status.info{background:#fff8e6;color:#785612;border:1px solid #eed49b}
+.students-admin-head{align-items:flex-start}.students-count-chip{display:inline-flex;margin-top:9px;background:#e9f3ff;color:#1355a3;border:1px solid #bcd6f7;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:950}.students-head-actions{display:flex;align-items:center;gap:8px}.students-head-actions input{width:min(330px,46vw)}
+.student-list-status{margin:0 0 12px;padding:11px 13px;border-radius:12px;font-size:12px;font-weight:850;border:1px solid transparent}.student-list-status.loading{background:#eef6ff;color:#165aa7;border-color:#b8d9ff}.student-list-status.success{background:#eaf9f0;color:#17683a;border-color:#a9e2bf}.student-list-status.error{background:#fff0f0;color:#a22626;border-color:#f0b5b5}.student-list-status.info{background:#f7f9fc;color:#52657b;border-color:#dbe4ef}
+.students-table-wrap table{min-width:900px}.students-table-wrap td,.students-table-wrap th{vertical-align:middle}
+@media(max-width:760px){.simple-modal{padding:8px;align-items:flex-start}.simple-modal-card{padding:16px;max-height:calc(100dvh - 16px);border-radius:17px}.simple-modal-head h2{font-size:22px}.simple-modal-actions{display:grid;grid-template-columns:1fr 1fr}.simple-modal-actions .btn{min-width:0}.students-admin-head{display:block}.students-head-actions{margin-top:12px}.students-head-actions input{width:100%;max-width:none}}
