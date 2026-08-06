@@ -174,3 +174,12 @@
 .auto-filled-fields input[readonly]{background:#f1f5f9;color:#334155;border-style:dashed;font-weight:850}
 .extra-class-modal-card select{width:100%}
 @media(max-width:650px){.target-quick-item{grid-template-columns:minmax(0,1fr) auto}.target-part-btn{padding:7px 8px}.extra-class-source-summary{grid-template-columns:1fr}}
+
+
+/* =========================================================
+   V12.32 — SIMPLE STUDENT CLASS DISPLAY CONTROLS
+   ========================================================= */
+.field-label-action{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}.field-label-action label{margin:0!important}.meta-visibility-toggle{border:1px solid transparent;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap;transition:.18s}.meta-visibility-toggle.is-visible{background:#e9f8ef;border-color:#a9dfba;color:#176b38}.meta-visibility-toggle.is-hidden{background:#fff0f0;border-color:#efb3b3;color:#a52727}.meta-visibility-toggle:hover{transform:translateY(-1px);filter:brightness(.98)}
+.target-student-display-summary{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.target-student-display-summary span{border-radius:999px;padding:5px 8px;font-size:9px;font-weight:900}.target-student-display-summary .on{background:#eaf8ef;color:#176b38}.target-student-display-summary .off{background:#fff0f0;color:#9e2929}
+.student-meta-row:empty{display:none}.five-day-target-meta:empty{display:none}
+@media(max-width:650px){.field-label-action{align-items:flex-start;flex-direction:column}.meta-visibility-toggle{white-space:normal;text-align:left}}

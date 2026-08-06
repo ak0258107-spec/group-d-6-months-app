@@ -1,17 +1,18 @@
 {
   "app": "GK BY PURUSHOTAM SIR GROUP-D APP",
-  "version": "12.31.0",
-  "build": "COMPLETE_AUTO_PART_CLASS_ALL_TARGETS",
-  "base": "V12.30 Complete Students + Extra Class Fix",
+  "version": "12.32.0",
+  "build": "COMPLETE_SIMPLE_CLASS_DISPLAY_CONTROLS",
+  "base": "V12.31 Complete Auto Part Class All Targets",
   "changes": [
     "Complete GitHub package; not a patch-only upload",
-    "Every Target class can create Part 2 through Part 10 without retyping title, subject or topic",
-    "Extra Part form can use any source class from the complete date-wise Target Plan",
-    "Clicking + Part on a class preselects that source class automatically",
-    "Class title, subject and topic are generated automatically from the selected source and part number",
-    "Already-used part numbers are removed to prevent duplicate Parts",
-    "Duration is hidden and safely stored as 60 minutes; Admin only selects link, time, type, status, visibility and optional note",
-    "Existing Students list, PDF upload, Hindi filename fix, CBT, R2, Target Plan, Student Panel, Profile, Poster and Announcement systems are unchanged",
+    "Student cards never show Time not set",
+    "Student cards never show fixed 60-minute duration",
+    "Live Class or Recorded Class is always shown clearly",
+    "Start Time appears only when a real time is entered and Admin has not hidden it",
+    "Class Status can be shown or hidden with one small cross-style toggle in Admin",
+    "Scheduled status is hidden from Students by default; special statuses remain controllable",
+    "Display preferences are safely stored inside existing class notes without database or SQL changes",
+    "Existing Auto Part 2-10, Students, PDF upload, CBT, R2, Target Plan, Profile, Poster and Announcement systems remain unchanged",
     "No Supabase SQL, Cloudflare, R2 or Turso change is required"
   ]
 }

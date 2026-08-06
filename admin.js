@@ -253,13 +253,48 @@ function localDateKey(date=new Date()){
 function isoOrNull(value){return value?new Date(value).toISOString():null}
 function classDayLabel(row){return `Day ${row.schedule_days?.day_number||'-'} • ${fmtDate(row.schedule_days?.day_date||'')}`}
 function classTimeLabel(row){
-  if(!row.start_time)return row.class_type==='recorded'?'Recorded Class':'Time not set';
+  if(!row.start_time)return row.class_type==='recorded'?'Recorded Class':'Live Class';
   const [h,m]=String(row.start_time).slice(0,5).split(':').map(Number);
   const dt=new Date();dt.setHours(h,m,0,0);
   return dt.toLocaleTimeString('hi-IN',{hour:'numeric',minute:'2-digit'});
 }
 function statusLabel(status){return ({scheduled:'Scheduled',live:'Live Now',completed:'Completed',cancelled:'Cancelled',time_changed:'Time Changed',partial:'Time Changed'})[status]||status||'Scheduled'}
 function statusClass(status){return status==='live'?'badge-red':status==='completed'?'badge-green':status==='cancelled'?'badge-gray':status==='time_changed'||status==='partial'?'badge-orange':'badge-blue'}
+const CLASS_NOTE_HIDE_TIME='[[student_time:hidden]]';
+const CLASS_NOTE_SHOW_STATUS='[[student_status:show]]';
+const CLASS_NOTE_HIDE_STATUS='[[student_status:hidden]]';
+function cleanClassNote(raw){
+  return String(raw||'').replaceAll(CLASS_NOTE_HIDE_TIME,'').replaceAll(CLASS_NOTE_SHOW_STATUS,'').replaceAll(CLASS_NOTE_HIDE_STATUS,'').replace(/\n{3,}/g,'\n\n').trim();
+}
+function classDisplaySettings(rowOrNote,statusValue='scheduled'){
+  const raw=typeof rowOrNote==='string'?rowOrNote:String(rowOrNote?.class_note||'');
+  const status=typeof rowOrNote==='string'?statusValue:String(rowOrNote?.class_status||statusValue||'scheduled');
+  const showTime=!raw.includes(CLASS_NOTE_HIDE_TIME);
+  let showStatus;
+  if(raw.includes(CLASS_NOTE_SHOW_STATUS))showStatus=true;
+  else if(raw.includes(CLASS_NOTE_HIDE_STATUS))showStatus=false;
+  else showStatus=['live','cancelled','time_changed','partial'].includes(status);
+  return {showTime,showStatus,note:cleanClassNote(raw)};
+}
+function composeClassNote(note,showTime,showStatus){
+  const parts=[];const clean=cleanClassNote(note);if(clean)parts.push(clean);
+  if(!showTime)parts.push(CLASS_NOTE_HIDE_TIME);
+  parts.push(showStatus?CLASS_NOTE_SHOW_STATUS:CLASS_NOTE_HIDE_STATUS);
+  return parts.join('\n')||null;
+}
+function setClassDisplayControl(scope,kind,visible){
+  const cap=kind==='time'?'Time':'Status';
+  const hidden=byId(`${scope}Show${cap}`),btn=byId(`${scope}${cap}DisplayBtn`);
+  if(hidden)hidden.value=visible?'1':'0';
+  if(btn){
+    btn.classList.toggle('is-visible',visible);btn.classList.toggle('is-hidden',!visible);
+    btn.textContent=visible?(kind==='time'?'✓ समय दिखेगा · ✕ छिपाएँ':'✓ Status दिखेगा · ✕ छिपाएँ'):(kind==='time'?'✕ समय छिपा है · दिखाएँ':'✕ Status छिपा है · दिखाएँ');
+  }
+}
+function toggleClassDisplay(scope,kind){
+  const cap=kind==='time'?'Time':'Status';const hidden=byId(`${scope}Show${cap}`);
+  setClassDisplayControl(scope,kind,String(hidden?.value||'0')!=='1');
+}
 function targetDayDate(row){return String(row?.schedule_days?.day_date||'9999-12-31')}
 function targetDayNumber(row){return Number(row?.schedule_days?.day_number||999999)}
 function targetOrderNumber(row){return Number(row?.target_order||999)}
@@ -451,6 +486,7 @@ function openExtraClassModal(sourceId=''){
   byId('extraClassYoutube').value='';
   byId('extraClassStartTime').value='';byId('extraClassType').value='live';byId('extraClassStatus').value='scheduled';
   byId('extraClassVisibility').value='auto';byId('extraClassNote').value='';byId('extraClassNotify').checked=true;
+  setClassDisplayControl('extraClass','time',true);setClassDisplayControl('extraClass','status',false);
   syncExtraClassGeneratedFields();
   modal.classList.remove('hidden');document.body.classList.add('simple-modal-open');
   setTimeout(()=>byId('extraClassPart')?.focus(),80);
@@ -475,7 +511,7 @@ async function saveExtraClass(){
     p_duration_minutes:60,
     p_class_type:byId('extraClassType')?.value||'live',
     p_class_status:byId('extraClassStatus')?.value||'scheduled',
-    p_class_note:String(byId('extraClassNote')?.value||'').trim()||null,
+    p_class_note:composeClassNote(String(byId('extraClassNote')?.value||'').trim(),String(byId('extraClassShowTime')?.value||'1')==='1',String(byId('extraClassShowStatus')?.value||'0')==='1'),
     p_visibility_mode:byId('extraClassVisibility')?.value||'auto'
   };
   if(!payload.p_schedule_day_id){setExtraClassStatus('Target Day नहीं मिला। Modal बंद करके Day दोबारा चुनें।','error');return}
@@ -505,7 +541,7 @@ async function saveExtraClass(){
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!byId('extraClassModal')?.classList.contains('hidden'))closeExtraClassModal()});
 
 function resetClassForm(){
-  byId('classId').value='';byId('classTitle').value='';byId('classSubject').value='';byId('classTopic').value='';byId('classYoutube').value='';byId('classStartTime').value='';byId('classDuration').value='60';byId('classType').value='live';byId('classStatus').value='scheduled';byId('classNote').value='';byId('classVisibilityMode').value='auto';byId('classNotify').checked=true;byId('saveClassBtn').textContent='Save Target / Class';if(byId('classFormHeading'))byId('classFormHeading').textContent='Extra Class जोड़ें';renderTargetClassQuickPick();
+  byId('classId').value='';byId('classTitle').value='';byId('classSubject').value='';byId('classTopic').value='';byId('classYoutube').value='';byId('classStartTime').value='';if(byId('classDuration'))byId('classDuration').value='60';byId('classType').value='live';byId('classStatus').value='scheduled';byId('classNote').value='';byId('classVisibilityMode').value='auto';byId('classNotify').checked=true;byId('saveClassBtn').textContent='Save Target / Class';if(byId('classFormHeading'))byId('classFormHeading').textContent='Extra Class जोड़ें';setClassDisplayControl('class','time',true);setClassDisplayControl('class','status',false);renderTargetClassQuickPick();
 }
 function fillClassForm(x,scroll=false){
   if(!x)return;
@@ -516,10 +552,12 @@ function fillClassForm(x,scroll=false){
   byId('classTopic').value=x.topic||'';
   byId('classYoutube').value=x.youtube_url||'';
   byId('classStartTime').value=String(x.start_time||'').slice(0,5);
-  byId('classDuration').value=Number(x.duration_minutes||60);
+  if(byId('classDuration'))byId('classDuration').value=Number(x.duration_minutes||60);
   byId('classType').value=x.class_type||'live';
   byId('classStatus').value=x.class_status==='partial'?'time_changed':(x.class_status||'scheduled');
-  byId('classNote').value=x.class_note||'';
+  const display=classDisplaySettings(x);
+  byId('classNote').value=display.note;
+  setClassDisplayControl('class','time',display.showTime);setClassDisplayControl('class','status',display.showStatus);
   byId('classVisibilityMode').value=x.visibility_mode||'auto';
   byId('classNotify').checked=false;
   byId('saveClassBtn').textContent='Update Target / Class';
@@ -553,10 +591,10 @@ async function saveClass(){
     p_topic:byId('classTopic').value.trim(),
     p_youtube_url:byId('classYoutube').value.trim()||null,
     p_start_time:byId('classStartTime').value||null,
-    p_duration_minutes:Math.max(1,Number(byId('classDuration').value||60)),
+    p_duration_minutes:60,
     p_class_type:byId('classType').value,
     p_class_status:byId('classStatus').value,
-    p_class_note:byId('classNote').value.trim()||null,
+    p_class_note:composeClassNote(byId('classNote').value.trim(),String(byId('classShowTime')?.value||'1')==='1',String(byId('classShowStatus')?.value||'0')==='1'),
     p_visibility_mode:visibilityMode
   };
   if(!payload.p_schedule_day_id||!payload.p_class_title||!payload.p_subject||!payload.p_topic){toast('Day, Class Title, Subject और Topic जरूरी हैं।','error');return}
@@ -609,13 +647,17 @@ function compactTargetCard(x){
   const mainTopic=x.topic||x.class_title||'Class';
   const secondary=x.class_title&&String(x.class_title).trim()!==String(mainTopic).trim()?x.class_title:'';
   const classLabel=x.is_extra_class===false?`CLASS ${Number(x.target_order||1)}`:'EXTRA';
+  const display=classDisplaySettings(x);
+  const timeText=x.start_time?classTimeLabel(x):'समय सेट नहीं';
+  const typeText=x.class_type==='recorded'?'Recorded Class':'Live Class';
   return `<article class="target-compact-card">
     <div class="target-compact-head"><span class="target-order-chip">${classLabel}</span><span class="target-day-chip">Day ${Number(x.schedule_days?.day_number||0)} • ${esc(fmtDate(x.schedule_days?.day_date||''))}</span><span class="badge ${statusClass(x.class_status)}">${esc(statusLabel(x.class_status))}</span></div>
     <h3>${esc(mainTopic)}</h3>${secondary?`<p class="target-secondary-title">${esc(secondary)}</p>`:''}
     <p class="target-subject-line">${esc(x.subject||'')}</p>
-    <div class="target-compact-meta"><span>⏰ ${esc(classTimeLabel(x))}</span><span>• ${Number(x.duration_minutes||60)} मिनट</span></div>
+    <div class="target-compact-meta"><span>⏰ ${esc(timeText)}</span><span>${x.class_type==='recorded'?'🎬':'🔴'} ${esc(typeText)}</span></div>
+    <div class="target-student-display-summary"><span class="${display.showTime&&x.start_time?'on':'off'}">${display.showTime&&x.start_time?'समय Student को दिखेगा':'समय Student से छिपा है'}</span><span class="${display.showStatus?'on':'off'}">${display.showStatus?'Status Student को दिखेगा':'Status Student से छिपा है'}</span></div>
     <div class="target-youtube-status ${x.youtube_url?'ready':'missing'}">${x.youtube_url?'✓ YouTube Link जोड़ा गया':'YouTube Link अभी नहीं जोड़ा गया'}</div>
-    ${x.class_note?`<p class="student-note">${esc(x.class_note)}</p>`:''}
+    ${display.note?`<p class="student-note">${esc(display.note)}</p>`:''}
     <div class="target-compact-actions">
       <select id="classMode_${x.id}" class="mini-select"><option value="auto" ${(x.visibility_mode||'auto')==='auto'?'selected':''}>Auto by Date</option><option value="show" ${x.visibility_mode==='show'?'selected':''}>Show Now</option><option value="hide" ${x.visibility_mode==='hide'?'selected':''}>Hide</option></select>
       <button class="btn btn-blue btn-mini" onclick="saveClassVisibility('${x.id}')">Save</button>

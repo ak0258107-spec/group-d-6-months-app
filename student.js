@@ -26,10 +26,21 @@ function closeStudentMenu(){
   document.body.classList.remove('student-menu-open');
 }
 function statusLabel(status){return ({scheduled:'Scheduled',live:'Live Now',completed:'Completed / Recording',cancelled:'Cancelled',time_changed:'Time Changed',partial:'Time Changed'})[status]||status||'Scheduled'}
+const CLASS_NOTE_HIDE_TIME='[[student_time:hidden]]';
+const CLASS_NOTE_SHOW_STATUS='[[student_status:show]]';
+const CLASS_NOTE_HIDE_STATUS='[[student_status:hidden]]';
+function cleanClassNote(raw){return String(raw||'').replaceAll(CLASS_NOTE_HIDE_TIME,'').replaceAll(CLASS_NOTE_SHOW_STATUS,'').replaceAll(CLASS_NOTE_HIDE_STATUS,'').replace(/\n{3,}/g,'\n\n').trim()}
+function classDisplaySettings(row){
+  const raw=String(row?.class_note||''),status=String(row?.class_status||'scheduled');
+  const showTime=!raw.includes(CLASS_NOTE_HIDE_TIME);
+  let showStatus;if(raw.includes(CLASS_NOTE_SHOW_STATUS))showStatus=true;else if(raw.includes(CLASS_NOTE_HIDE_STATUS))showStatus=false;else showStatus=['live','cancelled','time_changed','partial'].includes(status);
+  return {showTime,showStatus,note:cleanClassNote(raw)};
+}
+function classTypeText(row){return row?.class_type==='recorded'?'🎬 Recorded Class':'🔴 Live Class'}
 function classDateTime(row){
   const date=row.day_date||row.schedule_days?.day_date||'';
   const time=String(row.start_time||'').slice(0,5);
-  if(!time)return {date,time:'Time not set',sort:`${date}T23:59`};
+  if(!time)return {date,time:'',sort:`${date}T23:59`};
   const [h,m]=time.split(':').map(Number),dt=new Date();dt.setHours(h,m,0,0);
   return {date,time:dt.toLocaleTimeString('hi-IN',{hour:'numeric',minute:'2-digit'}),sort:`${date}T${time}:00`};
 }
@@ -90,7 +101,7 @@ function targetCompleteButton(item){
 function renderFiveDayTargets(){
   const host=byId('targetsBox');if(!host)return;
   const days=groupFiveDayTargets();
-  host.innerHTML=days.map(day=>`<article class="five-day-card"><div class="five-day-head"><span>DAY ${Number(day.day_number||0)}</span><b>${esc(fmtDate(day.day_date||''))}</b></div>${day.items.length?day.items.map(item=>{const state=item.class_status||'scheduled';const time=item.start_time?classDateTime({day_date:day.day_date,start_time:item.start_time}).time:'Time not set';return `<div class="five-day-item"><div class="five-day-item-copy"><b>${esc(item.subject||'Target')}</b><span>${esc(item.topic||item.class_title||'')}</span><div class="five-day-target-meta"><span class="badge ${classBadge(state)}">${esc(statusLabel(state))}</span><small>⏰ ${esc(time)}</small></div><div class="five-day-item-actions">${item.youtube_url&&state!=='cancelled'?`<a class="btn ${state==='live'?'btn-red':'btn-blue'} btn-mini" href="${esc(item.youtube_url)}" target="_blank" rel="noopener">${state==='live'?'Join Live':'Class देखें'}</a>`:''}${targetCompleteButton(item)}</div></div></div>`}).join(''):'<div class="student-empty compact">इस Day का content अभी नहीं जोड़ा गया है।</div>'}</article>`).join('')||'<div class="student-empty">5-Day Target अभी उपलब्ध नहीं है।</div>';
+  host.innerHTML=days.map(day=>`<article class="five-day-card"><div class="five-day-head"><span>DAY ${Number(day.day_number||0)}</span><b>${esc(fmtDate(day.day_date||''))}</b></div>${day.items.length?day.items.map(item=>{const state=item.class_status||'scheduled',display=classDisplaySettings(item),dt=classDateTime({...item,class_date:day.day_date});const meta=[];if(display.showStatus)meta.push(`<span class="badge ${classBadge(state)}">${esc(statusLabel(state))}</span>`);if(display.showTime&&dt.time)meta.push(`<small>⏰ ${esc(dt.time)}</small>`);meta.push(`<small>${classTypeText(item)}</small>`);return `<div class="five-day-item"><div class="five-day-item-copy"><b>${esc(item.subject||'Target')}</b><span>${esc(item.topic||item.class_title||'')}</span><div class="five-day-target-meta">${meta.join('')}</div><div class="five-day-item-actions">${item.youtube_url&&state!=='cancelled'?`<a class="btn ${state==='live'?'btn-red':'btn-blue'} btn-mini" href="${esc(item.youtube_url)}" target="_blank" rel="noopener">${state==='live'?'Join Live':'Class देखें'}</a>`:''}${targetCompleteButton(item)}</div></div></div>`}).join(''):'<div class="student-empty compact">इस Day का content अभी नहीं जोड़ा गया है।</div>'}</article>`).join('')||'<div class="student-empty">5-Day Target अभी उपलब्ध नहीं है।</div>';
 }
 async function toggleTargetComplete(targetId,completed){
   if(!targetId)return;
@@ -112,9 +123,10 @@ async function loadClasses(){
 function renderClasses(){
   const host=byId('classesBox');if(!host)return;
   host.innerHTML=classes.map(x=>{
-    const state=effectiveClassStatus(x),dt=classDateTime(x),canWatch=!!x.youtube_url&&state!=='cancelled';
+    const state=effectiveClassStatus(x),dt=classDateTime(x),display=classDisplaySettings(x),canWatch=!!x.youtube_url&&state!=='cancelled';
     const button=canWatch?`<a class="btn ${state==='live'?'btn-red':'btn-blue'}" href="${esc(x.youtube_url)}" target="_blank" rel="noopener">${state==='live'?'🔴 Join Live Class':state==='completed'||x.class_type==='recorded'?'Watch Recording':'Watch Class'}</a>`:`<button class="btn btn-light" disabled>${state==='cancelled'?'Class Cancelled':'Link अभी उपलब्ध नहीं'}</button>`;
-    return `<article class="student-content-card"><div class="student-card-head"><span class="badge ${classBadge(state)}">${esc(statusLabel(state))}</span><span class="student-card-date">${esc(fmtDate(dt.date))}</span></div><h2>${esc(x.class_title||x.topic||'Class')}</h2><p class="student-card-sub">${esc(x.subject||'')} • ${esc(x.topic||'')}</p><div class="student-meta-row"><span>⏰ ${esc(dt.time)}</span><span>⏳ ${Number(x.duration_minutes||60)} मिनट</span><span>${x.class_type==='recorded'?'🎬 Recorded':'🔴 Live Class'}</span></div>${x.class_note?`<div class="student-note">${esc(x.class_note)}</div>`:''}<div class="student-card-actions">${button}</div></article>`;
+    const meta=[];if(display.showTime&&dt.time)meta.push(`<span>⏰ ${esc(dt.time)}</span>`);meta.push(`<span>${classTypeText(x)}</span>`);
+    return `<article class="student-content-card"><div class="student-card-head">${display.showStatus?`<span class="badge ${classBadge(state)}">${esc(statusLabel(state))}</span>`:'<span></span>'}<span class="student-card-date">${esc(fmtDate(dt.date))}</span></div><h2>${esc(x.class_title||x.topic||'Class')}</h2><p class="student-card-sub">${esc(x.subject||'')} • ${esc(x.topic||'')}</p><div class="student-meta-row">${meta.join('')}</div>${display.note?`<div class="student-note">${esc(display.note)}</div>`:''}<div class="student-card-actions">${button}</div></article>`;
   }).join('')||'<div class="student-empty">अभी कोई Class उपलब्ध नहीं है।</div>';
 }
 
@@ -198,7 +210,7 @@ function renderHome(){
     <div class="home-quick-grid"><button onclick="tab('targets')"><span>🎯</span><b>5-Day Target</b><small>${groupFiveDayTargets().length} Days</small></button><button onclick="tab('classes')"><span>▶</span><b>Classes</b><small>${classes.length} available</small></button><button onclick="tab('classpdfs')"><span>📘</span><b>Class PDFs</b><small>${materials.filter(x=>(x.pdf_type||'class')==='class').length} PDFs</small></button><button onclick="tab('otherpdfs')"><span>📄</span><b>Other PDFs</b><small>${materials.filter(x=>x.pdf_type==='direct').length} PDFs</small></button><button onclick="tab('cbt')"><span>🖥</span><b>CBT Tests</b><small>Start Test</small></button><button onclick="tab('profile')"><span>👤</span><b>My Progress</b><small>${releasedTargets.filter(x=>x.completed).length}/${releasedTargets.length} Target</small></button></div>
     <div class="home-block home-progress-mini"><div class="home-block-head"><h2>मेरी Target Progress</h2><button onclick="tab('profile')">Profile देखें</button></div><div class="profile-progress-track"><div style="width:${releasedTargets.length?Math.round(releasedTargets.filter(x=>x.completed).length/releasedTargets.length*100):0}%"></div></div><small>${releasedTargets.filter(x=>x.completed).length} पूरे • ${Math.max(0,releasedTargets.length-releasedTargets.filter(x=>x.completed).length)} बाकी</small></div>
     <div class="home-block"><div class="home-block-head"><h2>5-Day Target</h2><button onclick="tab('targets')">View All</button></div>${groupFiveDayTargets().slice(0,5).map(day=>`<div class="home-row"><div><b>Day ${Number(day.day_number||0)}</b><small>${esc(fmtDate(day.day_date||''))} • ${day.items.length} Target</small></div><span class="badge badge-green">Available</span></div>`).join('')||'<div class="student-empty compact">Target अभी उपलब्ध नहीं है।</div>'}</div>
-    <div class="home-block"><div class="home-block-head"><h2>आने वाली Classes</h2><button onclick="tab('classes')">View All</button></div>${upcoming.length?upcoming.map(x=>{const s=effectiveClassStatus(x),dt=classDateTime(x);return `<div class="home-row"><div><b>${esc(x.class_title||x.topic)}</b><small>${esc(fmtDate(dt.date))} • ${esc(dt.time)}</small></div><span class="badge ${classBadge(s)}">${esc(statusLabel(s))}</span></div>`}).join(''):'<div class="student-empty compact">अभी कोई upcoming Class नहीं है।</div>'}</div>
+    <div class="home-block"><div class="home-block-head"><h2>आने वाली Classes</h2><button onclick="tab('classes')">View All</button></div>${upcoming.length?upcoming.map(x=>{const s=effectiveClassStatus(x),dt=classDateTime(x),display=classDisplaySettings(x);const details=[esc(fmtDate(dt.date))];if(display.showTime&&dt.time)details.push(esc(dt.time));details.push(classTypeText(x));return `<div class="home-row"><div><b>${esc(x.class_title||x.topic)}</b><small>${details.join(' • ')}</small></div>${display.showStatus?`<span class="badge ${classBadge(s)}">${esc(statusLabel(s))}</span>`:''}</div>`}).join(''):'<div class="student-empty compact">अभी कोई upcoming Class नहीं है।</div>'}</div>
     <div class="home-block"><div class="home-block-head"><h2>नई PDFs</h2></div>${latestPdfs.length?latestPdfs.map(x=>`<div class="home-row"><div><b>${esc(x.title)}</b><small>${(x.pdf_type||'class')==='class'?'Class PDF':'Other PDF'}</small></div><button class="btn btn-blue btn-mini" onclick='readPdf(${JSON.stringify(x.id)},${JSON.stringify(x.storage_path||"")},${JSON.stringify(x.title||"PDF")})'>Open</button></div>`).join(''):'<div class="student-empty compact">अभी कोई PDF नहीं है।</div>'}</div>`;
 }
 
