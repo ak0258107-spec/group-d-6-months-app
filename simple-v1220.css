@@ -111,7 +111,7 @@
 .target-youtube-status{border-radius:9px;padding:7px 8px;font-size:10px;font-weight:850;margin:7px 0}
 .target-youtube-status.ready{background:#eaf8ef;color:#18743d}
 .target-youtube-status.missing{background:#fff2f2;color:#a83b3b}
-.target-compact-actions{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;margin-top:9px}
+.target-compact-actions{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:6px;align-items:center;margin-top:9px}
 .target-compact-actions .mini-select{width:100%;min-width:0}
 .target-compact-actions .btn{white-space:nowrap;padding:8px 10px}
 .target-visible-line{margin-top:8px;border-top:1px dashed #d9e2ed;padding-top:7px;font-size:10px;font-weight:850}
@@ -162,3 +162,15 @@
 .student-list-status{margin:0 0 12px;padding:11px 13px;border-radius:12px;font-size:12px;font-weight:850;border:1px solid transparent}.student-list-status.loading{background:#eef6ff;color:#165aa7;border-color:#b8d9ff}.student-list-status.success{background:#eaf9f0;color:#17683a;border-color:#a9e2bf}.student-list-status.error{background:#fff0f0;color:#a22626;border-color:#f0b5b5}.student-list-status.info{background:#f7f9fc;color:#52657b;border-color:#dbe4ef}
 .students-table-wrap table{min-width:900px}.students-table-wrap td,.students-table-wrap th{vertical-align:middle}
 @media(max-width:760px){.simple-modal{padding:8px;align-items:flex-start}.simple-modal-card{padding:16px;max-height:calc(100dvh - 16px);border-radius:17px}.simple-modal-head h2{font-size:22px}.simple-modal-actions{display:grid;grid-template-columns:1fr 1fr}.simple-modal-actions .btn{min-width:0}.students-admin-head{display:block}.students-head-actions{margin-top:12px}.students-head-actions input{width:100%;max-width:none}}
+
+
+/* =========================================================
+   V12.31 — AUTO PART CLASS FOR EVERY TARGET
+   ========================================================= */
+.target-quick-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:stretch;border:1px solid #d8e3f0;border-radius:14px;padding:5px;background:#f8fbff}.target-quick-item.active{border-color:#1670e7;box-shadow:0 0 0 2px rgba(22,112,231,.12)}
+.target-quick-item .target-quick-btn{border:0!important;box-shadow:none!important;background:transparent!important;text-align:left!important;padding:8px 9px!important;color:#16324f!important}.target-quick-item.active .target-quick-btn{color:#075cc7!important}
+.target-part-btn{align-self:stretch;border:0;border-radius:10px;padding:7px 10px;background:linear-gradient(135deg,#ea580c,#f97316);color:#fff;font-size:11px;font-weight:950;cursor:pointer;white-space:nowrap;box-shadow:0 6px 12px rgba(234,88,12,.17)}
+.extra-class-source-summary{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:9px 0 14px;padding:12px 13px;border:1px solid #bfdbfe;border-radius:13px;background:linear-gradient(135deg,#eff6ff,#f8fbff);color:#173f68}.extra-class-source-summary b{font-size:13px}.extra-class-source-summary span{font-weight:900}.extra-class-source-summary small{grid-column:1/-1;color:#607087;font-weight:750}
+.auto-filled-fields input[readonly]{background:#f1f5f9;color:#334155;border-style:dashed;font-weight:850}
+.extra-class-modal-card select{width:100%}
+@media(max-width:650px){.target-quick-item{grid-template-columns:minmax(0,1fr) auto}.target-part-btn{padding:7px 8px}.extra-class-source-summary{grid-template-columns:1fr}}

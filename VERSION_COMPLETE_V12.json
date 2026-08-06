@@ -1,17 +1,17 @@
 {
   "app": "GK BY PURUSHOTAM SIR GROUP-D APP",
-  "version": "12.30.0",
-  "build": "COMPLETE_REGISTERED_STUDENTS_AND_EXTRA_CLASS_FIX",
-  "base": "V12.29 Complete Hindi PDF Upload Fix",
+  "version": "12.31.0",
+  "build": "COMPLETE_AUTO_PART_CLASS_ALL_TARGETS",
+  "base": "V12.30 Complete Students + Extra Class Fix",
   "changes": [
     "Complete GitHub package; not a patch-only upload",
-    "Registered Students are loaded through a secure Admin RPC that joins Supabase Auth users with profile details",
-    "Student email, mobile, registration date, active status and Activate/Deactivate control are visible",
-    "Students list shows count, loading state, refresh, search and real database errors",
-    "Extra Class button opens a dedicated form for the selected Day",
-    "Extra Class receives the next Class number automatically and supports title, subject, topic, YouTube link, time, duration, status and visibility",
-    "Extra Classes can be edited and deleted while planned Target classes stay protected",
-    "Existing PDF upload, Hindi filename fix, CBT, R2, Target Plan, Student Panel, Profile, Poster and Announcement systems are unchanged",
-    "One safe Supabase SQL must be run once; no Cloudflare or R2 change is required"
+    "Every Target class can create Part 2 through Part 10 without retyping title, subject or topic",
+    "Extra Part form can use any source class from the complete date-wise Target Plan",
+    "Clicking + Part on a class preselects that source class automatically",
+    "Class title, subject and topic are generated automatically from the selected source and part number",
+    "Already-used part numbers are removed to prevent duplicate Parts",
+    "Duration is hidden and safely stored as 60 minutes; Admin only selects link, time, type, status, visibility and optional note",
+    "Existing Students list, PDF upload, Hindi filename fix, CBT, R2, Target Plan, Student Panel, Profile, Poster and Announcement systems are unchanged",
+    "No Supabase SQL, Cloudflare, R2 or Turso change is required"
   ]
 }

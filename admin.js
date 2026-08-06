@@ -387,19 +387,73 @@ function extraClassNextOrder(dayId){
   const rows=classes.filter(row=>String(row.schedule_day_id||'')===String(dayId||''));
   return Math.max(0,...rows.map(row=>Number(row.target_order||0)))+1;
 }
-function openExtraClassModal(){
+function extraClassBaseTopic(row){
+  const raw=String(row?.topic||row?.class_title||'').trim();
+  return raw.replace(/\s*[—–-]\s*Part\s*(?:10|[2-9])\s*$/i,'').trim()||raw;
+}
+function extraClassPartNumber(row){
+  const raw=String(row?.topic||row?.class_title||'');
+  const match=raw.match(/\s*[—–-]\s*Part\s*(10|[2-9])\s*$/i);
+  return match?Number(match[1]):1;
+}
+function extraClassSourceRows(){
+  return [...classes].sort(compareTargetRows);
+}
+function renderExtraClassSourceOptions(preferredId=''){
+  const select=byId('extraClassSource');if(!select)return null;
+  const day=selectedScheduleDay();
+  const rows=extraClassSourceRows();
+  const selectedDayRows=rows.filter(row=>String(row.schedule_day_id||'')===String(day?.id||''));
+  const otherRows=rows.filter(row=>String(row.schedule_day_id||'')!==String(day?.id||''));
+  const optionHtml=row=>`<option value="${esc(row.id)}">Day ${Number(row.schedule_days?.day_number||0)} • Class ${Number(row.target_order||1)} — ${esc(row.subject||'')} — ${esc(extraClassBaseTopic(row))}</option>`;
+  select.innerHTML=`${selectedDayRows.length?`<optgroup label="Selected Day की Classes">${selectedDayRows.map(optionHtml).join('')}</optgroup>`:''}<optgroup label="पूरे Target Plan की Classes">${otherRows.map(optionHtml).join('')}</optgroup>`;
+  const activeId=preferredId||String(byId('classId')?.value||'')||String(selectedDayRows[0]?.id||rows[0]?.id||'');
+  if(activeId&&rows.some(row=>String(row.id)===String(activeId)))select.value=activeId;
+  return rows.find(row=>String(row.id)===String(select.value))||rows[0]||null;
+}
+function usedExtraClassParts(source){
+  const subject=String(source?.subject||'').trim().toLowerCase();
+  const base=extraClassBaseTopic(source).toLowerCase();
+  return new Set(classes.filter(row=>String(row.subject||'').trim().toLowerCase()===subject&&extraClassBaseTopic(row).toLowerCase()===base).map(extraClassPartNumber));
+}
+function syncExtraClassGeneratedFields(){
+  const source=classes.find(row=>String(row.id)===String(byId('extraClassSource')?.value||''));
+  if(!source)return;
+  const base=extraClassBaseTopic(source);
+  const used=usedExtraClassParts(source);
+  const partSelect=byId('extraClassPart');
+  const current=Number(partSelect?.value||0);
+  const available=[];
+  for(let part=2;part<=10;part++)if(!used.has(part))available.push(part);
+  if(partSelect){
+    partSelect.innerHTML=available.length?available.map(part=>`<option value="${part}">${esc(base)} — Part ${part}</option>`).join(''):'<option value="">Part 2 से Part 10 सभी पहले से जुड़े हैं</option>';
+    if(available.includes(current))partSelect.value=String(current);
+  }
+  const part=Number(partSelect?.value||available[0]||0);
+  const generated=part?`${base} — Part ${part}`:base;
+  byId('extraClassTitle').value=generated;
+  byId('extraClassSubject').value=source.subject||'';
+  byId('extraClassTopic').value=generated;
+  byId('extraClassSourceSummary').innerHTML=`<b>${esc(source.subject||'')}</b><span>${esc(base)}</span><small>मूल Target: Day ${Number(source.schedule_days?.day_number||0)} • Class ${Number(source.target_order||1)}</small>`;
+  const saveBtn=byId('saveExtraClassBtn');if(saveBtn)saveBtn.disabled=!part;
+  if(!part)setExtraClassStatus('इस Topic के Part 2 से Part 10 पहले ही जोड़े जा चुके हैं।','info');else setExtraClassStatus('');
+}
+function onExtraClassSourceChange(){syncExtraClassGeneratedFields()}
+function openExtraClassModal(sourceId=''){
   const day=selectedScheduleDay();
   if(!day){toast('पहले Target Day चुनें।','error');return}
   const modal=byId('extraClassModal');if(!modal)return;
   byId('extraClassDayId').value=day.id;
-  byId('extraClassDayLabel').textContent=`Day ${day.day_number} — ${fmtDate(day.day_date)}`;
+  byId('extraClassDayLabel').textContent=`नई Part Class यहाँ जुड़ेगी: Day ${day.day_number} — ${fmtDate(day.day_date)}`;
   byId('extraClassNumberLabel').textContent=`Class ${extraClassNextOrder(day.id)}`;
-  byId('extraClassTitle').value='';byId('extraClassSubject').value='';byId('extraClassTopic').value='';byId('extraClassYoutube').value='';
-  byId('extraClassStartTime').value='';byId('extraClassDuration').value='60';byId('extraClassType').value='live';byId('extraClassStatus').value='scheduled';
+  const source=renderExtraClassSourceOptions(sourceId);
+  if(!source){toast('Target Plan में कोई Source Class नहीं मिली।','error');return}
+  byId('extraClassYoutube').value='';
+  byId('extraClassStartTime').value='';byId('extraClassType').value='live';byId('extraClassStatus').value='scheduled';
   byId('extraClassVisibility').value='auto';byId('extraClassNote').value='';byId('extraClassNotify').checked=true;
-  setExtraClassStatus('');
+  syncExtraClassGeneratedFields();
   modal.classList.remove('hidden');document.body.classList.add('simple-modal-open');
-  setTimeout(()=>byId('extraClassTitle')?.focus(),80);
+  setTimeout(()=>byId('extraClassPart')?.focus(),80);
 }
 function closeExtraClassModal(){
   byId('extraClassModal')?.classList.add('hidden');document.body.classList.remove('simple-modal-open');setExtraClassStatus('');
@@ -407,39 +461,45 @@ function closeExtraClassModal(){
 function extraClassBackdropClose(event){if(event?.target?.id==='extraClassModal')closeExtraClassModal()}
 async function saveExtraClass(){
   const dayId=byId('extraClassDayId')?.value||'';
+  const source=classes.find(row=>String(row.id)===String(byId('extraClassSource')?.value||''));
+  const part=Number(byId('extraClassPart')?.value||0);
+  const base=extraClassBaseTopic(source);
+  const generatedTitle=part?`${base} — Part ${part}`:'';
   const payload={
     p_class_id:null,p_schedule_day_id:dayId,
-    p_class_title:String(byId('extraClassTitle')?.value||'').trim(),
-    p_subject:String(byId('extraClassSubject')?.value||'').trim(),
-    p_topic:String(byId('extraClassTopic')?.value||'').trim(),
+    p_class_title:generatedTitle,
+    p_subject:String(source?.subject||'').trim(),
+    p_topic:generatedTitle,
     p_youtube_url:String(byId('extraClassYoutube')?.value||'').trim()||null,
     p_start_time:byId('extraClassStartTime')?.value||null,
-    p_duration_minutes:Math.max(1,Number(byId('extraClassDuration')?.value||60)),
+    p_duration_minutes:60,
     p_class_type:byId('extraClassType')?.value||'live',
     p_class_status:byId('extraClassStatus')?.value||'scheduled',
     p_class_note:String(byId('extraClassNote')?.value||'').trim()||null,
     p_visibility_mode:byId('extraClassVisibility')?.value||'auto'
   };
   if(!payload.p_schedule_day_id){setExtraClassStatus('Target Day नहीं मिला। Modal बंद करके Day दोबारा चुनें।','error');return}
-  if(!payload.p_class_title||!payload.p_subject||!payload.p_topic){setExtraClassStatus('Class Title, Subject और Topic तीनों जरूरी हैं।','error');return}
-  const btn=byId('saveExtraClassBtn'),old=btn?.textContent||'Save Extra Class';if(btn){btn.disabled=true;btn.textContent='Saving Extra Class...'}
-  setExtraClassStatus('Extra Class save की जा रही है…','loading');
+  if(!source){setExtraClassStatus('पहले मूल Class चुनें।','error');return}
+  if(!part||part<2||part>10){setExtraClassStatus('Part 2 से Part 10 में से उपलब्ध Part चुनें।','error');return}
+  if(usedExtraClassParts(source).has(part)){setExtraClassStatus(`${generatedTitle} पहले से जुड़ी हुई है। दूसरा Part चुनें।`,'error');return}
+  const btn=byId('saveExtraClassBtn'),old=btn?.textContent||'Save Part Class';if(btn){btn.disabled=true;btn.textContent='Saving Part Class...'}
+  setExtraClassStatus('Part Class save की जा रही है…','loading');
   try{
     const r=await sb.rpc('admin_save_target_class_v1226',payload);if(r.error)throw r.error;
     const saved=r.data;
     if(payload.p_visibility_mode!=='hide'&&byId('extraClassNotify')?.checked){
       const day=days.find(d=>String(d.id)===String(dayId));
-      const status=payload.p_class_status==='cancelled'?'Class Cancelled':payload.p_class_status==='time_changed'?'Class Time Changed':'▶ Extra Class Added';
+      const status=payload.p_class_status==='cancelled'?'Class Cancelled':payload.p_class_status==='time_changed'?'Class Time Changed':'▶ New Class Part Added';
       const msg=`${payload.p_class_title} • ${fmtDate(day?.day_date||'')} • ${classTimeLabel({start_time:payload.p_start_time,class_type:payload.p_class_type})}`;
       await createGlobalNotification(status,msg,'class',saved?.id||null);
     }
-    setExtraClassStatus('Extra Class सफलतापूर्वक जुड़ गई।','success');
-    toast('Extra Class selected Day में जोड़ दी गई।','success');
+    setExtraClassStatus(`${generatedTitle} सफलतापूर्वक जोड़ दी गई।`,'success');
+    toast(`${generatedTitle} selected Day में जोड़ दी गई।`,'success');
     await Promise.all([loadClasses(),loadDashboard()]);
     byId('classDay').value=dayId;renderClasses();renderClassPlanSummary();renderTargetClassQuickPick();
     if(saved?.id)loadTargetIntoForm(saved.id,false);
     setTimeout(closeExtraClassModal,650);
-  }catch(e){setExtraClassStatus(e.message||'Extra Class save नहीं हुई।','error');toast(e.message||'Extra Class save नहीं हुई।','error')}
+  }catch(e){setExtraClassStatus(e.message||'Part Class save नहीं हुई।','error');toast(e.message||'Part Class save नहीं हुई।','error')}
   finally{if(btn){btn.disabled=false;btn.textContent=old}}
 }
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!byId('extraClassModal')?.classList.contains('hidden'))closeExtraClassModal()});
@@ -481,7 +541,7 @@ function renderTargetClassQuickPick(){
   const host=byId('targetClassQuickPick');if(!host)return;
   const rows=rowsForScheduleDay();
   const activeId=String(byId('classId')?.value||'');
-  host.innerHTML=rows.map(row=>`<button type="button" class="target-quick-btn ${String(row.id)===activeId?'active':''}" onclick="loadTargetIntoForm('${row.id}',false)">Class ${Number(row.target_order||1)}<small>${esc(row.topic||row.class_title||'Target')}</small></button>`).join('')||'<span class="muted">इस Day का Target उपलब्ध नहीं है।</span>';
+  host.innerHTML=rows.map(row=>`<div class="target-quick-item ${String(row.id)===activeId?'active':''}"><button type="button" class="target-quick-btn" onclick="loadTargetIntoForm('${row.id}',false)">Class ${Number(row.target_order||1)}<small>${esc(row.topic||row.class_title||'Target')}</small></button><button type="button" class="target-part-btn" onclick="openExtraClassModal('${row.id}')" title="इस Topic का अगला Part जोड़ें">＋ Part</button></div>`).join('')||'<span class="muted">इस Day का Target उपलब्ध नहीं है।</span>';
 }
 async function saveClass(){
   const visibilityMode=byId('classVisibilityMode').value;
@@ -559,6 +619,7 @@ function compactTargetCard(x){
     <div class="target-compact-actions">
       <select id="classMode_${x.id}" class="mini-select"><option value="auto" ${(x.visibility_mode||'auto')==='auto'?'selected':''}>Auto by Date</option><option value="show" ${x.visibility_mode==='show'?'selected':''}>Show Now</option><option value="hide" ${x.visibility_mode==='hide'?'selected':''}>Hide</option></select>
       <button class="btn btn-blue btn-mini" onclick="saveClassVisibility('${x.id}')">Save</button>
+      <button class="btn btn-orange btn-mini" onclick="openExtraClassModal('${x.id}')">＋ Part</button>
       <button class="btn btn-light btn-mini" onclick="editClass('${x.id}')">Edit</button>
       ${x.is_extra_class!==false?`<button class="btn btn-red btn-mini" onclick="deleteClass('${x.id}')">Delete</button>`:''}
     </div>

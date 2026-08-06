@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin Panel | GK BY PURUSHOTAM SIR</title>
-<link rel="stylesheet" href="styles.css?v=12.30.0"><link rel="stylesheet" href="simple-v1220.css?v=12.30.0">
+<link rel="stylesheet" href="styles.css?v=12.31.0"><link rel="stylesheet" href="simple-v1220.css?v=12.31.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=12.30.0"></script><script src="common.js?v=12.30.0"></script>
+<script src="config.js?v=12.31.0"></script><script src="common.js?v=12.31.0"></script>
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="favicon.png"><meta name="theme-color" content="#8b0000">
 <style id="adminGateCriticalV1220">
 html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-height:100dvh!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important}body.admin-security-pending .admin-shell{display:none!important}body.admin-authorized .admin-shell{display:grid!important}body.admin-security-pending .admin-gate-overlay{position:relative!important;inset:auto!important;width:100%!important;min-height:100dvh!important;height:auto!important;display:block!important;overflow:visible!important;padding:16px 12px 56px!important}body.admin-security-pending .admin-gate-card{width:min(460px,calc(100vw - 24px))!important;max-width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;margin:0 auto!important;padding:20px!important}body.admin-security-pending .admin-mfa-qr img,body.admin-security-pending .admin-mfa-qr svg{width:min(180px,48vw)!important;height:auto!important}
@@ -48,7 +48,7 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
 <section id="classesTab" class="hidden">
   <div class="admin-head target-admin-head">
     <div><span class="simple-kicker">DATE-WISE TARGET PLAN</span><h1>Daily Target & Class Schedule</h1><div class="muted">Targets तारीख, Day और Class क्रम में हैं। Day चुनते ही उसकी Class 1 बाईं तरफ Edit के लिए अपने-आप खुलेगी।</div></div>
-    <button class="btn btn-orange" onclick="openExtraClassModal()">＋ Extra Class जोड़ें</button>
+    <button class="btn btn-orange" onclick="openExtraClassModal()">＋ Topic Part जोड़ें</button>
   </div>
 
   <div class="target-admin-toolbar card">
@@ -62,7 +62,7 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
 
   <div class="grid target-admin-grid">
     <div class="card span-7 simple-form-card target-form-panel">
-      <div class="target-form-title"><div><b id="classFormHeading">Target / Class Edit</b><small>Day बदलते ही Class 1 अपने-आप load होगी; नीचे से Class 1 या Class 2 चुनें</small></div><button class="btn btn-orange btn-mini" onclick="openExtraClassModal()">＋ Extra Class</button></div>
+      <div class="target-form-title"><div><b id="classFormHeading">Target / Class Edit</b><small>Day बदलते ही Class 1 अपने-आप load होगी; नीचे से Class 1 या Class 2 चुनें</small></div><button class="btn btn-orange btn-mini" onclick="openExtraClassModal()">＋ Topic Part</button></div>
       <div id="targetClassQuickPick" class="target-class-quick-pick"></div>
       <input id="classId" type="hidden">
       <label>Class Title</label><input id="classTitle" placeholder="जैसे: हरियाणा का परिचय एवं नामकरण">
@@ -161,24 +161,27 @@ html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-h
 <div id="extraClassModal" class="simple-modal hidden" role="dialog" aria-modal="true" aria-labelledby="extraClassModalTitle" onclick="extraClassBackdropClose(event)">
   <div class="simple-modal-card extra-class-modal-card">
     <div class="simple-modal-head">
-      <div><span class="simple-kicker">ADD CLASS TO SELECTED DAY</span><h2 id="extraClassModalTitle">Extra Class जोड़ें</h2><p id="extraClassDayLabel">Selected Day</p></div>
+      <div><span class="simple-kicker">AUTO PART CLASS — ALL TARGETS</span><h2 id="extraClassModalTitle">Topic का अगला Part जोड़ें</h2><p id="extraClassDayLabel">Selected Day</p></div>
       <button type="button" class="modal-close-btn" onclick="closeExtraClassModal()" aria-label="Close">×</button>
     </div>
     <div class="extra-class-number-line"><span>नई Class Number</span><b id="extraClassNumberLabel">Class 3</b></div>
     <input id="extraClassDayId" type="hidden">
-    <label>Class Title</label><input id="extraClassTitle" placeholder="जैसे: कोशिका — Part 2">
-    <div class="two-col"><div><label>Subject</label><input id="extraClassSubject" placeholder="विज्ञान"></div><div><label>Topic</label><input id="extraClassTopic" placeholder="कोशिका — Part 2"></div></div>
+    <label>किस मूल Class / Topic का Part जोड़ना है?</label>
+    <select id="extraClassSource" onchange="onExtraClassSourceChange()"></select>
+    <div id="extraClassSourceSummary" class="extra-class-source-summary"></div>
+    <label>Class Title / Part चुनें</label>
+    <select id="extraClassPart" onchange="syncExtraClassGeneratedFields()"></select>
+    <input id="extraClassTitle" type="hidden">
+    <div class="two-col auto-filled-fields"><div><label>Subject <small class="muted">(Automatic)</small></label><input id="extraClassSubject" readonly></div><div><label>Topic <small class="muted">(Automatic)</small></label><input id="extraClassTopic" readonly></div></div>
     <label>YouTube Link <small class="muted">(अभी link न हो तो खाली छोड़ सकते हैं)</small></label><input id="extraClassYoutube" type="url" placeholder="https://youtube.com/...">
-    <div class="three-col"><div><label>Start Time</label><input id="extraClassStartTime" type="time"></div><div><label>Duration</label><input id="extraClassDuration" type="number" min="1" max="600" value="60"></div><div><label>Class Type</label><select id="extraClassType"><option value="live">Live Class</option><option value="recorded">Recorded Class</option></select></div></div>
+    <div class="two-col"><div><label>Start Time</label><input id="extraClassStartTime" type="time"></div><div><label>Class Type</label><select id="extraClassType"><option value="live">Live Class</option><option value="recorded">Recorded Class</option></select></div></div>
     <div class="two-col"><div><label>Class Status</label><select id="extraClassStatus"><option value="scheduled">Scheduled</option><option value="live">Live Now</option><option value="completed">Completed / Recording</option><option value="time_changed">Time Changed</option><option value="cancelled">Cancelled</option></select></div><div><label>Student Visibility</label><select id="extraClassVisibility"><option value="auto">Auto — तारीख पर Show</option><option value="show">Show Now</option><option value="hide">Hide from Students</option></select></div></div>
-    <label>Short Note (Optional)</label><textarea id="extraClassNote" rows="3" placeholder="Part 2, timing change या जरूरी सूचना"></textarea>
+    <label>Short Note (Optional)</label><textarea id="extraClassNote" rows="3" placeholder="Part, timing change या जरूरी सूचना"></textarea>
     <label class="simple-toggle"><input id="extraClassNotify" type="checkbox" checked><span>Save होने पर विद्यार्थियों को सूचना भेजें</span></label>
     <div id="extraClassStatusMessage" class="extra-class-status hidden" role="status" aria-live="polite"></div>
-    <div class="simple-modal-actions"><button type="button" class="btn btn-light" onclick="closeExtraClassModal()">Cancel</button><button id="saveExtraClassBtn" type="button" class="btn btn-green" onclick="saveExtraClass()">Save Extra Class</button></div>
+    <div class="simple-modal-actions"><button type="button" class="btn btn-light" onclick="closeExtraClassModal()">Cancel</button><button id="saveExtraClassBtn" type="button" class="btn btn-green" onclick="saveExtraClass()">Save Part Class</button></div>
   </div>
 </div>
-
-</div>
-<script src="admin.js?v=12.30.0"></script>
+<script src="admin.js?v=12.31.0"></script>
 </body>
 </html>
