@@ -2,187 +2,24 @@
 <html lang="hi">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin Panel | GK BY PURUSHOTAM SIR</title>
-<link rel="stylesheet" href="styles.css?v=12.32.0"><link rel="stylesheet" href="simple-v1220.css?v=12.32.0">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=12.32.0"></script><script src="common.js?v=12.32.0"></script>
-<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="favicon.png"><meta name="theme-color" content="#8b0000">
-<style id="adminGateCriticalV1220">
-html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-height:100dvh!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important}body.admin-security-pending .admin-shell{display:none!important}body.admin-authorized .admin-shell{display:grid!important}body.admin-security-pending .admin-gate-overlay{position:relative!important;inset:auto!important;width:100%!important;min-height:100dvh!important;height:auto!important;display:block!important;overflow:visible!important;padding:16px 12px 56px!important}body.admin-security-pending .admin-gate-card{width:min(460px,calc(100vw - 24px))!important;max-width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;margin:0 auto!important;padding:20px!important}body.admin-security-pending .admin-mfa-qr img,body.admin-security-pending .admin-mfa-qr svg{width:min(180px,48vw)!important;height:auto!important}
+<title>CBT Admin Panel | GK BY PURUSHOTAM SIR</title>
+<link rel="stylesheet" href="styles.css?v=14.0.0"><link rel="stylesheet" href="simple-v1220.css?v=14.0.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=14.0.0"></script><script src="common.js?v=14.0.0"></script><script src="cbt-topics-data.js?v=14.0.0"></script>
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="favicon.png"><meta name="theme-color" content="#071f3d">
+<style>
+html{min-height:100%;overflow-y:auto!important}body.admin-security-pending{min-height:100dvh!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important}body.admin-security-pending .admin-shell{display:none!important}body.admin-authorized .admin-shell{display:grid!important}body.admin-security-pending .admin-gate-overlay{position:relative!important;inset:auto!important;width:100%!important;min-height:100dvh!important;height:auto!important;display:block!important;overflow:visible!important;padding:16px 12px 56px!important}body.admin-security-pending .admin-gate-card{width:min(460px,calc(100vw - 24px))!important;max-width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;margin:0 auto!important;padding:20px!important}body.admin-security-pending .admin-mfa-qr img{width:min(180px,48vw)!important;height:auto!important}
+.yt-admin-layout,.poster-admin-layout{display:grid;grid-template-columns:minmax(320px,440px) 1fr;gap:18px}.yt-admin-form textarea,.poster-admin-form textarea{min-height:130px;resize:vertical}.yt-admin-row.no-thumb{display:grid;grid-template-columns:minmax(0,1fr) 125px;gap:14px;align-items:start;background:#fff;border:1px solid #dbe4ee;border-radius:16px;padding:14px;margin-bottom:12px}.yt-admin-main h3{margin:8px 0 4px}.yt-admin-main p{margin:4px 0}.yt-tagline{white-space:pre-wrap;line-height:1.55}.yt-admin-actions,.poster-admin-actions{display:flex;flex-direction:column;gap:7px}.poster-preview{min-height:220px;border:2px dashed #cbd5e1;border-radius:14px;display:grid;place-items:center;overflow:hidden;background:#f8fafc;margin:8px 0 14px}.poster-preview img{display:block;width:100%;height:auto;max-height:560px;object-fit:contain}.poster-admin-row{display:grid;grid-template-columns:200px minmax(0,1fr) 120px;gap:14px;align-items:start;background:#fff;border:1px solid #dbe4ee;border-radius:16px;padding:12px;margin-bottom:12px}.poster-admin-row>img,.poster-admin-empty{display:block;width:200px;height:auto;max-height:260px;object-fit:contain;border-radius:10px;background:#f1f5f9}.poster-admin-empty{min-height:120px;display:grid;place-items:center}.poster-admin-main h3{margin:8px 0 4px}.poster-admin-main p{white-space:pre-wrap;line-height:1.5;color:#475569}.final-admin-note{background:#ecfeff;border:1px solid #67e8f9;border-radius:14px;padding:14px;line-height:1.55}.final-admin-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}.final-admin-actions a{display:block;text-decoration:none;background:#071f3d;color:#fff;border-radius:16px;padding:18px;font-weight:900}.final-admin-actions small{display:block;color:#cbd5e1;margin-top:5px;font-weight:600}@media(max-width:900px){.yt-admin-layout,.poster-admin-layout{grid-template-columns:1fr}.poster-admin-row{grid-template-columns:120px 1fr}.poster-admin-row>img,.poster-admin-empty{width:120px}.poster-admin-actions{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}@media(max-width:560px){.yt-admin-row.no-thumb,.poster-admin-row{grid-template-columns:1fr}.poster-admin-row>img,.poster-admin-empty{width:100%;max-height:none}.final-admin-actions{grid-template-columns:1fr}}
 </style>
 </head>
 <body class="admin-security-pending simple-admin-body">
-<div id="adminGateOverlay" class="admin-gate-overlay">
-  <div class="admin-gate-card admin-login-complete-card">
-    <div class="admin-gate-shield">🛡️</div><h2>Secure Owner Access</h2><p id="adminGateIntro">केवल अधिकृत Admin account ही इस सुरक्षित पैनल को खोल सकता है।</p>
-    <div id="adminAccountLoginStep"><div class="admin-gate-field"><label>Admin Email</label><input id="adminLoginId" type="email" autocomplete="username" placeholder="Registered Admin Email"></div><div class="admin-gate-field"><label>Strong Password</label><input id="adminLoginPassword" type="password" autocomplete="current-password" placeholder="Admin Password"></div><button id="adminAccountLoginButton" class="btn btn-blue" onclick="submitAdminAccountLogin()">Secure Login</button></div>
-    <div id="adminMfaEnrollStep" class="hidden"><div class="admin-gate-success">✓ Admin password और role verified</div><h3>Authenticator सुरक्षा पहली बार जोड़ें</h3><p class="muted">Google Authenticator या Microsoft Authenticator में नीचे का QR scan करें।</p><div id="adminMfaQr" class="admin-mfa-qr"></div><div class="admin-mfa-secret-wrap"><span>Manual setup key</span><code id="adminMfaSecret"></code></div><div class="admin-gate-field"><label>Authenticator का 6-अंकों का Code</label><input id="adminEnrollCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div><button id="adminEnrollButton" class="btn btn-green" onclick="verifyAdminMfaEnrollment()">Verify & Activate MFA</button><button class="admin-switch-account-btn" onclick="adminSwitchAccount()">दूसरे Admin account से Login करें</button></div>
-    <div id="adminMfaChallengeStep" class="hidden"><div class="admin-gate-success">✓ Admin password और role verified</div><p class="muted">Authenticator App का वर्तमान 6-अंकों का code लिखें।</p><div class="admin-gate-field"><label>Authenticator Code</label><input id="adminMfaCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div><button id="adminGateButton" class="btn btn-green" onclick="submitAdminMfaChallenge()">Verify Code & Open Panel</button><button class="admin-switch-account-btn" onclick="adminSwitchAccount()">दूसरे Admin account से Login करें</button></div>
-    <button id="adminForgotOpenButton" class="admin-switch-account-btn" onclick="showAdminForgotPassword()">Admin Password भूल गए?</button>
-    <div id="adminForgotStep" class="hidden"><div class="admin-gate-field"><label>Registered Admin Email</label><input id="adminForgotEmail" type="email" placeholder="Admin Email"></div><button class="btn btn-blue" onclick="sendAdminRecoveryLink()">Reset Link भेजें</button><button class="admin-switch-account-btn" onclick="cancelAdminForgotPassword()">← Back to Admin Login</button></div><div id="adminGateMessage" class="small admin-gate-message"></div>
-  </div>
-</div>
-
+<div id="adminGateOverlay" class="admin-gate-overlay"><div class="admin-gate-card admin-login-complete-card"><div class="admin-gate-shield">🛡️</div><h2>Secure Owner Access</h2><p id="adminGateIntro">केवल अधिकृत Admin account ही इस सुरक्षित पैनल को खोल सकता है।</p><div id="adminAccountLoginStep"><div class="admin-gate-field"><label>Admin Email</label><input id="adminLoginId" type="email" autocomplete="username" placeholder="Registered Admin Email"></div><div class="admin-gate-field"><label>Strong Password</label><input id="adminLoginPassword" type="password" autocomplete="current-password" placeholder="Admin Password"></div><button id="adminAccountLoginButton" class="btn btn-blue" onclick="submitAdminAccountLogin()">Secure Login</button></div><div id="adminMfaEnrollStep" class="hidden"><div class="admin-gate-success">✓ Admin password और role verified</div><h3>Authenticator सुरक्षा पहली बार जोड़ें</h3><p class="muted">Google Authenticator या Microsoft Authenticator में नीचे का QR scan करें।</p><div id="adminMfaQr" class="admin-mfa-qr"></div><div class="admin-mfa-secret-wrap"><span>Manual setup key</span><code id="adminMfaSecret"></code></div><div class="admin-gate-field"><label>Authenticator का 6-अंकों का Code</label><input id="adminEnrollCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div><button id="adminEnrollButton" class="btn btn-green" onclick="verifyAdminMfaEnrollment()">Verify & Activate MFA</button><button class="admin-switch-account-btn" onclick="adminSwitchAccount()">दूसरे Admin account से Login करें</button></div><div id="adminMfaChallengeStep" class="hidden"><div class="admin-gate-success">✓ Admin password और role verified</div><p class="muted">Authenticator App का वर्तमान 6-अंकों का code लिखें।</p><div class="admin-gate-field"><label>Authenticator Code</label><input id="adminMfaCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div><button id="adminGateButton" class="btn btn-green" onclick="submitAdminMfaChallenge()">Verify Code & Open Panel</button><button class="admin-switch-account-btn" onclick="adminSwitchAccount()">दूसरे Admin account से Login करें</button></div><button id="adminForgotOpenButton" class="admin-switch-account-btn" onclick="showAdminForgotPassword()">Admin Password भूल गए?</button><div id="adminForgotStep" class="hidden"><div class="admin-gate-field"><label>Registered Admin Email</label><input id="adminForgotEmail" type="email" placeholder="Admin Email"></div><button class="btn btn-blue" onclick="sendAdminRecoveryLink()">Reset Link भेजें</button><button class="admin-switch-account-btn" onclick="cancelAdminForgotPassword()">← Back to Admin Login</button></div><div id="adminGateMessage" class="small admin-gate-message"></div></div></div>
 <div class="admin-shell simple-admin-shell">
-<nav class="sidebar simple-sidebar">
-  <div class="logo">GK BY PURUSHOTAM SIR<small>SIMPLE CONTROL PANEL</small></div>
-  <a class="active" onclick="tab('dashboard',this)">▣ Dashboard</a>
-  <a onclick="tab('classes',this)">🎯 Daily Targets & Classes</a>
-  <a onclick="tab('classpdfs',this)">📘 Class PDFs</a>
-  <a onclick="tab('otherpdfs',this)">📄 Other PDFs</a>
-  <a href="cbt-admin.html">🖥 CBT Question Bank</a>
-  <a onclick="tab('posters',this)">🖼 Posters</a>
-  <a onclick="tab('announcements',this)">📣 Announcements</a>
-  <a onclick="tab('students',this)">👥 Students</a>
-  <a id="adminInstallBtn" class="hidden" onclick="installApp()">⬇ Install App</a>
-  <a class="logout-nav" onclick="logout()">↪ Logout</a>
-</nav>
+<nav class="sidebar simple-sidebar"><div class="logo">GK BY PURUSHOTAM SIR<small>CBT + CLASSES + POSTER</small></div><a class="active" data-tab="dashboard" onclick="tab('dashboard',this)">▣ Dashboard</a><a href="cbt-admin.html">🖥 CBT Question Bank</a><a data-tab="classes" onclick="tab('classes',this)">▶ Haryana GK Classes</a><a data-tab="poster" onclick="tab('poster',this)">▧ Poster / Announcement</a><a data-tab="students" onclick="tab('students',this)">👥 Students</a><a id="adminInstallBtn" class="hidden" onclick="installApp()">⬇ Install App</a><a class="logout-nav" onclick="logout()">↪ Logout</a></nav>
 <main class="main simple-admin-main">
-<section id="dashboardTab">
-  <div class="admin-head"><div><span class="simple-kicker">LIGHTWEIGHT APP CONTROL</span><h1>Simple Admin Dashboard</h1><div class="muted">पूरा Target Plan, Class Timing, PDF, CBT और सूचना — सब पर आपका Control</div></div><div id="todayDate"></div></div>
-  <div id="kpis" class="grid"></div>
-  <div class="simple-flow-row"><div><b>1</b><span>Daily Target</span></div><div><b>2</b><span>YouTube Class</span></div><div><b>3</b><span>Class / Other PDF</span></div><div><b>4</b><span>CBT Test</span></div></div>
-  <div class="card simple-note"><b>Target नियम:</b> Day 1–5 तुरंत दिखाई देंगे। आगे का Target उसकी तारीख पर अपने-आप खुलेगा। आप किसी भी Target को <b>Show Now, Auto by Date या Hide</b> कर सकते हैं। Verification और Daily Submit हटे हुए हैं।</div>
-</section>
-
-<section id="classesTab" class="hidden">
-  <div class="admin-head target-admin-head">
-    <div><span class="simple-kicker">DATE-WISE TARGET PLAN</span><h1>Daily Target & Class Schedule</h1><div class="muted">Targets तारीख, Day और Class क्रम में हैं। Day चुनते ही उसकी Class 1 बाईं तरफ Edit के लिए अपने-आप खुलेगी।</div></div>
-    <button class="btn btn-orange" onclick="openExtraClassModal()">＋ Topic Part जोड़ें</button>
-  </div>
-
-  <div class="target-admin-toolbar card">
-    <button class="btn btn-light btn-mini" onclick="changeClassDay(-1)">← पिछला Day</button>
-    <div class="target-admin-day-select"><label>Target Day / Date</label><select id="classDay" onchange="onClassDayChange()"></select></div>
-    <button class="btn btn-blue btn-mini" onclick="selectSuggestedDay('today')">आज</button>
-    <button class="btn btn-light btn-mini" onclick="selectSuggestedDay('next')">अगला Day</button>
-    <button class="btn btn-light btn-mini" onclick="changeClassDay(1)">अगला Day →</button>
-  </div>
-  <div id="classPlanSummary" class="target-plan-summary"></div>
-
-  <div class="grid target-admin-grid">
-    <div class="card span-7 simple-form-card target-form-panel">
-      <div class="target-form-title"><div><b id="classFormHeading">Target / Class Edit</b><small>Day बदलते ही Class 1 अपने-आप load होगी; नीचे से Class 1 या Class 2 चुनें</small></div><button class="btn btn-orange btn-mini" onclick="openExtraClassModal()">＋ Topic Part</button></div>
-      <div id="targetClassQuickPick" class="target-class-quick-pick"></div>
-      <input id="classId" type="hidden">
-      <label>Class Title</label><input id="classTitle" placeholder="जैसे: हरियाणा का परिचय एवं नामकरण">
-      <div class="two-col"><div><label>Subject</label><input id="classSubject" placeholder="हरियाणा GK"></div><div><label>Topic</label><input id="classTopic" placeholder="हरियाणा का परिचय एवं नामकरण"></div></div>
-      <label>YouTube Link</label><input id="classYoutube" type="url" placeholder="https://youtube.com/...">
-      <input id="classDuration" type="hidden" value="60">
-      <div class="two-col"><div><div class="field-label-action"><label>Start Time <small class="muted">(Optional)</small></label><button id="classTimeDisplayBtn" type="button" class="meta-visibility-toggle is-visible" onclick="toggleClassDisplay('class','time')">✓ समय दिखेगा · ✕ छिपाएँ</button></div><input id="classStartTime" type="time"><input id="classShowTime" type="hidden" value="1"></div><div><label>Class Type</label><select id="classType"><option value="live">Live Class</option><option value="recorded">Recorded Class</option></select></div></div>
-      <div class="two-col"><div><div class="field-label-action"><label>Class Status</label><button id="classStatusDisplayBtn" type="button" class="meta-visibility-toggle is-hidden" onclick="toggleClassDisplay('class','status')">✕ Status छिपा है · दिखाएँ</button></div><select id="classStatus"><option value="scheduled">Scheduled</option><option value="live">Live Now</option><option value="completed">Completed / Recording</option><option value="time_changed">Time Changed</option><option value="cancelled">Cancelled</option></select><input id="classShowStatus" type="hidden" value="0"></div><div><label>Student Visibility</label><select id="classVisibilityMode"><option value="auto">Auto — तारीख पर Show</option><option value="show">Show Now</option><option value="hide">Hide from Students</option></select></div></div>
-      <label>Short Note (Optional)</label><textarea id="classNote" rows="3" placeholder="Class cancelled, timing changed या जरूरी संदेश"></textarea>
-      <label class="simple-toggle"><input id="classNotify" type="checkbox" checked><span>Save होने पर विद्यार्थियों को सूचना भेजें</span></label>
-      <button id="saveClassBtn" class="btn btn-green full-btn" onclick="saveClass()">Save Target / Class</button>
-    </div>
-
-    <div class="card span-5 target-list-panel">
-      <div class="list-head"><div><h2 id="classesListHeading">Selected Day Targets</h2><small class="muted">तारीख → Day → Class 1/Class 2 क्रम</small></div><button class="btn btn-light btn-mini" onclick="loadClasses()">↻ Refresh</button></div>
-      <div id="classesList" class="list"></div>
-    </div>
-  </div>
-</section>
-
-<section id="classpdfsTab" class="hidden">
-  <div class="admin-head"><div><h1>Class PDFs</h1><div class="muted">किसी Class से जुड़ी PDF — बिना Verification सीधे खुलेगी</div></div></div>
-  <div class="grid">
-    <div class="card span-5 simple-form-card">
-      <input id="classPdfId" type="hidden">
-      <label>Related Class</label><select id="classPdfTarget"><option value="">Class चुनें</option></select>
-      <label>PDF Title</label><input id="classPdfTitle" placeholder="Class Notes PDF">
-      <label>PDF File <small class="muted">(Edit में नई file optional)</small></label><input id="classPdfFile" type="file" accept="application/pdf">
-      <label>Download</label><select id="classPdfDownload"><option value="direct_download">Allow — Read + Download</option><option value="read_only">Block — केवल Read</option></select>
-      <label class="simple-toggle"><input id="classPdfVisible" type="checkbox" checked><span>Show to Students</span></label>
-      <label class="simple-toggle"><input id="classPdfNotify" type="checkbox" checked><span>Upload होने पर सूचना भेजें</span></label>
-      <button id="classPdfSaveBtn" type="button" class="btn btn-blue full-btn">Upload Class PDF</button>
-      <div id="classPdfUploadStatus" class="pdf-upload-status hidden" role="status" aria-live="polite"></div>
-      <button id="classPdfCancelBtn" class="btn btn-light full-btn hidden" onclick="resetPdfForm('class')">Cancel Edit</button>
-    </div>
-    <div class="card span-7"><div class="list-head"><h2>Class PDF List</h2><button class="btn btn-light btn-mini" onclick="loadMaterials()">↻ Refresh</button></div><div id="classPdfList" class="list"></div></div>
-  </div>
-</section>
-
-<section id="otherpdfsTab" class="hidden">
-  <div class="admin-head"><div><h1>Other PDFs</h1><div class="muted">अतिरिक्त Notes, Current Affairs, Revision और Practice PDF</div></div></div>
-  <div class="grid">
-    <div class="card span-5 simple-form-card">
-      <input id="otherPdfId" type="hidden">
-      <label>PDF Title</label><input id="otherPdfTitle" placeholder="जैसे: July Current Affairs">
-      <label>Subject / Category</label><input id="otherPdfCategory" placeholder="Current Affairs / Revision">
-      <label>PDF File <small class="muted">(Edit में नई file optional)</small></label><input id="otherPdfFile" type="file" accept="application/pdf">
-      <label>Download</label><select id="otherPdfDownload"><option value="direct_download">Allow — Read + Download</option><option value="read_only">Block — केवल Read</option></select>
-      <label class="simple-toggle"><input id="otherPdfVisible" type="checkbox" checked><span>Show to Students</span></label>
-      <label class="simple-toggle"><input id="otherPdfNotify" type="checkbox" checked><span>Upload होने पर सूचना भेजें</span></label>
-      <button id="otherPdfSaveBtn" type="button" class="btn btn-green full-btn">Upload Other PDF</button>
-      <div id="otherPdfUploadStatus" class="pdf-upload-status hidden" role="status" aria-live="polite"></div>
-      <button id="otherPdfCancelBtn" class="btn btn-light full-btn hidden" onclick="resetPdfForm('direct')">Cancel Edit</button>
-    </div>
-    <div class="card span-7"><div class="list-head"><h2>Other PDF List</h2><button class="btn btn-light btn-mini" onclick="loadMaterials()">↻ Refresh</button></div><div id="otherPdfList" class="list"></div></div>
-  </div>
-</section>
-
-<section id="postersTab" class="hidden">
-  <div class="admin-head"><div><h1>Poster / Banner</h1><div class="muted">Student Home पर poster दिखाएँ, schedule करें या hide करें</div></div></div>
-  <div class="grid"><div class="card span-5 simple-form-card">
-    <input id="posterId" type="hidden"><input id="posterExistingKey" type="hidden">
-    <label>Poster Title</label><input id="posterTitle" placeholder="Important Notice">
-    <label>Poster Image <small class="muted">(Edit में नई image optional)</small></label><input id="posterFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewPosterFile()">
-    <div id="posterUploadPreview" class="simple-poster-preview"><div id="posterUploadPreviewEmpty">Preview</div><img id="posterUploadPreviewImage" class="hidden" alt="Poster preview"></div>
-    <label>Click Link (Optional)</label><input id="posterLink" placeholder="YouTube / Telegram / कोई link">
-    <div class="two-col"><div><label>Start</label><input id="posterStart" type="datetime-local"></div><div><label>End</label><input id="posterEnd" type="datetime-local"></div></div>
-    <div class="two-col"><div><label>Status</label><select id="posterActive"><option value="true">Active</option><option value="false">Inactive</option></select></div><div><label>Order</label><input id="posterOrder" type="number" value="0"></div></div>
-    <input id="posterFormat" type="hidden" value="ratio_16_9"><input id="posterFit" type="hidden" value="contain">
-    <button id="posterSaveBtn" class="btn btn-green full-btn" onclick="publishPoster()">Publish Poster</button>
-    <button id="posterCancelBtn" class="btn btn-light full-btn hidden" onclick="resetPosterForm()">Cancel Edit</button>
-  </div><div class="card span-7"><div class="list-head"><h2>Published Posters</h2><button class="btn btn-light btn-mini" onclick="loadPosters()">↻ Refresh</button></div><div id="posterList" class="list"></div></div></div>
-</section>
-
-<section id="announcementsTab" class="hidden">
-  <div class="admin-head"><div><h1>Announcements</h1><div class="muted">Class होगी या नहीं, time change, नई PDF या कोई भी संदेश</div></div></div>
-  <div class="grid"><div class="card span-5 simple-form-card">
-    <input id="broadcastId" type="hidden">
-    <label>Message Type</label><select id="broadcastType"><option value="info">Important Notice</option><option value="urgent">Class Update / Urgent</option><option value="warning">Reminder</option><option value="success">Good News</option></select>
-    <label>Title</label><input id="broadcastTitle" placeholder="आज की Class">
-    <label>Message</label><textarea id="broadcastMessage" rows="7" placeholder="आज शाम 7 बजे Class होगी..."></textarea>
-    <button id="broadcastSaveBtn" class="btn btn-green full-btn" onclick="sendBroadcast()">Send to All Students</button>
-    <button id="broadcastCancelBtn" class="btn btn-light full-btn hidden" onclick="resetBroadcastForm()">Cancel Edit</button>
-  </div><div class="card span-7"><div class="list-head"><h2>Recent Messages</h2><button class="btn btn-light btn-mini" onclick="loadBroadcasts()">↻ Refresh</button></div><div id="broadcastList" class="list"></div></div></div>
-</section>
-
-<section id="studentsTab" class="hidden">
-  <div class="admin-head students-admin-head">
-    <div><h1>Students</h1><div class="muted">App में Registration कर चुके सभी Student accounts</div><div id="studentsCount" class="students-count-chip">Loading Students…</div></div>
-    <div class="students-head-actions"><input id="studentSearch" placeholder="Name, Email या Mobile खोजें..." oninput="filterStudents()"><button class="btn btn-light btn-mini" onclick="loadStudents()">↻ Refresh</button></div>
-  </div>
-  <div id="studentListStatus" class="student-list-status info">Registered Students load किए जा रहे हैं…</div>
-  <div class="table-wrap students-table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Registration</th><th>Status</th><th>Control</th></tr></thead><tbody id="studentsBody"><tr><td colspan="6">Students load हो रहे हैं…</td></tr></tbody></table></div>
-</section>
-</main>
-
-<div id="extraClassModal" class="simple-modal hidden" role="dialog" aria-modal="true" aria-labelledby="extraClassModalTitle" onclick="extraClassBackdropClose(event)">
-  <div class="simple-modal-card extra-class-modal-card">
-    <div class="simple-modal-head">
-      <div><span class="simple-kicker">AUTO PART CLASS — ALL TARGETS</span><h2 id="extraClassModalTitle">Topic का अगला Part जोड़ें</h2><p id="extraClassDayLabel">Selected Day</p></div>
-      <button type="button" class="modal-close-btn" onclick="closeExtraClassModal()" aria-label="Close">×</button>
-    </div>
-    <div class="extra-class-number-line"><span>नई Class Number</span><b id="extraClassNumberLabel">Class 3</b></div>
-    <input id="extraClassDayId" type="hidden">
-    <label>किस मूल Class / Topic का Part जोड़ना है?</label>
-    <select id="extraClassSource" onchange="onExtraClassSourceChange()"></select>
-    <div id="extraClassSourceSummary" class="extra-class-source-summary"></div>
-    <label>Class Title / Part चुनें</label>
-    <select id="extraClassPart" onchange="syncExtraClassGeneratedFields()"></select>
-    <input id="extraClassTitle" type="hidden">
-    <div class="two-col auto-filled-fields"><div><label>Subject <small class="muted">(Automatic)</small></label><input id="extraClassSubject" readonly></div><div><label>Topic <small class="muted">(Automatic)</small></label><input id="extraClassTopic" readonly></div></div>
-    <label>YouTube Link <small class="muted">(अभी link न हो तो खाली छोड़ सकते हैं)</small></label><input id="extraClassYoutube" type="url" placeholder="https://youtube.com/...">
-    <div class="two-col"><div><div class="field-label-action"><label>Start Time <small class="muted">(Optional)</small></label><button id="extraClassTimeDisplayBtn" type="button" class="meta-visibility-toggle is-visible" onclick="toggleClassDisplay('extraClass','time')">✓ समय दिखेगा · ✕ छिपाएँ</button></div><input id="extraClassStartTime" type="time"><input id="extraClassShowTime" type="hidden" value="1"></div><div><label>Class Type</label><select id="extraClassType"><option value="live">Live Class</option><option value="recorded">Recorded Class</option></select></div></div>
-    <div class="two-col"><div><div class="field-label-action"><label>Class Status</label><button id="extraClassStatusDisplayBtn" type="button" class="meta-visibility-toggle is-hidden" onclick="toggleClassDisplay('extraClass','status')">✕ Status छिपा है · दिखाएँ</button></div><select id="extraClassStatus"><option value="scheduled">Scheduled</option><option value="live">Live Now</option><option value="completed">Completed / Recording</option><option value="time_changed">Time Changed</option><option value="cancelled">Cancelled</option></select><input id="extraClassShowStatus" type="hidden" value="0"></div><div><label>Student Visibility</label><select id="extraClassVisibility"><option value="auto">Auto — तारीख पर Show</option><option value="show">Show Now</option><option value="hide">Hide from Students</option></select></div></div>
-    <label>Short Note (Optional)</label><textarea id="extraClassNote" rows="3" placeholder="Part, timing change या जरूरी सूचना"></textarea>
-    <label class="simple-toggle"><input id="extraClassNotify" type="checkbox" checked><span>Save होने पर विद्यार्थियों को सूचना भेजें</span></label>
-    <div id="extraClassStatusMessage" class="extra-class-status hidden" role="status" aria-live="polite"></div>
-    <div class="simple-modal-actions"><button type="button" class="btn btn-light" onclick="closeExtraClassModal()">Cancel</button><button id="saveExtraClassBtn" type="button" class="btn btn-green" onclick="saveExtraClass()">Save Part Class</button></div>
-  </div>
-</div>
-<script src="admin.js?v=12.32.0"></script>
-</body>
-</html>
+<section id="dashboardTab"><div class="admin-head"><div><span class="simple-kicker">FINAL V14</span><h1>CBT Admin Dashboard</h1><div class="muted">पुराना Target/Schedule/PDF system नहीं है। CBT + Haryana GK Classes + Poster/Announcement हैं।</div></div><div id="todayDate"></div></div><div id="kpis" class="grid"></div><div class="final-admin-note"><b>Main Flow:</b> Subject → Topic → Question Bank → Fixed Test Series → Student Attempt → Rank/Analysis/Revision. Classes अलग Haryana GK library हैं और Poster/Announcement किसी भी original image ratio में publish किए जा सकते हैं।</div><div class="final-admin-actions"><a href="cbt-admin.html">CBT Question Bank & Test Series<small>Subjects/Topics Show-Hide, Questions Upload, Fixed Sets</small></a><a href="#" onclick="tab('classes',document.querySelector('[data-tab=classes]'));return false">Haryana GK Classes<small>Full Tagline + YouTube Link + Add Part</small></a><a href="#" onclick="tab('poster',document.querySelector('[data-tab=poster]'));return false">Poster / Announcement<small>16:9, 1:1, A4 या कोई भी ratio</small></a></div></section>
+<section id="classesTab" class="hidden"><div class="admin-head"><div><span class="simple-kicker">HARYANA GK ONLY</span><h1>YouTube Classes Library</h1><div class="muted">Thumbnail नहीं। Topic/Part + पूरी YouTube Tagline + YouTube Link.</div></div></div><div class="yt-admin-layout"><div class="card yt-admin-form"><input id="ytId" type="hidden"><label>Haryana GK Topic</label><select id="ytTopic"></select><div class="two-col"><div><label>Class / Topic Title</label><input id="ytTitle" placeholder="जैसे: हरियाणा का इतिहास – सिंधु घाटी सभ्यता"></div><div><label>Part No.</label><input id="ytPart" type="number" min="1" max="50" value="1"></div></div><label>पूरी YouTube Tagline</label><textarea id="ytTagline" placeholder="YouTube पर जो पूरी tagline देंगे, वही यहाँ लिखें।"></textarea><label>YouTube Class Link</label><input id="ytYoutube" type="url" placeholder="https://youtube.com/..."><div class="two-col"><label class="simple-toggle"><input id="ytVisible" type="checkbox" checked><span>Student को Show करें</span></label><div><label>Order</label><input id="ytOrder" type="number" value="0"></div></div><button id="ytSaveBtn" class="btn btn-green full-btn" onclick="saveYoutubeClass()">Save Haryana GK Class</button><button id="ytCancelBtn" class="btn btn-light full-btn hidden" onclick="resetYoutubeForm()">Cancel Edit</button></div><div class="card"><div class="list-head"><h2>Haryana GK Classes</h2><button class="btn btn-light btn-mini" onclick="loadYoutubeClasses()">↻ Refresh</button></div><div id="ytClassList"></div></div></div></section>
+<section id="posterTab" class="hidden"><div class="admin-head"><div><span class="simple-kicker">POSTER / ANNOUNCEMENT</span><h1>Poster Publisher</h1><div class="muted">Image crop/stretch नहीं होगी। Original ratio पूरा दिखेगा—16:9, 1:1, A4 आदि।</div></div></div><div class="poster-admin-layout"><div class="card poster-admin-form"><input id="posterId" type="hidden"><input id="posterExistingKey" type="hidden"><label>Poster Image</label><input id="posterFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewPosterFile()"><div class="poster-preview"><div id="posterPreviewEmpty">Poster Preview — Original Ratio</div><img id="posterPreviewImage" class="hidden" alt="Poster Preview"></div><label>Title (Optional)</label><input id="posterTitle" placeholder="जैसे: नया CBT Topic Live"><label>Message (Optional)</label><textarea id="posterMessage" placeholder="छोटा announcement message"></textarea><div class="two-col"><div><label>Action Button Text (Optional)</label><input id="posterActionLabel" placeholder="जैसे: CBT लगाएँ"></div><div><label>Action Link (Optional)</label><input id="posterActionUrl" type="url" placeholder="https://..."></div></div><div class="two-col"><label class="simple-toggle"><input id="posterVisible" type="checkbox" checked><span>Student को Show करें</span></label><label class="simple-toggle"><input id="posterPinned" type="checkbox"><span>Pin to Top</span></label></div><label>Order</label><input id="posterOrder" type="number" value="0"><button id="posterSaveBtn" class="btn btn-green full-btn" onclick="savePoster()">Publish Poster</button><button id="posterCancelBtn" class="btn btn-light full-btn hidden" onclick="resetPosterForm()">Cancel Edit</button></div><div class="card"><div class="list-head"><h2>Published / Saved Posters</h2><button class="btn btn-light btn-mini" onclick="loadPostersAdmin()">↻ Refresh</button></div><div id="posterList"></div></div></div></section>
+<section id="studentsTab" class="hidden"><div class="admin-head"><div><h1>Students</h1><div class="muted">Registered Students और account status</div></div><div id="studentsCount"></div></div><div class="card"><input id="studentSearch" placeholder="नाम / email / phone search" oninput="filterStudents()"><div style="overflow:auto;margin-top:12px"><table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Registered</th><th>Status</th><th>Action</th></tr></thead><tbody id="studentsBody"></tbody></table></div></div></section>
+</main></div>
+<script src="admin-final-v14.js?v=14.0.0"></script>
+</body></html>

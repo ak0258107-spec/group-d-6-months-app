@@ -1,102 +1,29 @@
 <!doctype html><html lang="hi"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#071f3d"><link rel="manifest" href="manifest.webmanifest">
-<title>GK BY PURUSHOTAM SIR | GROUP D 6 MONTHS TARGET BATCH</title>
-<link rel="stylesheet" href="styles.css?v=12.26.0">
+<title>GK BY PURUSHOTAM SIR | CBT • CLASSES • POSTERS</title>
+<link rel="stylesheet" href="styles.css?v=14.0.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=12.26.0"></script><script src="common.js?v=12.26.0"></script>
+<script src="config.js?v=14.0.0"></script><script src="common.js?v=14.0.0"></script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 </head><body>
 <div id="welcomeScreen" class="welcome-screen hidden" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
   <div class="welcome-shell welcome-onboarding post-register-onboarding">
-    <div class="welcome-topbar">
-      <div class="welcome-progress" aria-label="Onboarding progress">
-        <button class="welcome-dot active" data-slide="0" onclick="showWelcomeSlide(0)" aria-label="Screen 1"></button>
-        <button class="welcome-dot" data-slide="1" onclick="showWelcomeSlide(1)" aria-label="Screen 2"></button>
-        <button class="welcome-dot" data-slide="2" onclick="showWelcomeSlide(2)" aria-label="Screen 3"></button>
-        <button class="welcome-dot" data-slide="3" onclick="showWelcomeSlide(3)" aria-label="Screen 4"></button>
-      </div>
-      <span class="onboarding-secure-label">✓ Registration के बाद</span>
-    </div>
-
-    <section class="welcome-slide active" data-welcome-slide="0">
-      <img class="welcome-app-logo" src="icon-192.png" alt="GK BY PURUSHOTAM SIR App Logo">
-      <div class="welcome-kicker">STUDENT ACCOUNT READY</div>
-      <h1 id="welcomeTitle">स्वागत है, <span id="onboardingStudentName">Student</span>!</h1>
-      <div class="welcome-batch-title">GK BY PURUSHOTAM SIR • GROUP-D 6 MONTHS TARGET BATCH</div>
-      <div class="welcome-slogan">“अबकी बार, आखिरी बार — जीत फिक्स!”</div>
-      <p class="welcome-motivation">आपका Registration पूरा हो चुका है। अब आगे बढ़ने से पहले तैयारी का तरीका, ऐप की सुविधाएँ और जरूरी नियम पढ़ लें।</p>
-      <div class="welcome-primary-actions">
-        <button class="welcome-btn next" onclick="welcomeNext()">तैयारी का Plan देखें →</button>
-      </div>
-    </section>
-
-    <section class="welcome-slide" data-welcome-slide="1">
-      <div class="welcome-kicker">6 MONTHS COMPLETE PLAN</div>
-      <h2>क्रमबद्ध तैयारी, सरल Class और Test System</h2>
-      <div class="welcome-plan-grid">
-        <article class="welcome-plan-card">
-          <span>01</span><b>पहले 5 महीने</b><p>Group-D का syllabus विषय और topic के अनुसार YouTube Classes, PDFs और CBT से पूरा कराया जाएगा।</p>
-        </article>
-        <article class="welcome-plan-card">
-          <span>02</span><b>अंतिम 1 महीना</b><p>Complete revision, practice PDFs और exam-level CBT mock tests करवाए जाएँगे।</p>
-        </article>
-      </div>
-      <div class="welcome-flow-strip">
-        <span>YouTube Class</span><i>→</i><span>Class PDF</span><i>→</i><span>Other PDF</span><i>→</i><span>CBT Test</span>
-      </div>
-      <p class="welcome-soft-note">ऐप को सरल रखा गया है। Class और PDF सीधे खुलेंगे; कोई Verification, Daily Submit या PDF Unlock condition नहीं है।</p>
-      <div class="welcome-nav-actions">
-        <button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button>
-        <button class="welcome-btn next" onclick="welcomeNext()">सुविधाएँ देखें →</button>
-      </div>
-    </section>
-
-    <section class="welcome-slide" data-welcome-slide="2">
-      <div class="welcome-kicker">ALL-IN-ONE PREPARATION APP</div>
-      <h2>आपको ऐप में क्या मिलेगा?</h2>
-      <div class="welcome-feature-grid">
-        <article><span>▶</span><div><b>YouTube Classes</b><small>Class date, time और सीधा YouTube link</small></div></article>
-        <article><span>PDF</span><div><b>Class PDF Notes</b><small>Class से जुड़ी PDF सीधे पढ़ें</small></div></article>
-        <article><span>✓</span><div><b>Other PDFs</b><small>Extra Notes, Current Affairs और Revision</small></div></article>
-        <article><span>1L</span><div><b>CBT Downloads</b><small>Mock Test, Answer Key और With Answer</small></div></article>
-        <article><span>T</span><div><b>10 MCQ Formats</b><small>Exam-style CBT practice और explanation</small></div></article>
-        <article><span>↗</span><div><b>Posters & Messages</b><small>Class timing और जरूरी सूचना</small></div></article>
-      </div>
-      <div class="welcome-nav-actions">
-        <button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button>
-        <button class="welcome-btn next" onclick="welcomeNext()">नियम पढ़ें →</button>
-      </div>
-    </section>
-
-    <section class="welcome-slide onboarding-rules-slide" data-welcome-slide="3">
-      <div class="welcome-kicker">RULES & RESPONSIBILITY</div>
-      <h2>ऐप शुरू करने से पहले जरूरी नियम</h2>
-      <div class="onboarding-rules">
-        <div><span>1</span><p>Class timing, PDF और CBT की नई जानकारी नियमित रूप से देखें।</p></div>
-        <div><span>2</span><p>Login ID, Password, PDF link या ऐप का protected content किसी दूसरे व्यक्ति के साथ share न करें।</p></div>
-        <div><span>3</span><p>Admin द्वारा Show की गई Class, PDF और CBT सामग्री ही विद्यार्थियों को दिखाई देगी।</p></div>
-        <div><span>4</span><p>CBT Test ईमानदारी से attempt करें और Answer Key/Explanation से अपनी तैयारी सुधारें।</p></div>
-        <div><span>5</span><p>तकनीकी समस्या होने पर सही screenshot के साथ Admin से संपर्क करें; गलत जानकारी या misuse से बचें।</p></div>
-      </div>
-      <label class="onboarding-agreement">
-        <input id="onboardingAgree" type="checkbox" onchange="updateAgreementState()">
-        <span>मैंने सभी नियम और निर्देश पढ़ लिए हैं और मैं उनका पालन करने के लिए सहमत हूँ।</span>
-      </label>
-      <div class="welcome-nav-actions final">
-        <button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button>
-        <button id="startStudentAppBtn" class="welcome-btn next" onclick="completeStudentOnboarding()" disabled>ऐप शुरू करें →</button>
-      </div>
-      <p class="welcome-note">यह onboarding इस account पर इस device में केवल पहली बार दिखाई जाएगी।</p>
-    </section>
+    <div class="welcome-topbar"><div class="welcome-progress" aria-label="Onboarding progress">
+      <button class="welcome-dot active" data-slide="0" onclick="showWelcomeSlide(0)" aria-label="Screen 1"></button><button class="welcome-dot" data-slide="1" onclick="showWelcomeSlide(1)" aria-label="Screen 2"></button><button class="welcome-dot" data-slide="2" onclick="showWelcomeSlide(2)" aria-label="Screen 3"></button><button class="welcome-dot" data-slide="3" onclick="showWelcomeSlide(3)" aria-label="Screen 4"></button>
+    </div><span class="onboarding-secure-label">✓ Registration के बाद</span></div>
+    <section class="welcome-slide active" data-welcome-slide="0"><img class="welcome-app-logo" src="icon-192.png" alt="GK BY PURUSHOTAM SIR App Logo"><div class="welcome-kicker">CBT • CLASSES • POSTERS</div><h1 id="welcomeTitle">स्वागत है, <span id="onboardingStudentName">Student</span>!</h1><div class="welcome-batch-title">GK BY PURUSHOTAM SIR • CBT • CLASSES • POSTERS</div><div class="welcome-slogan">Practice • Analysis • Revision • Rank</div><p class="welcome-motivation">यह App अब CBT Practice के लिए तैयार है। Haryana GK की YouTube Classes अलग library में मिलेंगी।</p><div class="welcome-primary-actions"><button class="welcome-btn next" onclick="welcomeNext()">CBT System देखें →</button></div></section>
+    <section class="welcome-slide" data-welcome-slide="1"><div class="welcome-kicker">SMART CBT SYSTEM</div><h2>हर Test में fair practice और revision</h2><div class="welcome-plan-grid"><article class="welcome-plan-card"><span>01</span><b>Fixed Hidden Test Sets</b><p>हर नई attempt में randomized question-set मिलेगा, ताकि practice बार-बार एक जैसी न रहे।</p></article><article class="welcome-plan-card"><span>02</span><b>Timer + Rank</b><p>15–17 सेकंड प्रति प्रश्न के अनुसार timer चलेगा और fair comparison के आधार पर rank बनेगी।</p></article></div><div class="welcome-flow-strip"><span>Subject</span><i>→</i><span>Topic</span><i>→</i><span>CBT</span><i>→</i><span>Analysis</span><i>→</i><span>Revision</span></div><p class="welcome-soft-note">पहली valid attempt Official Rank में रहेगी। बाद की repeat attempts Practice के लिए होंगी।</p><div class="welcome-nav-actions"><button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button><button class="welcome-btn next" onclick="welcomeNext()">सुविधाएँ देखें →</button></div></section>
+    <section class="welcome-slide" data-welcome-slide="2"><div class="welcome-kicker">REVISION FOCUSED</div><h2>App में क्या मिलेगा?</h2><div class="welcome-feature-grid"><article><span>T</span><div><b>10 MCQ Formats</b><small>Exam-style CBT practice</small></div></article><article><span>↻</span><div><b>Wrong Question Repeat</b><small>गलत प्रश्न दोबारा practice करें</small></div></article><article><span>★</span><div><b>Bookmarks</b><small>Important questions save करें</small></div></article><article><span>🎯</span><div><b>Weak Questions</b><small>Wrong + Skipped + Slow revision</small></div></article><article><span>▶</span><div><b>Haryana GK Classes</b><small>पूरी Tagline + YouTube Link</small></div></article><article><span>✓</span><div><b>In-App Analysis</b><small>Correct Answer + Explanation; PDF/JPG download नहीं</small></div></article></div><div class="welcome-nav-actions"><button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button><button class="welcome-btn next" onclick="welcomeNext()">नियम पढ़ें →</button></div></section>
+    <section class="welcome-slide onboarding-rules-slide" data-welcome-slide="3"><div class="welcome-kicker">RULES & RESPONSIBILITY</div><h2>App शुरू करने से पहले</h2><div class="onboarding-rules"><div><span>1</span><p>Admin द्वारा Show किए Subject/Topic ही Student को दिखाई देंगे।</p></div><div><span>2</span><p>Login ID और Password किसी दूसरे व्यक्ति के साथ share न करें।</p></div><div><span>3</span><p>CBT ईमानदारी से attempt करें; Official Rank पहली valid attempt से बनेगी।</p></div><div><span>4</span><p>Analysis, Weak Questions और Bookmarks का उपयोग revision के लिए करें।</p></div><div><span>5</span><p>Question/Answer में गलती लगे तो Report Question का उपयोग करें।</p></div></div><label class="onboarding-agreement"><input id="onboardingAgree" type="checkbox" onchange="updateAgreementState()"><span>मैंने सभी नियम और निर्देश पढ़ लिए हैं और उनका पालन करने के लिए सहमत हूँ।</span></label><div class="welcome-nav-actions final"><button class="welcome-btn back" onclick="welcomePrev()">← पीछे</button><button id="startStudentAppBtn" class="welcome-btn next" onclick="completeStudentOnboarding()" disabled>ऐप शुरू करें →</button></div><p class="welcome-note">यह onboarding इस account पर इस device में केवल पहली बार दिखाई जाएगी।</p></section>
   </div>
 </div>
 
 <div class="auth-premium-bg"><div class="auth-premium-card">
   <div class="auth-logo-orb">GK</div>
   <h1>GK BY PURUSHOTAM SIR</h1>
-  <div class="auth-batch">GROUP D 6 MONTHS TARGET BATCH</div>
+  <div class="auth-batch">CBT • CLASSES • POSTERS</div>
   <div id="msg"></div>
 
   <section id="loginMode">

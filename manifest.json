@@ -1,7 +1,7 @@
 {
-  "name": "GK BY PURUSHOTAM SIR — GROUP-D 6 MONTHS TARGET BATCH",
+  "name": "GK BY PURUSHOTAM SIR — CBT • CLASSES • POSTERS",
   "short_name": "GK PURUSHOTAM",
-  "description": "YouTube Classes, Class PDFs, Other PDFs, CBT Tests, Posters and Announcements for Group-D preparation.",
+  "description": "Multi-subject CBT practice with hidden fixed sets, rank, analysis and revision; Haryana GK YouTube Classes; responsive Poster/Announcement publishing.",
   "display": "standalone",
   "start_url": "./index.html?source=pwa",
   "scope": "./",

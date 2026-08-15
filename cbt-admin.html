@@ -1366,6 +1366,7 @@
 
 
         async function createCbtPublishNotification(title,message,relatedId='') {
+            try{await sb.rpc('bump_content_channel',{p_channel:'cbt'});}catch(error){console.warn('CBT tab indicator:',error);}
             try {
                 const rr=await sb.from('app_notifications').insert({title,message,notification_type:'info',related_type:'cbt',related_id:String(relatedId||'')||null,is_active:true}).select().single();
                 if(rr.error)throw rr.error;
@@ -2807,5 +2808,6 @@ c. पश्चिमी हरियाणा
             }
         });
     </script>
+    <script src="cbt-admin-final-v14.js?v=14.0.0"></script>
 </body>
 </html>

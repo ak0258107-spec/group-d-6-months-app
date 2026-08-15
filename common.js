@@ -159,13 +159,13 @@ async function initPushNotifications(){
     return;
   }
   if(Notification.permission==='default'&&!localStorage.getItem('gk_push_prompt_dismissed')){
-    setTimeout(()=>showActionNotice('नई PDF, Test और Daily Target की सूचना पाने के लिए Notifications चालू करें।','Notifications चालू करें',async()=>{const ok=await enablePushNotifications();if(!ok)localStorage.setItem('gk_push_prompt_dismissed','1')},'info'),1000);
+    setTimeout(()=>showActionNotice('नई CBT Test और Haryana GK Class की सूचना पाने के लिए Notifications चालू करें।','Notifications चालू करें',async()=>{const ok=await enablePushNotifications();if(!ok)localStorage.setItem('gk_push_prompt_dismissed','1')},'info'),1000);
   }
 }
 function notificationDestination(relatedType=''){
   const page='./l4x8m2r7-k9v3t5n1-z6c4p8q2.html';
-  const tabs={pdf:'pdfs',test:'tests',mock:'tests',question:'tests',cbt:'tests',oneliner:'oneliners',target:'targets',class:'targets',broadcast:'notifications',notice:'notifications'};
-  return `${page}?tab=${tabs[String(relatedType||'').toLowerCase()]||'notifications'}`;
+  const tabs={test:'cbt',mock:'cbt',question:'cbt',cbt:'cbt',class:'classes',youtube:'classes',revision:'revision'};
+  return `${page}?tab=${tabs[String(relatedType||'').toLowerCase()]||'home'}`;
 }
 async function sendPushNotification(title,message,relatedType='',notificationId=null,relatedId=''){
   try{

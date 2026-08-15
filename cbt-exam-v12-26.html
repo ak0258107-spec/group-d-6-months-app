@@ -42,8 +42,6 @@
     <script src="config.js?v=12.26.0"></script>
     <script src="common.js?v=12.26.0"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     </head>
 
 <body>
@@ -93,7 +91,7 @@
                         </div>
 
                         <div class="selection-note">
-                            1 से 5 topics select करें और 10 से 100 questions तक test लगाएँ।
+                            Official Fixed Rank के लिए 1 Topic चुनें; 10 से 100 questions तक test लगाएँ। Multi-topic selection Practice mode में चलेगी।
                         </div>
                     </div>
 
@@ -121,7 +119,10 @@
                                 <option value="30">30 Questions</option>
                                 <option value="40">40 Questions</option>
                                 <option value="50">50 Questions</option>
-                                <option value="75">75 Questions</option>
+                                <option value="60">60 Questions</option>
+                                <option value="70">70 Questions</option>
+                                <option value="80">80 Questions</option>
+                                <option value="90">90 Questions</option>
                                 <option value="100">100 Questions</option>
                             </select>
                         </div>
@@ -148,8 +149,9 @@
                         <div id="quizTotalTimer" class="quiz-pill timer-pill">00:00</div>
                     </div>
 
+                    <div id="quizSecondsRemainingRow"><b id="quizSecondsRemaining">0</b><span>सेकंड शेष</span></div>
                     <div class="progress-wrap">
-                        <div id="quizProgressFill" class="progress-fill"></div>
+                        <div id="quizProgressFill" class="progress-fill" style="width:100%"></div>
                     </div>
 
                     <div id="questionArea" class="question-area">
@@ -159,6 +161,7 @@
                     <div class="quiz-actions-top">
                         <button type="button" id="prevBtn" class="quiz-btn gray-btn">PREVIOUS</button>
                         <button type="button" id="skipBtn" class="quiz-btn orange-btn">SKIP</button>
+                        <button type="button" id="markReviewBtn" class="quiz-btn purple-btn">☆ MARK REVIEW</button>
                         <button type="button" id="nextBtn" class="quiz-btn blue-btn">NEXT</button>
                     </div>
 
@@ -191,6 +194,7 @@
                 <span><b class="legend-box blue-box"></b> Answered</span>
                 <span><b class="legend-box white-box"></b> Not Answered / Skipped</span>
                 <span><b class="legend-box yellow-border-box"></b> Current</span>
+                <span><b class="legend-box" style="background:#ede9fe;border:2px solid #7c3aed"></b> Marked Review</span>
             </div>
 
             <div id="questionStatusGrid" class="question-status-grid">
@@ -229,6 +233,7 @@
       if(area)area.innerHTML='<div class="unit-card cbt-load-error-card"><div class="unit-title">CBT file load नहीं हुई</div><div class="selection-note">'+String(message||'नई CBT file load नहीं हुई।').replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];})+'</div><button type="button" class="small-btn" onclick="location.reload()">↻ Reload CBT</button></div>';
     };
     </script>
-    <script defer src="cbt-student-v12-26.js?v=12.26.0" onerror="showCbtStudentLoadError('CBT Student file load नहीं हुई। कृपया Reload करें।')"></script>
+    <script defer src="cbt-student-v12-26.js?v=14.0.0" onerror="showCbtStudentLoadError('CBT Student file load नहीं हुई। कृपया Reload करें।')"></script>
+    <script defer src="cbt-final-v13.js?v=14.0.0"></script>
 </body>
 </html>
