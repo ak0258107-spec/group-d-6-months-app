@@ -1,0 +1,9 @@
+{
+  "version": "14.2.0",
+  "name": "CBT + Haryana GK Classes + Poster Final — Legacy DB Compatible",
+  "student_tabs": ["Home", "Classes", "Poster", "CBT", "Profile"],
+  "class_thumbnail": false,
+  "poster_original_ratio": true,
+  "persistent_new_content_indicators": true,
+  "legacy_database_compatibility": true
+}

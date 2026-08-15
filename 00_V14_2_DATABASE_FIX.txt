@@ -1,0 +1,14 @@
+V14.2 DATABASE COMPATIBILITY FIX
+
+Why the earlier SQL failed:
+1) profiles.role is an enum, so comparing COALESCE(role,'') caused enum error. V14.1 fixed this with role::text.
+2) The existing project already had cbt_subject_visibility without student_visible. CREATE TABLE IF NOT EXISTS does not add missing columns.
+3) The old Target App also already had app_posters with legacy fields (is_active/click_url etc.), so V14.2 preserves that table/data and adds the new Poster fields safely.
+
+What to do:
+- Supabase SQL Editor में पुरानी query हटाएँ।
+- 01_SUPABASE_CBT_POSTER_FINAL_V14.sql की पूरी V14.2 SQL paste करें।
+- Run दबाएँ।
+- Success आने के बाद ही GitHub/hosting files upload करें।
+
+No DROP TABLE / TRUNCATE / bulk DELETE is used for existing app data.

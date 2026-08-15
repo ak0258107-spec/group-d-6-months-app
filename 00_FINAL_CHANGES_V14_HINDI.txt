@@ -1,0 +1,95 @@
+V14.2 SQL ENUM FIX (16-08-2026)
+- Supabase project with profiles.role as enum app_role could fail at the admin-check function with:
+  invalid input value for enum app_role: ""
+- Fixed by casting profiles.role to text before COALESCE.
+- Safe to rerun the complete SQL file; existing tables/data are preserved by IF NOT EXISTS / ON CONFLICT patterns.
+
+GK BY PURUSHOTAM SIR — FINAL V14.2
+CBT + Haryana GK Classes + Poster / Announcement
+
+1. STUDENT BOTTOM TABS
+Final bottom tabs:
+Home | Classes | Poster | CBT | Profile
+
+Classes, Poster और CBT में नया Student-visible content publish/update होने पर संबंधित tab लाल होकर pulse/blink करेगा। Student tab खोलते ही seen-status Supabase में save होगा और लाल indicator हट जाएगा। यह केवल browser-local नहीं है।
+
+2. HARYANA GK CLASSES
+Class Thumbnail system पूरी तरह Student/Admin UI से हटाया गया है।
+हर class में:
+- Haryana GK Topic
+- Class / Topic Title
+- Part No.
+- पूरी YouTube Tagline
+- YouTube Link
+- Student Show/Hide
+- Order
+- Add Part
+
+Watch button Student side पर “Watch Now” है।
+YouTube Classes केवल Haryana GK के लिए हैं। दूसरे Subjects केवल CBT structure में रहेंगे।
+
+3. POSTER / ANNOUNCEMENT SYSTEM
+Admin Poster image upload कर सकता है। Poster Cloudflare R2 में रहेगा और metadata Supabase में रहेगा।
+Supported display: 16:9, 1:1, A4 portrait/landscape या कोई अन्य image ratio.
+Poster crop/stretch नहीं होगा। Student panel में original aspect ratio में responsive display होगा।
+Optional fields:
+- Title
+- Message
+- Action Button Text
+- Action Link
+Controls:
+- Show/Hide
+- Pin to Top
+- Order
+- Edit
+- Delete
+
+4. CBT CORE — PRESERVED
+पहले तय सभी CBT V13 core features रखे गए हैं:
+- Multi-subject Subject → Topic structure
+- Admin Subject Show/Hide
+- Existing Topic Show/Hide
+- 10/20/30/40/50/60/70/80/90/100 fixed test-series generator
+- 15/16/17 sec per question
+- Whole-test MM:SS timer + remaining seconds + shrinking line
+- Auto-submit at 00:00
+- Hidden fixed internal test sets
+- Student को Test/Set number कहीं नहीं दिखता
+- Random/balanced assignment; recent/repeated sets से बचाव
+- Rank केवल उसी exact hidden set में
+- First valid attempt official rank
+- Reattempt practice से official rank नहीं बदलती
+- Wrong question repeat
+- Full test practice reattempt
+- Weak Questions: Wrong + Skipped + Slow
+- Bookmark
+- Question Palette / Mark for Review
+- Question Report
+- Resume after refresh/interruption
+- In-app Answer/Explanation analysis
+- Student PDF/JPG full question download नहीं
+
+5. CBT NEW-CONTENT TAB INDICATOR
+CBT tab update marker इन actions से trigger होता है:
+- नया Active Fixed Test Series generate/publish
+- Subject Student Visible करना
+- Topic / Question Student Visible करना (existing CBT admin publish flow)
+
+6. DATA STORAGE
+Supabase:
+- CBT series, assignments, attempts, rank-related data
+- Revision / weak questions / bookmarks / reports
+- Haryana GK Classes metadata
+- Poster metadata
+- Tab update version + per-student seen state
+
+Cloudflare R2:
+- Poster image files
+
+Existing Cloudflare Worker endpoints reuse किए गए हैं। नई Worker file replace करने की जरूरत नहीं रखी गई।
+
+7. IMPORTANT COMPATIBILITY
+haryana_youtube_classes.image_key database column backward compatibility के लिए रखा गया है, लेकिन V14 UI class thumbnails को use/display/upload नहीं करता।
+
+8. OLD TARGET SYSTEM
+Student/Admin active UI में पुराना Daily Target, 5-Day Target, Schedule, Class PDF/Other PDF और पुराने Target workflow को वापस नहीं जोड़ा गया है।

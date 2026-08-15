@@ -1,0 +1,32 @@
+GK BY PURUSHOTAM SIR — FINAL V14.2 STATIC VALIDATION
+
+PASS — All local HTML references exist — []
+PASS — Bottom tab Home
+PASS — Bottom tab Classes
+PASS — Bottom tab Poster
+PASS — Bottom tab CBT
+PASS — Bottom tab Profile
+PASS — Bottom nav has exactly 5 visible buttons
+PASS — Class thumbnail input removed
+PASS — Class uses full tagline + Watch Now
+PASS — Poster section exists
+PASS — Poster keeps original ratio
+PASS — Persistent seen-state present
+PASS — Red/pulse indicator present
+PASS — Classes/Poster/CBT channels present
+PASS — Poster R2 endpoint reused
+PASS — No destructive full-table SQL
+PASS — CBT hidden set field remains backend only
+PASS — CBT publish bumps indicator
+PASS — Service worker assets exist — []
+PASS — SQL dollar quotes balanced — count=22
+PASS — Required student-final-v14.js
+PASS — Required admin-final-v14.js
+PASS — Required cbt-admin-final-v14.js
+PASS — Required VERSION_FINAL_V14.json
+
+Total checks: 24
+Passed: 24
+Failed: 0
+
+NOTE: Live Supabase/R2 integration requires deployment credentials and is not executed in this offline static validation.

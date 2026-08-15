@@ -1,0 +1,64 @@
+V14.2 SQL ENUM FIX (16-08-2026)
+- Supabase project with profiles.role as enum app_role could fail at the admin-check function with:
+  invalid input value for enum app_role: ""
+- Fixed by casting profiles.role to text before COALESCE.
+- Safe to rerun the complete SQL file; existing tables/data are preserved by IF NOT EXISTS / ON CONFLICT patterns.
+
+FINAL V14.2 DEPLOY करने का सही क्रम
+
+STEP 1 — ZIP Extract करें
+GK_BY_PURUSHOTAM_SIR_CBT_POSTER_FINAL_V14.zip extract करें।
+
+STEP 2 — SUPABASE SQL RUN करें
+Supabase Dashboard → SQL Editor खोलें।
+File खोलें:
+01_SUPABASE_CBT_POSTER_FINAL_V14.sql
+पूरा SQL एक बार Run करें।
+यह CBT V13 core tables/functions के साथ Poster और New-Content Indicator tables/functions भी जोड़ता है।
+
+STEP 3 — GITHUB / HOSTING FILES UPLOAD करें
+Folder:
+01_GITHUB_UPLOAD_COMPLETE
+इसके अंदर की files को अपने existing app GitHub/hosting root में upload/replace करें।
+Folder को folder के रूप में nested मत डालें; अंदर की files root में जानी चाहिए।
+
+STEP 4 — CLOUDFLARE
+Existing Cloudflare Worker / R2 configuration reuse की गई है।
+Poster image upload/read/delete के लिए existing poster endpoints use होते हैं।
+इस package में अलग Worker replacement जरूरी नहीं रखा गया है।
+
+STEP 5 — HARD REFRESH
+Deploy के बाद browser में Ctrl + Shift + R करें।
+PWA installed हो तो app को बंद करके दोबारा खोलें। Final V14 service-worker cache पुराने V13 cache को replace करेगा।
+
+STEP 6 — ADMIN TEST
+Admin Login करें।
+A) Haryana GK Classes:
+- Topic चुनें
+- Title / Part
+- पूरी Tagline
+- YouTube Link
+- Show करें
+Student Classes tab लाल/pulse होना चाहिए। Student Classes खोले तो indicator हटना चाहिए।
+
+B) Poster:
+- 16:9, 1:1 या A4 image upload करें
+- Show करें
+Student Poster tab लाल/pulse होना चाहिए। Poster पूरा original ratio में दिखना चाहिए।
+
+C) CBT:
+- Topic/Questions Student Visible करें या नया Fixed Test Series generate करें
+Student CBT tab लाल/pulse होना चाहिए। Student CBT खोलने पर indicator हटना चाहिए।
+
+STEP 7 — CBT TEST CHECK
+एक Student से CBT लगाकर timer, submit, rank, analysis, weak/revision और reattempt check करें। Internal Test Number Student UI में नहीं दिखना चाहिए।
+
+BACKUP NOTE
+Production database में बड़ा बदलाव करने से पहले Supabase backup/export रखना हमेशा अच्छा है। V14 SQL पुराने CBT data को जानबूझकर delete/truncate नहीं करता।
+
+
+V14.2 IMPORTANT DATABASE FIX:
+- पुराने Supabase में cbt_subject_visibility या app_posters table पहले से हो सकती है।
+- V14.2 SQL missing columns को ALTER TABLE ... ADD COLUMN IF NOT EXISTS से जोड़ती है।
+- पुराना Poster data delete नहीं किया जाता। is_active/click_url से नई visibility/link fields migrate की जाती हैं।
+- SQL rerunnable है; पहले failed V14/V14.1 run के बाद भी इसी पूरी V14.2 SQL को दोबारा Run करें।

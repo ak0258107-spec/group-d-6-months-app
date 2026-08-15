@@ -1,0 +1,41 @@
+FINAL V14.2 — मुख्य बदली हुई files
+
+01_GITHUB_UPLOAD_COMPLETE/l4x8m2r7-k9v3t5n1-z6c4p8q2.html
+- Student layout
+- Bottom 5 tabs
+- Poster section
+- Responsive original-ratio poster UI
+- Class thumbnail-free UI
+
+01_GITHUB_UPLOAD_COMPLETE/student-final-v14.js
+- Classes load without thumbnail
+- Poster load from R2
+- New-content red/blink indicator
+- Per-student seen state
+- Home/Revision/Profile integration
+
+01_GITHUB_UPLOAD_COMPLETE/q9v3x7k2-r8m4p6t1-z5n7c2w9.html
+- Admin Classes form without thumbnail
+- Admin Poster/Announcement tab and form
+
+01_GITHUB_UPLOAD_COMPLETE/admin-final-v14.js
+- Class save/edit/add-part without thumbnail
+- Poster upload/edit/show-hide/pin/delete
+- Admin dashboard counts
+
+01_GITHUB_UPLOAD_COMPLETE/cbt-admin.html
+- Existing CBT publish actions now also bump CBT bottom-tab update state
+
+01_GITHUB_UPLOAD_COMPLETE/cbt-admin-final-v14.js
+- Existing fixed-series/subject visibility admin extension preserved as V14
+
+01_GITHUB_UPLOAD_COMPLETE/sw.js
+- Final V14 cache name and new V14 JS file references
+
+01_SUPABASE_CBT_POSTER_FINAL_V14.sql
+- app_posters
+- app_content_channels
+- student_content_seen
+- RLS policies
+- update marker functions/triggers
+- Previous CBT V13 database core included
