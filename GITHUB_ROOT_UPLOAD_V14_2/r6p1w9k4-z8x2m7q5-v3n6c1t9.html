@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+  <title>Secure Admin Password Recovery | GK BY PURUSHOTAM SIR</title>
+  <link rel="icon" href="favicon.png">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body{min-height:100vh;background:radial-gradient(circle at 15% 15%,#173b70 0,#071426 45%,#020711 100%);display:grid;place-items:center;padding:20px}
+    .admin-recovery-shell{width:min(100%,520px);background:rgba(255,255,255,.97);border:1px solid rgba(255,255,255,.7);border-radius:28px;padding:28px;box-shadow:0 28px 80px rgba(0,0,0,.42)}
+    .admin-recovery-brand{text-align:center;margin-bottom:18px}.admin-recovery-brand .shield{font-size:46px}.admin-recovery-brand h1{margin:8px 0 4px;font-size:27px}.admin-recovery-brand p{margin:0;color:#586174}
+    .admin-recovery-shell label{display:block;font-weight:800;margin:14px 0 7px}.admin-recovery-shell input{width:100%}.admin-recovery-actions{display:grid;gap:10px;margin-top:18px}.admin-recovery-help{font-size:13px;color:#667085;text-align:center;margin-top:14px;line-height:1.55}
+  </style>
+</head>
+<body>
+  <main class="admin-recovery-shell">
+    <div class="admin-recovery-brand">
+      <div class="shield">🛡️</div>
+      <h1>Secure Admin Recovery</h1>
+      <p>यह पेज केवल Owner/Admin password बदलने के लिए है।</p>
+    </div>
+
+    <div id="adminRecoveryWaiting">
+      <div class="notice notice-info">Reset link verify किया जा रहा है…</div>
+    </div>
+
+    <section id="adminRecoveryForm" class="hidden">
+      <label for="adminNewPassword">New Admin Password</label>
+      <input id="adminNewPassword" type="password" minlength="6" autocomplete="new-password" placeholder="कम से कम 6 अक्षर">
+      <label for="adminNewPassword2">Confirm New Password</label>
+      <input id="adminNewPassword2" type="password" minlength="6" autocomplete="new-password" placeholder="Password दोबारा लिखें">
+      <div class="admin-recovery-actions">
+        <button id="adminRecoverySaveButton" class="btn btn-blue" type="button" onclick="saveAdminRecoveryPassword()">Update Password Securely</button>
+      </div>
+    </section>
+
+    <div id="adminRecoveryMessage"></div>
+    <div class="admin-recovery-help">Password बदलने के बाद session बंद होगा और आपको unique Admin Login पर वापस भेजा जाएगा। Authenticator MFA अलग से लागू रहेगा।</div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="admin-recovery.js"></script>
+</body>
+</html>

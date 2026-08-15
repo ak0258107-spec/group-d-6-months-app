@@ -1,0 +1,21 @@
+IMPORTANT - GITHUB ROOT UPLOAD
+
+इन files को किसी नए folder के अंदर upload नहीं करना है।
+GitHub repository खोलें और जहाँ पुराना index.html, admin.html, student.html मौजूद है, उसी ROOT जगह पर इन files को Upload/Replace करें।
+
+Upload के बाद repository root में ये files सीधे दिखनी चाहिए:
+- index.html
+- student-final-v14.js
+- admin-final-v14.js
+- cbt-admin-final-v14.js
+- VERSION_FINAL_V14.json
+- sw.js
+
+अगर repository में ऐसा path बन गया:
+01_GITHUB_UPLOAD_COMPLETE/index.html
+या
+GK_BY_PURUSHOTAM.../01_GITHUB_UPLOAD_COMPLETE/index.html
+तो upload गलत जगह हुआ है और पुरानी App ही खुलेगी।
+
+Verification:
+VERSION_FINAL_V14.json को live site root से open करें. उसमें V14.2 cache/version दिखाई देना चाहिए.
