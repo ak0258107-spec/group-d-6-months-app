@@ -1,0 +1,20 @@
+GK BY PURUSHOTAM SIR — FINAL V15
+
+इस version में user द्वारा बताई गई अंतिम कमियाँ ठीक की गई हैं:
+
+1. Student header branding को high-contrast 3D/Glass premium look दिया गया।
+2. CBT Student card से hidden fixed set, 15–17 sec, rank/PDF जैसी technical explanatory list हटाई गई।
+3. पूरा Student Panel premium 3D/Glass cards, shadows और mobile layout में redesign किया गया।
+4. Student Profile पूरी तरह premium बनाया गया; Avatar बदलने वाले controls हटाए गए।
+5. Registration में केवल एक बार लड़का/लड़की पूछा जाता है; neutral/avatar selection हटाया गया।
+6. Question upload के बाद Question Bank auto-ready होता है और उपलब्ध 10/20/30/40/50/60/70/80/90/100 size की Fixed Test Series 17 sec/question के साथ auto-generate/auto-save होती है।
+7. 30/40/... जैसे size में bank पूरी तरह divide न होने पर last fixed set को controlled rotation से पूरा किया जाता है; internal set number Student को नहीं दिखता।
+8. Student को “Admin ने test generate नहीं किया” जैसी technical warning नहीं दिखाई जाती।
+9. CBT Admin को premium 3D/Glass cards और top sub-tabs में बदला गया: Subjects & Topics, Question Upload, Question Bank, Test Series, Reports।
+10. Main Admin Panel को long sidebar/scroll layout से हटाकर top tabs बनाया गया: CBT, Classes, Poster, Important Information, Students।
+11. Important Information का नया working Supabase section जोड़ा गया; visible information Student Home पर दिखती है।
+12. Classes में thumbnail नहीं है; Topic/Part + पूरी Tagline + YouTube Link ही है।
+13. Poster original aspect ratio में दिखता है।
+14. Service Worker cache को V15 पर bump किया गया ताकि पुराना UI cache में न अटका रहे।
+
+IMPORTANT: पुराने CBT attempts, ranks, classes और posters को delete करने वाला SQL नहीं जोड़ा गया है।

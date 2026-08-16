@@ -1,0 +1,21 @@
+GK BY PURUSHOTAM SIR — FINAL V15
+
+यही Final package उपयोग करें। पुराने V14/V14.2 folders को upload न करें।
+
+1) Supabase SQL Editor में:
+   01_SUPABASE_CBT_FINAL_V15.sql पूरा Run करें और Success आने दें।
+
+2) GitHub repository group-d-6-months-app के main / (root) में:
+   01_GITHUB_UPLOAD_COMPLETE folder को folder के रूप में upload नहीं करना है।
+   इस folder को खोलें और इसके अंदर की सारी files select करके root में upload/replace करें।
+
+3) GitHub Pages deploy होने दें, फिर Ctrl+Shift+R करें।
+
+Final Admin URL वही रहेगा:
+q9v3x7k2-r8m4p6t1-z5n7c2w9.html
+
+Final Student panel में bottom tabs:
+Home | Classes | Poster | CBT | Profile
+
+Final Admin top tabs:
+CBT | Classes | Poster | Important Info | Students

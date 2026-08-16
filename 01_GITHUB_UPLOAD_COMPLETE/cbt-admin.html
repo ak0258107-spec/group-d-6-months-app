@@ -774,10 +774,10 @@
                 <img src="cbt-logo.webp" alt="Logo" onerror="this.style.display='none'">
                 <div>
                     <h1>GK BY PURUSHOTAM SIR</h1>
-                    <h2>ALL SUBJECTS CBT QUESTION BANK ADMIN</h2>
+                    <h2>PREMIUM CBT QUESTION BANK • AUTO TEST SERIES</h2>
                 </div>
             </div>
-            <a class="cbt-admin-back-btn" href="q9v3x7k2-r8m4p6t1-z5n7c2w9.html">← Back to Admin Dashboard</a>
+            <a class="cbt-admin-back-btn" href="q9v3x7k2-r8m4p6t1-z5n7c2w9.html">← Back to Admin</a>
         </div>
 
         <div id="loginPanel" class="panel login-box">
@@ -807,7 +807,7 @@
                 <div class="fixed-catalog-note">
                     सभी Subjects और Topics पहले से fixed हैं। नया Subject Name, Subject Key या Topic list बनाने की जरूरत नहीं है।
                     पहले Subject चुनें, फिर उसके नीचे Topic चुनें और उसी Topic के Questions upload करें।
-                    Questions upload होने के बाद वे Draft/Hidden रहेंगे। Topic के सामने <b>Show to Students</b> टिक करके <b>Save</b> करते ही उस Topic के सभी active Questions अपने-आप Students को उपलब्ध हो जाएँगे।
+                    Questions upload करें। Upload के बाद valid Questions और 10/20/30/40/50/60/70/80/90/100 वाली उपलब्ध Fixed Test Series अपने-आप तैयार हो जाएगी। Subject/Topic का Show/Hide आपके control में रहेगा।
                 </div>
 
                 <div class="catalog-step-title">1. Subject चुनें</div>
@@ -896,7 +896,7 @@
                     </div>
                     <div>
                         <label>Student Visibility</label>
-                        <div class="help">Questions upload होने के बाद Topic के सामने <b>Show to Students</b> टिक करके <b>Save</b> करें। उसी समय उस Topic के सभी active Questions अपने-आप Live हो जाएँगे।</div>
+                        <div class="help">Questions upload होते ही valid Questions test-series के लिए auto-ready हो जाएँगे। Topic Student को दिखाना है या नहीं, उसका Show/Hide अलग control है।</div>
                     </div>
                 </div>
 
@@ -2771,9 +2771,23 @@ c. पश्चिमी हरियाणा
 
                 await loadQuestionCounts(true);
 
+                let autoSeriesReady = totalInserted <= 0;
+                let autoSeriesError = "";
+                if (totalInserted > 0 && typeof window.autoGenerateV15ForTopics === "function") {
+                    setStatus("Questions upload हो गए ✅\nअब Fixed Test Series अपने-आप तैयार हो रही है...", "info", true);
+                    try {
+                        await window.autoGenerateV15ForTopics(selectedTopics, difficulty);
+                        autoSeriesReady = true;
+                        await loadQuestionCounts(true);
+                    } catch (autoError) {
+                        console.error("Auto Test Series:", autoError);
+                        autoSeriesError = String(autoError?.message || autoError || "Unknown error");
+                    }
+                }
+
                 setStatus(
-                    `Upload Complete ✅\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nInserted: ${totalInserted}\nDuplicate: ${totalDuplicate}\nDummy skipped: ${totalDummy}\nErrors: ${allErrors.length}\n\nQuestions Draft/Hidden में सुरक्षित हैं। Students को भेजने के लिए Topic के सामने Show to Students टिक करके Save करें।`,
-                    totalInserted > 0 ? "ok" : "err",
+                    `Upload Complete ✅\nQuestions: ${questions.length}\nSelected Topics: ${selectedTopics.length}\nInserted: ${totalInserted}\nDuplicate: ${totalDuplicate}\nDummy skipped: ${totalDummy}\nErrors: ${allErrors.length}\n\n${autoSeriesReady ? "Questions सुरक्षित हैं। उपलब्ध Test Sizes की Fixed Test Series Auto-Save हो गई है।" : "Questions सुरक्षित upload हो गए हैं, लेकिन Auto Test Series तैयार नहीं हुई: " + autoSeriesError}\nStudent visibility Subject/Topic Show-Hide से control होगी।`,
+                    autoSeriesReady && totalInserted > 0 ? "ok" : (totalInserted > 0 ? "err" : "info"),
                     true
                 );
 
@@ -2808,6 +2822,6 @@ c. पश्चिमी हरियाणा
             }
         });
     </script>
-    <script src="cbt-admin-final-v14.js?v=14.0.0"></script>
+    <script src="cbt-admin-final-v15.js?v=15.0.0"></script>
 </body>
 </html>

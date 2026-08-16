@@ -1,0 +1,29 @@
+GK BY PURUSHOTAM SIR — FINAL V15 VALIDATION
+
+RESULT: 25/25 PASS
+
+PASS — Student premium brand visible
+PASS — Student CBT technical bullet copy removed
+PASS — Student bottom 5 tabs
+PASS — Student update indicators for Classes/Poster/CBT
+PASS — Premium Profile without avatar controls
+PASS — Registration only Boy/Girl once
+PASS — Classes no thumbnail input/UI
+PASS — Poster original ratio
+PASS — Admin premium top tabs
+PASS — Admin no legacy sidebar layout
+PASS — Important Information working UI
+PASS — CBT Admin sub-tabs
+PASS — CBT subject cards premium glass
+PASS — Auto test sizes 10-100
+PASS — Auto series uses 17 sec default
+PASS — Controlled rotation full last set
+PASS — Auto-generation hook only in upload flow — refs=2
+PASS — Student technical admin-not-ready warning hidden
+PASS — V15 service worker cache
+PASS — V15 SQL adds Important Information
+PASS — V15 SQL no table truncate/drop
+PASS — V15 SQL keeps existing data intent
+PASS — All local HTML references exist
+PASS — Key JavaScript syntax
+PASS — Inline JavaScript syntax

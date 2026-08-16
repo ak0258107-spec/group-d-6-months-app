@@ -1,0 +1,21 @@
+FINAL V15 DEPLOY — केवल ये steps करें
+
+STEP 1 — Supabase
+01_SUPABASE_CBT_FINAL_V15.sql को Supabase SQL Editor में पूरा Run करें। Success आने दें। यह V14.2 compatible है।
+
+STEP 2 — GitHub
+01_GITHUB_UPLOAD_COMPLETE folder को GitHub में folder के रूप में upload नहीं करना है। इसके अंदर की सारी files select करके repository main/(root) में upload/replace करें।
+
+आपकी live Admin file root में यही रहनी चाहिए:
+q9v3x7k2-r8m4p6t1-z5n7c2w9.html
+
+STEP 3 — Wait
+GitHub Pages deployment पूरा होने दें।
+
+STEP 4 — Hard Refresh
+Browser में Ctrl+Shift+R करें। Installed PWA हो तो पहले browser website से verify करें। V15 में service worker cache name नया है, इसलिए पुराना cache activate के बाद हट जाएगा।
+
+CHECK
+Admin में ऊपर tabs दिखें: CBT | Classes | Poster | Important Info | Students
+Student header में GK BY PURUSHOTAM SIR साफ white/blue 3D glass look में दिखे।
+CBT student tab में technical bullet list नहीं दिखनी चाहिए।
