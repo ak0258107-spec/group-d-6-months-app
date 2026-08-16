@@ -6,9 +6,9 @@
     <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=16.1.0"></script>
-    <script src="common.js?v=16.1.0"></script>
-    <script src="cbt-topics-data.js?v=16.1.0"></script>
+    <script src="config.js?v=17.0.0"></script>
+    <script src="common.js?v=17.0.0"></script>
+    <script src="cbt-topics-data.js?v=17.0.0"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -1640,10 +1640,8 @@ Topic सुरक्षित है। अब आप इसी Topic में
                             <input type="radio" name="fixedTopicSelection" class="topic-checkbox" value="${escapeHtml(topic.topic_key)}" onchange="handleTopicChange(this)" ${checked ? "checked" : ""}>
                             <span class="selection-tick">✓</span>
                             <span class="topic-name-wrap">
-                                ${realIndex + 1}. ${escapeHtml(topic.topic_name)}
-                                <br>
-                                <span class="q-count ${count === 0 ? "zero" : "good"}">${count} Q</span>
-                                <span class="topic-visibility-note ${visible ? "live" : ""}">${note}</span>
+                                <span class="topic-title-line"><b>${realIndex + 1}. ${escapeHtml(topic.topic_name)}</b><span class="q-count ${count === 0 ? "zero" : "good"}">${count} Q</span></span>
+                                <span class="topic-visibility-note ${visible ? "live" : ""}">${count===0?'No Questions':(visible?'✓ Mock Test Live':'Draft / Hidden')}</span>
                             </span>
                         </label>
                         <div class="topic-publish-row">
@@ -2811,6 +2809,6 @@ c. पश्चिमी हरियाणा
             }
         });
     </script>
-    <script src="cbt-admin-final-v16.js?v=16.1.0"></script>
+    <script src="cbt-admin-final-v16.js?v=17.0.0"></script>
 </body>
 </html>

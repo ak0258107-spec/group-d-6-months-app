@@ -1,2 +1,3 @@
-V16.2 के लिए Supabase में कुछ भी Run नहीं करना है।
-V16.1/V16 की existing database setup जस की तस रहेगी।
+FINAL V17 में नई Supabase SQL की जरूरत नहीं है।
+यदि V16 की SQL पहले Success से run हो चुकी है, Supabase में कुछ दोबारा run न करें।
+यह V17 frontend/UI/UX patch है और existing database structure reuse करता है।

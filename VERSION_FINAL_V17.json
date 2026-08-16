@@ -1,0 +1,26 @@
+{
+  "version": "17.0.0",
+  "name": "Premium Pastel CBT Final V17 — Full Screen Topics + Meaningful Home",
+  "base": "V16.2 features preserved; UI/UX patch only",
+  "new_logo_preserved": true,
+  "admin_cbt_tabs": [
+    "Subjects",
+    "Topics",
+    "Question Upload",
+    "Question Bank",
+    "Test Series",
+    "Reports"
+  ],
+  "topics_full_screen_scroll": true,
+  "topic_cards_compact_pastel_3d": true,
+  "question_bank_pastel_3d": true,
+  "topic_question_count_inline_badge": true,
+  "student_home_duplicate_nav_cards": false,
+  "student_home_motivational_dashboard": true,
+  "student_home_progress_latest_revision": true,
+  "admin_header_real_logo": true,
+  "student_header_real_logo": true,
+  "class_multi_topic_done_autoclose": true,
+  "class_selected_topic_chips": true,
+  "database_migration_required": false
+}

@@ -36,11 +36,11 @@
 
     <link rel="icon" href="cbt-logo.webp" type="image/webp">
 
-    <link rel="stylesheet" href="cbt-mock-test.css?v=16.1.0">
+    <link rel="stylesheet" href="cbt-mock-test.css?v=17.0.0">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=16.1.0"></script>
-    <script src="common.js?v=16.1.0"></script>
+    <script src="config.js?v=17.0.0"></script>
+    <script src="common.js?v=17.0.0"></script>
 
     </head>
 
@@ -233,7 +233,7 @@
       if(area)area.innerHTML='<div class="unit-card cbt-load-error-card"><div class="unit-title">CBT file load नहीं हुई</div><div class="selection-note">'+String(message||'नई CBT file load नहीं हुई।').replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];})+'</div><button type="button" class="small-btn" onclick="location.reload()">↻ Reload CBT</button></div>';
     };
     </script>
-    <script defer src="cbt-student-v12-26.js?v=16.1.0" onerror="showCbtStudentLoadError('CBT Student file load नहीं हुई। कृपया Reload करें।')"></script>
-    <script defer src="cbt-final-v16.js?v=16.1.0"></script>
+    <script defer src="cbt-student-v12-26.js?v=17.0.0" onerror="showCbtStudentLoadError('CBT Student file load नहीं हुई। कृपया Reload करें।')"></script>
+    <script defer src="cbt-final-v16.js?v=17.0.0"></script>
 </body>
 </html>

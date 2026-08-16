@@ -296,9 +296,14 @@ function getCoveredTopics(){
 }
 window.filterCoveredTopicChoices=function(q){const text=String(q||'').trim().toLowerCase();document.querySelectorAll('#ytCoveredTopics .covered-topic-option').forEach(el=>el.classList.toggle('hidden',text&&!String(el.dataset.topicName||'').includes(text)))};
 window.updateCoveredTopicsUI=function(updateTitle=true){
-  const topics=getCoveredTopics(),summary=byId('ytCoveredSummary');if(summary)summary.textContent=topics.length?`${topics.length} Topic selected: ${topics.slice(0,2).map(x=>x.name).join(', ')}${topics.length>2?'…':''}`:'Topics चुनें';
+  const topics=getCoveredTopics(),summary=byId('ytCoveredSummary'),count=byId('ytCoveredCount'),chips=byId('ytSelectedTopicChips');
+  if(summary)summary.textContent=topics.length?`${topics.length} Topic selected: ${topics.slice(0,2).map(x=>x.name).join(', ')}${topics.length>2?'…':''}`:'Topics चुनें';
+  if(count)count.textContent=`${topics.length} Topic selected`;
+  if(chips)chips.innerHTML=topics.map(t=>`<span class="selected-topic-chip">${esc(t.name)}<button type="button" title="Topic हटाएँ" onclick="removeCoveredTopic('${esc(t.key)}')">×</button></span>`).join('');
   if(updateTitle){const topic=selectedTopic();const title=topics.length?topics.map(x=>x.name).join(' | '):(topic?.name||'');if(byId('ytTitle'))byId('ytTitle').value=title}
 };
+window.finishCoveredTopicSelection=function(){updateCoveredTopicsUI(true);const d=byId('ytCoveredDetails');if(d)d.open=false;setClassFormStatus(`${getCoveredTopics().length} Topic selected ✓`,'success')};
+window.removeCoveredTopic=function(key){const box=[...document.querySelectorAll('#ytCoveredTopics input[type="checkbox"]')].find(x=>x.value===key);if(box)box.checked=false;updateCoveredTopicsUI(true)};
 window.onYoutubePrimaryTopicChange=function(){const topic=selectedTopic();if(!topic){renderCoveredTopicChoices([]);if(byId('ytTitle'))byId('ytTitle').value='';return}renderCoveredTopicChoices([topic.key]);if(byId('ytOrder'))byId('ytOrder').value=classGroupOrder(topic.key);updateCoveredTopicsUI(true)};
 function setClassFormStatus(message,type='info'){const el=byId('ytFormStatus');if(!el)return;el.textContent=message||'';el.className=`class-form-status ${type}`;el.classList.toggle('hidden',!message)}
 function resetYoutubeForm(){

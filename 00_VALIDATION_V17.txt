@@ -1,0 +1,7 @@
+FINAL V17 STATIC VALIDATION
+
+39/39 checks PASS.
+
+Checked: Admin/Student logo, separate Subjects/Topics CBT tabs, full-height Topic workspace, compact pastel 3D Topic cards, inline question badge, compact Mock Test status, pastel 3D Question Bank, no nested Topic/Question Bank scroll, multi-topic Done auto-close, selected topic chips/removal, meaningful Student Home, progress/latest/revision/resume cards, class grouping/search, poster system, CBT resume engine, service-worker cache, local file references, external JS syntax, CBT Admin inline JS syntax.
+
+ZIP integrity is checked separately during packaging.

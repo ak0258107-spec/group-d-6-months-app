@@ -1,0 +1,11 @@
+FINAL V17 DEPLOY
+
+1. इस Complete ZIP के अंदर 02_GITHUB_ROOT_UPLOAD_FINAL_V17.zip मिलेगा।
+2. उसे extract करें।
+3. Extract हुए folder को GitHub पर folder की तरह upload नहीं करना है।
+4. उसके अंदर की सारी files group-d-6-months-app repository की main / (root) में upload/replace करें।
+5. GitHub Pages deployment पूरा होने दें।
+6. Browser में Ctrl + Shift + R करें। Installed PWA हो तो browser से site खोलकर पहले verify करें।
+7. इस V17 UI patch के लिए नई Supabase SQL नहीं चलानी है, बशर्ते V16 SQL पहले Success हो चुकी हो।
+
+Version check: site URL के अंत में /VERSION_FINAL_V17.json खोलें; version 17.0.0 दिखना चाहिए।

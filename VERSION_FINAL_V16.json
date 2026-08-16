@@ -1,5 +1,5 @@
 {
-  "version": "16.2.0",
+  "version": "17.0.0",
   "name": "Premium Pastel CBT Final V16.2 — Logo Only Update",
   "base": "V15 preserved + V16 class/topic UX",
   "student_tabs": [
@@ -51,5 +51,6 @@
   "student_home_compact": true,
   "student_home_large_hero": false,
   "logo_update_only": true,
-  "logo_source": "User supplied final GK BY PURUSHOTAM SIR logo"
+  "logo_source": "User supplied final GK BY PURUSHOTAM SIR logo",
+  "superseded_by": "VERSION_FINAL_V17.json"
 }

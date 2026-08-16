@@ -1,0 +1,15 @@
+GK BY PURUSHOTAM SIR — FINAL V17
+
+इस version में V16.2 के सभी existing features सुरक्षित रखे गए हैं। Latest बदलाव:
+
+1. CBT Admin में Subjects और Topics अब अलग-अलग tabs हैं।
+2. Topics list अब half-screen nested scroll में नहीं; पूरा panel/page scroll करता है।
+3. Topic cards compact pastel 3D हैं; Question Count title के पास badge में है और Mock Test Live/Draft status compact है।
+4. Question Bank के topic/count boxes भी pastel 3D cards में बदल दिए गए हैं।
+5. Student Home से bottom tabs की duplicate shortcut cards हटाई गई हैं।
+6. Home पर Basic→Advanced motivation, सीखें/Practice/सुधारें, progress stats, latest class/update, weak revision और unfinished CBT continue card रखा गया है।
+7. Admin और Student header में GK text placeholder की जगह user का final logo लगाया गया है।
+8. Classes में multi-topic dropdown के अंदर Done button है; Done पर dropdown बंद होता है। Selected topics chips में दिखते हैं और × से हटाए जा सकते हैं।
+9. V16.2 का CBT timer, hidden fixed sets, random assignment, ranking, revision, classes grouping/search, poster, notifications, profile और नया logo सुरक्षित हैं।
+
+यह frontend/UI patch है। नई Supabase SQL की जरूरत नहीं है यदि V16 SQL पहले सफलतापूर्वक run हो चुकी है।
