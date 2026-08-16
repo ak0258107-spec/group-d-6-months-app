@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f3ea">
 <title>CBT Practice | GK BY PURUSHOTAM SIR</title>
-<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css?v=17.0.0"><link rel="stylesheet" href="simple-v1220.css?v=17.0.0">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=17.0.0"></script><script src="common.js?v=17.0.0"></script><script src="cbt-topics-data.js?v=17.0.0"></script>
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css?v=18.0.0"><link rel="stylesheet" href="simple-v1220.css?v=18.0.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=18.0.0"></script><script src="common.js?v=18.0.0"></script><script src="cbt-topics-data.js?v=18.0.0"></script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="favicon.png">
 <style>
 :root{--v15-navy:#061b38;--v15-blue:#1268e8;--v15-cyan:#2dd4ff;--v15-gold:#f7c85b;--v15-card:rgba(255,255,255,.76);--v15-line:rgba(255,255,255,.58);--v15-text:#10213a;--v15-muted:#63738a}
@@ -45,6 +45,19 @@
 .home-v17-section-title{display:flex;align-items:center;justify-content:space-between;margin:16px 2px 9px}.home-v17-section-title b{font-size:16px;color:#334459}.home-v17-section-title small{color:#7a8189;font-weight:700}.home-v17-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.home-v17-card{padding:13px 14px;border-radius:18px;border:1px solid #e0d8cb;box-shadow:0 7px 0 rgba(82,72,57,.04),0 14px 24px rgba(72,67,58,.09);color:#29394c}.home-v17-card:nth-child(6n+1){background:#e7f8ed;border-left:5px solid #43a475}.home-v17-card:nth-child(6n+2){background:#e7f3ff;border-left:5px solid #4389c7}.home-v17-card:nth-child(6n+3){background:#f1eaff;border-left:5px solid #8c71c7}.home-v17-card:nth-child(6n+4){background:#ffeaf0;border-left:5px solid #cb5a7a}.home-v17-card:nth-child(6n+5){background:#fff7cb;border-left:5px solid #c59b20}.home-v17-card:nth-child(6n){background:#fff0e7;border-left:5px solid #e48b55}.home-v17-card h3{margin:0 0 5px;font-size:15px}.home-v17-card p{margin:0;color:#68727c;font-size:12px;line-height:1.45;font-weight:690}.home-v17-card .mini-action{display:inline-flex;margin-top:9px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.75);border:1px solid rgba(55,76,94,.12);text-decoration:none;color:#315b7f;font-size:12px;font-weight:900}.home-v17-stats{margin-top:0!important}.home-v17-stats>div{padding:11px!important}.home-v17-stats b{font-size:21px!important}.home-quick-grid{display:none!important}.home-compact-greeting{display:none!important}
 @media(max-width:640px){.home-v17-grid{grid-template-columns:1fr}.home-v17-steps{grid-template-columns:1fr 1fr 1fr;gap:6px}.home-v17-step{padding:9px 7px}.home-v17-step small{font-size:10px}.home-v17-welcome{padding:15px}}
 </style>
+
+<style id="v18StudentClassCompletionStyle">
+.class-card-actions{display:grid;grid-template-columns:minmax(150px,.9fr) minmax(210px,1.2fr);gap:9px;align-items:stretch;margin-top:13px}
+.class-card-actions .class-watch-btn{display:flex;align-items:center;justify-content:center;margin:0!important;text-decoration:none}
+.class-complete-btn{border:1px solid #cfd9df;border-radius:14px;padding:11px 13px;background:linear-gradient(145deg,#fffdf8,#eef7ff);color:#3d566d;font-weight:950;cursor:pointer;box-shadow:inset 0 1px #fff,0 6px 14px rgba(55,70,82,.08);transition:.17s}
+.class-complete-btn:hover{transform:translateY(-1px)}.class-complete-btn.completed{background:linear-gradient(145deg,#dff7e8,#effcf4);border-color:#8cc9a3;color:#216d45;box-shadow:0 6px 14px rgba(49,129,83,.12)}
+.yt-class-card.class-completed{border-color:#a7d8b8!important;box-shadow:0 8px 0 rgba(54,132,84,.055),0 16px 27px rgba(65,91,75,.11)!important}
+.profile-v18-avatar{width:86px;height:86px;border-radius:23px;padding:5px;background:rgba(255,255,255,.94);border:1px solid rgba(255,255,255,.92);box-shadow:0 9px 20px rgba(40,61,76,.16);overflow:hidden}
+.profile-v18-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:18px}
+.profile-v15-identity{align-items:center!important}
+@media(max-width:620px){.class-card-actions{grid-template-columns:1fr}.profile-v18-avatar{width:74px;height:74px;border-radius:20px}.profile-v18-avatar img{border-radius:16px}}
+</style>
+
 </head>
 <body class="simple-student-body final-student-shell">
 <header class="student-topbar"><div class="student-brand"><span class="v17-student-logo"><img src="cbt-logo.webp" alt="GK BY PURUSHOTAM SIR"></span><div class="student-brand-copy"><b>GK BY PURUSHOTAM SIR</b><small>PREMIUM CBT • CLASSES • POSTERS</small></div></div><div class="student-top-actions"><span id="studentNameTop" class="studentNameTop"></span><button id="studentInstallBtn" class="btn btn-light hidden" onclick="installApp()">⬇ Install</button></div></header>
@@ -52,7 +65,7 @@
 <section id="homeTab"><div class="simple-section-head"><span>⌂</span><div><h1>Home</h1><p>आपकी Practice, Classes और जरूरी Updates</p></div></div><div id="homeBox"></div></section>
 <section id="classesTab" class="hidden"><div class="simple-section-head"><span>▶</span><div><h1>Haryana GK Classes</h1><p>Topic चुनें, पढ़ाई गई Classes देखें और Watch Now करें</p></div></div><div id="classesBox"></div></section>
 <section id="posterTab" class="hidden"><div class="simple-section-head"><span>▧</span><div><h1>Poster / Announcement</h1><p>नई सूचना और पोस्टर</p></div></div><div id="posterBox" class="poster-grid"></div></section>
-<section id="cbtTab" class="hidden"><div class="simple-section-head"><span>✓</span><div><h1>CBT Tests</h1><p>अपना Subject और Topic चुनकर Test शुरू करें</p></div></div><div class="final-cbt-launch"><div class="cbt-launch-kicker">ONLINE PRACTICE</div><h2>CBT Practice</h2><p>तैयार हैं? नीचे दिए बटन से CBT खोलें और अपना Test शुरू करें।</p><a class="btn btn-blue" href="cbt-exam-v12-26.html?build=17.0.0">START CBT</a></div></section>
+<section id="cbtTab" class="hidden"><div class="simple-section-head"><span>✓</span><div><h1>CBT Tests</h1><p>अपना Subject और Topic चुनकर Test शुरू करें</p></div></div><div class="final-cbt-launch"><div class="cbt-launch-kicker">ONLINE PRACTICE</div><h2>CBT Practice</h2><p>तैयार हैं? नीचे दिए बटन से CBT खोलें और अपना Test शुरू करें।</p><a class="btn btn-blue" href="cbt-exam-v12-26.html?build=18.0.0">START CBT</a></div></section>
 <section id="revisionTab" class="hidden"><button class="student-back-home" onclick="goStudentHome()">← वापस Home</button><div class="simple-section-head"><span>↻</span><div><h1>Revision</h1><p>Weak Questions, Bookmarks और Test History</p></div></div><div id="revisionBox"></div></section>
 <section id="profileTab" class="hidden"><div class="simple-section-head"><span>●</span><div><h1>My Profile</h1><p>Performance और Account</p></div></div><div id="profileBox"></div></section>
 </main>
@@ -63,6 +76,6 @@
 <button data-tab="cbt" onclick="tab('cbt',this)"><span class="update-dot hidden"></span><span class="nav-icon">✓</span><span class="nav-label">CBT</span></button>
 <button data-tab="profile" onclick="tab('profile',this)"><span class="nav-icon">●</span><span class="nav-label">Profile</span></button>
 </nav>
-<script src="student-final-v16.js?v=17.0.0"></script>
+<script src="student-final-v16.js?v=18.0.0"></script>
 </body>
 </html>

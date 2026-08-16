@@ -1,0 +1,16 @@
+FINAL V18 DEPLOY — आसान क्रम
+
+1. Supabase खोलें → SQL Editor.
+2. 01_SUPABASE_CBT_FINAL_V18.sql की पूरी SQL paste करके Run करें.
+3. Success आने के बाद 02_GITHUB_ROOT_UPLOAD_FINAL_V18.zip extract करें.
+4. Extract हुए folder को GitHub में folder के रूप में upload मत करें.
+5. ZIP के अंदर की सारी files repository group-d-6-months-app की main / (root) में upload/replace करें.
+6. GitHub Pages deployment पूरा होने दें.
+7. Browser में Ctrl + Shift + R करें.
+8. Installed PWA में पुराना UI दिखे तो browser site एक बार खोलकर hard refresh करें.
+
+TEST:
+Admin → Classes → Upload Class / Saved Classes दोनों tabs देखें.
+Saved Classes → कोई Topic खोलें → उसकी Parts दिखनी चाहिए.
+Student → Classes → किसी class पर “मैंने यह Class पूरी कर ली” mark करें → refresh के बाद mark रहना चाहिए.
+Student → Profile → Boy/Girl text नहीं, केवल avatar दिखना चाहिए.

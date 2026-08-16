@@ -1,0 +1,20 @@
+{
+  "version": "18.0.0",
+  "name": "Premium CBT Final V18 — Topic-wise Saved Classes + Student Class Completion",
+  "base": "V17 preserved; only final requested Classes/Profile improvements added",
+  "admin_classes_subtabs": [
+    "Upload Class",
+    "Saved Classes"
+  ],
+  "admin_saved_classes_topic_wise": true,
+  "admin_saved_topics_only_when_uploaded": true,
+  "admin_saved_topic_click_opens_parts": true,
+  "student_manual_class_completion": true,
+  "student_class_completion_persists_in_supabase": true,
+  "student_topic_progress_completed_count": true,
+  "profile_gender_text_visible": false,
+  "profile_gender_avatar_only": true,
+  "new_logo_preserved": true,
+  "database_migration_required": true,
+  "migration_file": "01_SUPABASE_CBT_FINAL_V18.sql"
+}

@@ -233,6 +233,8 @@ let posters=[];
 let importantInformation=[];
 let students=[];
 let posterPreviewUrls=[];
+let currentClassAdminView='upload';
+let adminSavedGroupKey='';
 const FINAL_ADMIN_TABS=['cbt','classes','poster','info','students'];
 function byId(id){return document.getElementById(id)}
 function tab(name,el){
@@ -305,6 +307,44 @@ window.updateCoveredTopicsUI=function(updateTitle=true){
 window.finishCoveredTopicSelection=function(){updateCoveredTopicsUI(true);const d=byId('ytCoveredDetails');if(d)d.open=false;setClassFormStatus(`${getCoveredTopics().length} Topic selected ✓`,'success')};
 window.removeCoveredTopic=function(key){const box=[...document.querySelectorAll('#ytCoveredTopics input[type="checkbox"]')].find(x=>x.value===key);if(box)box.checked=false;updateCoveredTopicsUI(true)};
 window.onYoutubePrimaryTopicChange=function(){const topic=selectedTopic();if(!topic){renderCoveredTopicChoices([]);if(byId('ytTitle'))byId('ytTitle').value='';return}renderCoveredTopicChoices([topic.key]);if(byId('ytOrder'))byId('ytOrder').value=classGroupOrder(topic.key);updateCoveredTopicsUI(true)};
+
+window.switchClassAdminView=function(view){
+  currentClassAdminView=view==='saved'?'saved':'upload';
+  byId('classUploadPanel')?.classList.toggle('hidden',currentClassAdminView!=='upload');
+  byId('classSavedPanel')?.classList.toggle('hidden',currentClassAdminView!=='saved');
+  byId('classUploadTabBtn')?.classList.toggle('active',currentClassAdminView==='upload');
+  byId('classSavedTabBtn')?.classList.toggle('active',currentClassAdminView==='saved');
+  if(currentClassAdminView==='saved'){adminSavedGroupKey='';renderYoutubeClasses()}
+};
+function savedClassGroups(){
+  const groups=new Map();
+  for(const c of ytClasses){
+    const key=canonicalClassGroupKey(c.group_key||c.topic_key);
+    const name=canonicalClassGroupName(key,c.group_name||c.topic_name);
+    if(!groups.has(key))groups.set(key,{key,name,order:classGroupOrder(key),rows:[]});
+    groups.get(key).rows.push(c);
+  }
+  const out=[...groups.values()];
+  out.forEach(g=>g.rows.sort((a,b)=>Number(a.part_no||1)-Number(b.part_no||1)||Number(a.sort_order||0)-Number(b.sort_order||0)));
+  return out.sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name,'hi'));
+}
+function savedClassRowHtml(c,i){
+  const covered=normalizeAdminCovered(c);
+  return `<article class="yt-admin-row no-thumb tone-${(i%6)+1}"><div class="yt-admin-main"><div><span class="badge ${c.student_visible?'badge-green':'badge-gray'}">${c.student_visible?'Student Visible':'Hidden'}</span><span class="badge badge-blue">Part ${Number(c.part_no||1)}</span></div><h3>${esc(c.class_title||covered.map(x=>x.name).join(' | '))}</h3><div class="admin-covered-chips">${covered.map(t=>`<span>${esc(t.name)}</span>`).join('')}</div><p class="yt-tagline">${esc(c.tagline)}</p><p><a href="${esc(c.youtube_url)}" target="_blank" rel="noopener">YouTube Link खोलें ↗</a></p></div><div class="yt-admin-actions"><button class="btn btn-orange btn-mini" onclick="addYoutubePart('${c.id}')">＋ Part</button><button class="btn btn-light btn-mini" onclick="editYoutubeClass('${c.id}')">Edit</button><button class="btn btn-blue btn-mini" onclick="toggleYoutubeClass('${c.id}',${c.student_visible!==false})">${c.student_visible?'Hide':'Show'}</button><button class="btn btn-red btn-mini" onclick="deleteYoutubeClass('${c.id}')">Delete</button></div></article>`;
+}
+function renderYoutubeClasses(){
+  const host=byId('ytClassList');if(!host)return;
+  const groups=savedClassGroups();
+  if(!groups.length){host.innerHTML='<div class="item">अभी कोई Haryana GK YouTube Class नहीं है।</div>';return}
+  const active=adminSavedGroupKey&&groups.find(g=>g.key===adminSavedGroupKey);
+  if(active){
+    host.innerHTML=`<button class="admin-saved-back" onclick="closeSavedClassGroup()">← सभी Uploaded Topics</button><div class="admin-saved-group-head"><div><h3>${esc(active.name)}</h3><small>${active.rows.length} Class${active.rows.length===1?'':'es'} • Part क्रम में</small></div><span class="badge badge-blue">${active.rows.filter(x=>x.student_visible!==false).length} Visible</span></div><div>${active.rows.map((c,i)=>savedClassRowHtml(c,i)).join('')}</div>`;
+    return;
+  }
+  host.innerHTML=`<div class="admin-saved-topic-grid">${groups.map((g,i)=>`<button class="admin-saved-topic-card tone-${(i%6)+1}" onclick="openSavedClassGroup('${esc(g.key)}')"><span class="admin-saved-topic-num">${String(i+1).padStart(2,'0')}</span><span class="admin-saved-topic-copy"><b>${esc(g.name)}</b><small>${g.rows.length} Class${g.rows.length===1?'':'es'} • ${g.rows.filter(x=>x.student_visible!==false).length} Student Visible</small></span><span class="admin-saved-topic-arrow">›</span></button>`).join('')}</div>`;
+}
+window.openSavedClassGroup=function(key){adminSavedGroupKey=key;renderYoutubeClasses();byId('classSavedPanel')?.scrollIntoView({behavior:'smooth',block:'start'})};
+window.closeSavedClassGroup=function(){adminSavedGroupKey='';renderYoutubeClasses()};
 function setClassFormStatus(message,type='info'){const el=byId('ytFormStatus');if(!el)return;el.textContent=message||'';el.className=`class-form-status ${type}`;el.classList.toggle('hidden',!message)}
 function resetYoutubeForm(){
   if(byId('ytId'))byId('ytId').value='';if(byId('ytTopic'))byId('ytTopic').value='';if(byId('ytTitle'))byId('ytTitle').value='';if(byId('ytPart'))byId('ytPart').value='1';if(byId('ytTagline'))byId('ytTagline').value='';if(byId('ytYoutube'))byId('ytYoutube').value='';if(byId('ytVisible'))byId('ytVisible').checked=true;if(byId('ytOrder'))byId('ytOrder').value='0';renderCoveredTopicChoices([]);setClassFormStatus('');if(byId('ytSaveBtn'))byId('ytSaveBtn').textContent='Save Haryana GK Class';byId('ytCancelBtn')?.classList.add('hidden');
@@ -325,21 +365,24 @@ async function saveYoutubeClass(){
   finally{if(btn){btn.disabled=false;if(btn.textContent==='Saving...')btn.textContent=id?'Update Class':'Save Haryana GK Class'}}
 }
 function editYoutubeClass(id){
+  switchClassAdminView('upload');
   const c=ytClasses.find(x=>String(x.id)===String(id));if(!c)return;const gkey=canonicalClassGroupKey(c.group_key||c.topic_key);
   byId('ytId').value=c.id;byId('ytTopic').value=gkey;byId('ytPart').value=Number(c.part_no||1);byId('ytTagline').value=c.tagline||'';byId('ytYoutube').value=c.youtube_url||'';byId('ytVisible').checked=c.student_visible!==false;byId('ytOrder').value=classGroupOrder(gkey);renderCoveredTopicChoices(normalizeAdminCovered(c).map(x=>x.key));byId('ytTitle').value=c.class_title||normalizeAdminCovered(c).map(x=>x.name).join(' | ');byId('ytSaveBtn').textContent='Update Class';byId('ytCancelBtn').classList.remove('hidden');setClassFormStatus('Edit mode: जरूरत के अनुसार Topics, Part, Tagline या Link बदलें।','info');
 }
 function basePartTitle(title=''){return String(title).replace(/\s*[-–—:]?\s*Part\s*[-:]?\s*\d+\s*$/i,'').replace(/\s*[-–—:]?\s*भाग\s*[-:]?\s*\d+\s*$/i,'').trim()}
 function addYoutubePart(id){
+  switchClassAdminView('upload');
   const c=ytClasses.find(x=>String(x.id)===String(id));if(!c)return;resetYoutubeForm();const gkey=canonicalClassGroupKey(c.group_key||c.topic_key),maxPart=Math.max(0,...ytClasses.filter(x=>canonicalClassGroupKey(x.group_key||x.topic_key)===gkey).map(x=>Number(x.part_no||1))),next=maxPart+1;
   byId('ytTopic').value=gkey;byId('ytPart').value=next;byId('ytOrder').value=classGroupOrder(gkey);renderCoveredTopicChoices(normalizeAdminCovered(c).map(x=>x.key));updateCoveredTopicsUI(true);byId('ytTagline').focus();setClassFormStatus(`Part ${next} तैयार है—पूरी Tagline और YouTube Link डालें।`,'info');
 }
 async function toggleYoutubeClass(id,current){const r=await sb.from('haryana_youtube_classes').update({student_visible:!current,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)return toast(r.error.message,'error');toast(!current?'Student को Class दिखेगी।':'Class Hide हो गई।','success');await Promise.all([loadYoutubeClasses(),loadDashboard()])}
 async function deleteYoutubeClass(id){if(!confirm('यह Haryana GK Class delete करनी है?'))return;const old=ytClasses.find(x=>String(x.id)===String(id));const r=await sb.from('haryana_youtube_classes').delete().eq('id',id);if(r.error)return toast(r.error.message,'error');if(old?.image_key)try{await r2ApiFetch(`/admin/poster?key=${encodeURIComponent(old.image_key)}`,{method:'DELETE'})}catch(_){ }toast('Class delete हो गई।','success');await Promise.all([loadYoutubeClasses(),loadDashboard()])}
 async function loadYoutubeClasses(){
-  const host=byId('ytClassList');if(!host)return;host.innerHTML='<div class="item">Classes load हो रही हैं…</div>';
-  const r=await sb.from('haryana_youtube_classes').select('*');if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>Final V16 SQL पहले run करें।</small></div>`;return}
+  const host=byId('ytClassList');if(host)host.innerHTML='<div class="item">Classes load हो रही हैं…</div>';
+  const r=await sb.from('haryana_youtube_classes').select('*');
+  if(r.error){if(host)host.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>Final V16 SQL पहले run करें।</small></div>`;return}
   ytClasses=(r.data||[]).sort((a,b)=>classGroupOrder(a.group_key||a.topic_key)-classGroupOrder(b.group_key||b.topic_key)||Number(a.part_no||1)-Number(b.part_no||1)||Number(a.sort_order||0)-Number(b.sort_order||0));
-  host.innerHTML=ytClasses.map((c,i)=>{const covered=normalizeAdminCovered(c);return `<article class="yt-admin-row no-thumb tone-${(i%6)+1}"><div class="yt-admin-main"><div><span class="badge ${c.student_visible?'badge-green':'badge-gray'}">${c.student_visible?'Student Visible':'Hidden'}</span><span class="badge badge-blue">Part ${Number(c.part_no||1)}</span></div><h3>${esc(c.class_title||covered.map(x=>x.name).join(' | '))}</h3><p><b>${esc(c.group_name||canonicalClassGroupName(c.group_key||c.topic_key,c.topic_name))}</b></p><div class="admin-covered-chips">${covered.map(t=>`<span>${esc(t.name)}</span>`).join('')}</div><p class="yt-tagline">${esc(c.tagline)}</p><p><a href="${esc(c.youtube_url)}" target="_blank" rel="noopener">YouTube Link खोलें ↗</a></p></div><div class="yt-admin-actions"><button class="btn btn-orange btn-mini" onclick="addYoutubePart('${c.id}')">＋ Part</button><button class="btn btn-light btn-mini" onclick="editYoutubeClass('${c.id}')">Edit</button><button class="btn btn-blue btn-mini" onclick="toggleYoutubeClass('${c.id}',${c.student_visible!==false})">${c.student_visible?'Hide':'Show'}</button><button class="btn btn-red btn-mini" onclick="deleteYoutubeClass('${c.id}')">Delete</button></div></article>`}).join('')||'<div class="item">अभी कोई Haryana GK YouTube Class नहीं है।</div>';
+  renderYoutubeClasses();
 }
 
 function resetPosterForm(){

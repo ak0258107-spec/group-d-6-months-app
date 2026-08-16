@@ -1,5 +1,6 @@
 let user=null,profile=null,ytRows=[],posterRows=[],importantRows=[],posterObjectUrls=[];
 let classGroups=[],classCoveredOptions=[];
+let completedClassIds=new Set();
 const CLASS_GROUP_MERGE={haryana_gk_003:'haryana_gk_002'};
 const CLASS_GROUP_NAMES={haryana_gk_002:'प्राचीन हरियाणा, पुरातात्विक स्थल एवं हड़प्पा सभ्यता'};
 function byId(id){return document.getElementById(id)}
@@ -81,9 +82,9 @@ function normalizeCoveredTopics(c){
 }
 function classTone(i){return `tone-${(i%6)+1}`}
 function classCardHtml(c,toneIndex=0,focusKey=''){
-  const topics=normalizeCoveredTopics(c),focused=focusKey&&topics.some(t=>t.key===focusKey);
+  const topics=normalizeCoveredTopics(c),focused=focusKey&&topics.some(t=>t.key===focusKey),done=completedClassIds.has(String(c.id));
   const chips=topics.map(t=>`<span class="class-topic-chip">${esc(t.name)}</span>`).join('');
-  return `<article id="class-${esc(c.id)}" class="yt-class-card ${classTone(toneIndex)} ${focused?'topic-focus':''}"><div class="yt-class-content"><div class="yt-class-meta"><span>${esc(c.group_name||canonicalClassGroupName(c.group_key||c.topic_key,c.topic_name))}</span><b>Part ${Number(c.part_no||1)}</b></div><h3>${esc(c.class_title||topics.map(x=>x.name).join(' | ')||c.topic_name)}</h3>${chips?`<div class="class-topic-chips">${chips}</div>`:''}<p>${esc(c.tagline)}</p><a class="btn class-watch-btn full-btn" href="${esc(c.youtube_url)}" target="_blank" rel="noopener">▶ Watch Now</a></div></article>`;
+  return `<article id="class-${esc(c.id)}" class="yt-class-card ${classTone(toneIndex)} ${focused?'topic-focus':''} ${done?'class-completed':''}"><div class="yt-class-content"><div class="yt-class-meta"><span>${esc(c.group_name||canonicalClassGroupName(c.group_key||c.topic_key,c.topic_name))}</span><b>Part ${Number(c.part_no||1)}</b></div><h3>${esc(c.class_title||topics.map(x=>x.name).join(' | ')||c.topic_name)}</h3>${chips?`<div class="class-topic-chips">${chips}</div>`:''}<p>${esc(c.tagline)}</p><div class="class-card-actions"><a class="btn class-watch-btn" href="${esc(c.youtube_url)}" target="_blank" rel="noopener">▶ Watch Now</a><button type="button" class="class-complete-btn ${done?'completed':''}" aria-pressed="${done?'true':'false'}" onclick="toggleClassCompleted('${esc(c.id)}')">${done?'✓ Class पूरी हो चुकी है':'○ मैंने यह Class पूरी कर ली'}</button></div></div></article>`;
 }
 function buildClassGroups(rows){
   const groups=new Map();
@@ -104,12 +105,12 @@ function buildCoveredOptions(rows){
 function renderClassLanding(){
   const host=byId('classesBox');if(!host)return;
   const opts=classCoveredOptions.map(t=>`<option value="${esc(t.key)}">${esc(t.name)}</option>`).join('');
-  const cards=classGroups.map((g,i)=>`<button class="class-topic-card ${classTone(i)}" onclick="openClassGroup('${esc(g.key)}')"><span class="class-topic-number">${String(i+1).padStart(2,'0')}</span><span class="class-topic-copy"><b>${esc(g.name)}</b><small>${g.rows.length} Class${g.rows.length===1?'':'es'} • ${g.covered.size} पढ़ाए Topic</small></span><span class="class-topic-arrow">›</span></button>`).join('');
+  const cards=classGroups.map((g,i)=>{const done=g.rows.filter(c=>completedClassIds.has(String(c.id))).length;return `<button class="class-topic-card ${classTone(i)}" onclick="openClassGroup('${esc(g.key)}')"><span class="class-topic-number">${String(i+1).padStart(2,'0')}</span><span class="class-topic-copy"><b>${esc(g.name)}</b><small>${g.rows.length} Class${g.rows.length===1?'':'es'} • ${done}/${g.rows.length} पूरी</small></span><span class="class-topic-arrow">›</span></button>`}).join('');
   host.innerHTML=`<div class="class-search-panel"><div class="class-search-title"><b>🔎 पढ़ाया हुआ Topic खोजें</b><small>जिस Topic पर क्लिक करेंगे, उसी से जुड़ी Class सामने आ जाएगी।</small></div><select id="classTopicSelect" onchange="jumpToClassTopic(this.value)"><option value="">-- Topic चुनें --</option>${opts}</select><input id="classTopicTextSearch" type="search" placeholder="Topic नाम लिखें… जैसे वैदिक काल, सिंधु घाटी" oninput="filterClassTopicSearch(this.value)"><div id="classSearchSuggestions" class="class-search-suggestions hidden"></div></div><div class="class-topic-grid">${cards}</div>`;
 }
 window.openClassGroup=function(key,focusKey=''){
   const host=byId('classesBox'),g=classGroups.find(x=>x.key===key);if(!host||!g)return;
-  host.innerHTML=`<button class="class-back-btn" onclick="renderClassLanding()">← सभी Topics</button><div class="class-group-head ${classTone(Math.max(0,classGroups.indexOf(g)))}"><span class="class-topic-number">${String(classGroups.indexOf(g)+1).padStart(2,'0')}</span><div><h2>${esc(g.name)}</h2><p>${g.rows.length} Classes • Part क्रम में</p></div></div><div class="yt-student-grid">${g.rows.map((c,i)=>classCardHtml(c,i,focusKey)).join('')}</div>`;
+  const doneCount=g.rows.filter(c=>completedClassIds.has(String(c.id))).length;host.innerHTML=`<button class="class-back-btn" onclick="renderClassLanding()">← सभी Topics</button><div class="class-group-head ${classTone(Math.max(0,classGroups.indexOf(g)))}"><span class="class-topic-number">${String(classGroups.indexOf(g)+1).padStart(2,'0')}</span><div><h2>${esc(g.name)}</h2><p>${g.rows.length} Classes • ${doneCount}/${g.rows.length} पूरी • Part क्रम में</p></div></div><div class="yt-student-grid">${g.rows.map((c,i)=>classCardHtml(c,i,focusKey)).join('')}</div>`;
   setTimeout(()=>{const f=focusKey?g.rows.find(c=>normalizeCoveredTopics(c).some(t=>t.key===focusKey)):null;const el=f?byId(`class-${f.id}`):null;(el||host).scrollIntoView({behavior:'smooth',block:'start'})},60);
 }
 window.jumpToClassTopic=function(key){
@@ -126,11 +127,37 @@ window.filterClassTopicSearch=function(query){
   const matches=classCoveredOptions.filter(t=>t.name.toLowerCase().includes(q)).slice(0,12);
   box.innerHTML=matches.map(t=>`<button onclick="jumpToClassTopic('${esc(t.key)}')">${esc(t.name)}</button>`).join('')||'<span>कोई पढ़ाया हुआ Topic नहीं मिला।</span>';box.classList.remove('hidden');
 }
+
+async function loadClassCompletionState(){
+  completedClassIds=new Set();
+  if(!user)return;
+  try{
+    const r=await sb.from('student_class_completion').select('class_id').eq('student_id',user.id);
+    if(!r.error)completedClassIds=new Set((r.data||[]).map(x=>String(x.class_id)));
+  }catch(_){ }
+}
+window.toggleClassCompleted=async function(classId){
+  if(!user||!classId)return;
+  const id=String(classId),isDone=completedClassIds.has(id);
+  try{
+    if(isDone){
+      const r=await sb.from('student_class_completion').delete().eq('student_id',user.id).eq('class_id',id);
+      if(r.error)throw r.error;completedClassIds.delete(id);toast('Class को फिर से Pending कर दिया।','success');
+    }else{
+      const r=await sb.from('student_class_completion').upsert({student_id:user.id,class_id:id,completed_at:new Date().toISOString()},{onConflict:'student_id,class_id'});
+      if(r.error)throw r.error;completedClassIds.add(id);toast('✓ Class पूरी mark हो गई।','success');
+    }
+    const current=classGroups.find(g=>g.rows.some(c=>String(c.id)===id));
+    if(current)openClassGroup(current.key);
+    else renderClassLanding();
+  }catch(e){toast((e.message||'Class status save नहीं हुआ।')+' — V18 SQL run करें।','error')}
+};
 async function loadClasses(){
   const host=byId('classesBox');if(!host)return;host.innerHTML='<div class="item">Haryana GK Classes load हो रही हैं…</div>';
   const r=await sb.from('haryana_youtube_classes').select('*').eq('student_visible',true);
   if(r.error){host.innerHTML=`<div class="item text-error">${esc(r.error.message)}<br><small>Final V16 SQL run करें।</small></div>`;return}
   ytRows=(r.data||[]).sort((a,b)=>classGroupMasterOrder(a.group_key||a.topic_key)-classGroupMasterOrder(b.group_key||b.topic_key)||Number(a.part_no||1)-Number(b.part_no||1)||Number(a.sort_order||0)-Number(b.sort_order||0));
+  await loadClassCompletionState();
   classGroups=buildClassGroups(ytRows);classCoveredOptions=buildCoveredOptions(ytRows);
   if(!ytRows.length){host.innerHTML='<div class="item">अभी कोई Haryana GK Class publish नहीं है।</div>';return}
   renderClassLanding();
@@ -209,9 +236,9 @@ async function renderProfile(){
   ]);
   const ranked=r.data||[],practice=p.data||[],all=[...ranked,...practice];official=ranked.filter(x=>x.is_ranked!==false).length;weak=w.count||0;bookmarks=b.count||0;
   if(all.length){attempts=all.length;avg=all.reduce((sum,x)=>sum+Number(x.percentage||0),0)/attempts;best=Math.max(...all.map(x=>Number(x.percentage||0)))}
-  const fullName=profile?.full_name||'Student';const initials=String(fullName).trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'S';
-  const g=String(profile?.avatar_gender||profile?.gender||'').toLowerCase();const genderLabel=g==='boy'?'लड़का':g==='girl'?'लड़की':'विद्यार्थी';
-  host.innerHTML=`<div class="profile-v15-shell"><div class="profile-v15-cover"></div><div class="profile-v15-body"><div class="profile-v15-identity"><div class="profile-v15-initial">${esc(initials)}</div><div class="profile-v15-name"><h2>${esc(fullName)}</h2><p>${esc(user.email||'')}</p><span class="profile-gender-chip">${esc(genderLabel)}</span></div></div><div class="profile-v15-stats"><div><b>${attempts}</b><span>Total Attempts</span></div><div><b>${avg.toFixed(1)}%</b><span>Average</span></div><div><b>${best.toFixed(1)}%</b><span>Best</span></div></div><div class="profile-v15-extra"><div>Official Attempts <b>${official}</b></div><div>Weak Questions <b>${weak}</b></div><div>Bookmarks <b>${bookmarks}</b></div><div>Account <b>Active</b></div></div><div class="profile-v15-actions"><button class="btn btn-light" onclick="sendPasswordReset()">Password Reset Email</button><button class="btn btn-red" onclick="logout()">Logout</button></div></div></div>`;
+  const fullName=profile?.full_name||'Student';
+  const g=String(profile?.avatar_gender||profile?.gender||'').toLowerCase();const avatar=avatarPath(g);
+  host.innerHTML=`<div class="profile-v15-shell"><div class="profile-v15-cover"></div><div class="profile-v15-body"><div class="profile-v15-identity"><div class="profile-v18-avatar"><img src="${esc(avatar)}" alt="Student Avatar"></div><div class="profile-v15-name"><h2>${esc(fullName)}</h2><p>${esc(user.email||'')}</p></div></div><div class="profile-v15-stats"><div><b>${attempts}</b><span>Total Attempts</span></div><div><b>${avg.toFixed(1)}%</b><span>Average</span></div><div><b>${best.toFixed(1)}%</b><span>Best</span></div></div><div class="profile-v15-extra"><div>Official Attempts <b>${official}</b></div><div>Weak Questions <b>${weak}</b></div><div>Bookmarks <b>${bookmarks}</b></div><div>Account <b>Active</b></div></div><div class="profile-v15-actions"><button class="btn btn-light" onclick="sendPasswordReset()">Password Reset Email</button><button class="btn btn-red" onclick="logout()">Logout</button></div></div></div>`;
 }
 async function sendPasswordReset(){try{const redirectTo=new URL('./s4n8v2k7-r1p6x9m3-c5t8q4z2.html',location.href).href;const r=await sb.auth.resetPasswordForEmail(user.email,{redirectTo});if(r.error)throw r.error;toast('Password Reset Link Email पर भेज दिया गया।','success')}catch(e){toast(e.message||'Reset link नहीं भेजा गया।','error')}}
 async function init(){

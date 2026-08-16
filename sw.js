@@ -1,10 +1,10 @@
-const CACHE="gk-purushotam-premium-v17-final";
+const CACHE="gk-purushotam-premium-v18-final";
 const ASSETS=[
   "./","./index.html","./l4x8m2r7-k9v3t5n1-z6c4p8q2.html","./q9v3x7k2-r8m4p6t1-z5n7c2w9.html",
   "./r6p1w9k4-z8x2m7q5-v3n6c1t9.html","./admin-recovery.js","./s4n8v2k7-r1p6x9m3-c5t8q4z2.html","./student-recovery.js",
   "./styles.css","./simple-v1220.css","./config.js","./common.js","./student-final-v16.js","./admin-final-v16.js","./avatar-boy.svg","./avatar-girl.svg","./avatar-student.svg",
   "./manifest.json","./manifest.webmanifest","./favicon.png","./apple-touch-icon.png","./icon-192.png","./icon-512.png",
-  "./cbt-mock-test.css","./cbt-admin.html","./cbt-admin-final-v16.js","./cbt-exam-v12-26.html","./cbt-student-v12-26.js","./cbt-final-v16.js","./cbt-topics-data.js","./cbt-logo.webp","./cbt-preview-banner.png","./VERSION_FINAL_V16.json","./VERSION_FINAL_V17.json"
+  "./cbt-mock-test.css","./cbt-admin.html","./cbt-admin-final-v16.js","./cbt-exam-v12-26.html","./cbt-student-v12-26.js","./cbt-final-v16.js","./cbt-topics-data.js","./cbt-logo.webp","./cbt-preview-banner.png","./VERSION_FINAL_V16.json","./VERSION_FINAL_V17.json","./VERSION_FINAL_V18.json"
 ];
 self.addEventListener("install",event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)))});
 self.addEventListener("activate",event=>event.waitUntil(Promise.all([

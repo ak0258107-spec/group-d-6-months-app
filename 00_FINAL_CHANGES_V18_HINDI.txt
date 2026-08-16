@@ -1,0 +1,32 @@
+GK BY PURUSHOTAM SIR — FINAL V18 CHANGES
+
+V17 के सभी working features सुरक्षित रखे गए हैं। केवल user द्वारा बताए गए आख़िरी 3 बदलाव जोड़े गए हैं:
+
+1) ADMIN → CLASSES
+- Classes के अंदर 2 sub-tabs:
+  • Upload Class
+  • Saved Classes
+- Upload Class में केवल class upload/edit form रहेगा।
+- Saved Classes में केवल वही Main Topics दिखेंगे जिनमें कम-से-कम एक class upload है।
+- Topic card पर class count और visible class count दिखेगा।
+- Topic खोलने पर Part 1, Part 2, Part 3… की saved classes दिखेंगी।
+- Add Part / Edit / Hide-Show / Delete controls वहीं उपलब्ध रहेंगे।
+- Edit/Add Part दबाते ही Upload Class tab अपने-आप खुलेगा।
+
+2) STUDENT → CLASSES COMPLETION
+- हर visible class card पर manual completion button:
+  “मैंने यह Class पूरी कर ली”
+- Student खुद mark करेगा; Watch Now खोलने मात्र से complete नहीं मानी जाएगी।
+- Mark होने के बाद green completed state दिखाई देगी।
+- चाहें तो click करके Pending भी कर सकता है।
+- Completion Supabase में account-wise save होगी।
+- Topic card पर progress जैसे 2/3 पूरी दिखेगा।
+
+3) STUDENT → PROFILE AVATAR
+- Profile में “लड़का / लड़की” text हटाया गया।
+- Registration में चुने gender के अनुसार छोटा Boy/Girl avatar image दिखेगा।
+- Gender unknown होने पर neutral student avatar दिखेगा।
+
+IMPORTANT:
+- V18 में student_class_completion table के लिए नई छोटी SQL migration जरूरी है।
+- Existing CBT/Classes/Poster/Rank/Revision data delete नहीं होता।
