@@ -5,8 +5,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#f8f5ee",
-  "theme_color": "#071f3d",
+  "background_color": "#fff9ef",
+  "theme_color": "#f7f3ea",
   "icons": [
     {
       "src": "icon-192.png",
@@ -21,6 +21,6 @@
       "purpose": "any maskable"
     }
   ],
-  "description": "Multi-subject CBT practice with hidden fixed sets, rank, analysis and revision; Haryana GK YouTube Classes; responsive Poster/Announcement publishing.",
+  "description": "Premium pastel multi-subject CBT with auto fixed test-series, Haryana GK grouped YouTube Classes, multi-topic search, Posters and Revision.",
   "id": "./index.html"
 }

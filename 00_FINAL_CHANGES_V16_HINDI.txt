@@ -1,0 +1,15 @@
+GK BY PURUSHOTAM SIR — FINAL V16
+
+मुख्य बदलाव:
+1. Student और Admin दोनों का UI soft pastel, colored cards, rounded boxes और premium shadow style में बदला।
+2. Haryana GK Classes अब upload time से नहीं, fixed Topic order में group होकर दिखेंगी।
+3. Student पहले numbered Topic card देखेगा; card खोलने पर Part 1, Part 2, Part 3 क्रम में classes मिलेंगी।
+4. प्राचीन हरियाणा एवं पुरातात्विक स्थल + हड़प्पा सभ्यता एवं हरियाणा को एक Main Class Group में merge किया गया।
+5. Empty Topic Student को नहीं दिखता।
+6. Admin एक Class में एक से अधिक पढ़ाए Topics select कर सकता है।
+7. Class Title Topics select करते ही अपने-आप बनता है; manually लिखना जरूरी नहीं।
+8. Student Classes panel में पढ़ाए हुए Topics का dropdown + search है; topic चुनते ही related class/classes खुलती हैं।
+9. Class cards पर पढ़ाए Topics tags/chips में दिखते हैं।
+10. Existing CBT auto-test-series (10 से 100), timer, hidden fixed sets, rank, revision, poster, info और notification system सुरक्षित रखा गया है।
+11. Class thumbnail नहीं है। Poster original ratio में ही दिखता है।
+12. Service Worker cache V16 किया गया ताकि पुराना UI अटका न रहे।

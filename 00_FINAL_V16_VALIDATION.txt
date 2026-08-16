@@ -1,0 +1,31 @@
+FINAL V16 STATIC VALIDATION
+01. PASS — Required V16 files
+02. PASS — JavaScript syntax
+03. PASS — Version 16.0.0
+04. PASS — No V15 frontend references
+05. PASS — No missing local HTML refs — []
+06. PASS — Classes grouped by topic
+07. PASS — Student topic dropdown/search
+08. PASS — Empty topics auto-hidden
+09. PASS — Part order ascending
+10. PASS — Harappan topics merged
+11. PASS — Admin multi-topic selection
+12. PASS — Class title auto
+13. PASS — No class thumbnail control
+14. PASS — Pastel Student UI
+15. PASS — Pastel Admin UI
+16. PASS — Pastel CBT Admin UI
+17. PASS — Admin top tabs
+18. PASS — Student bottom tabs
+19. PASS — Class notifications preserved
+20. PASS — Poster ratio preserved
+21. PASS — Profile avatar controls absent
+22. PASS — Auto test series sizes
+23. PASS — 17 sec default
+24. PASS — V16 class columns migration
+25. PASS — SQL non-destructive
+26. PASS — V16 service worker cache
+27. PASS — Important Info preserved
+28. PASS — CBT student technical copy cleaned
+
+RESULT: 28/28 PASS

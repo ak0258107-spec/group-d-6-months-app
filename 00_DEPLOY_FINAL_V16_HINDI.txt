@@ -1,0 +1,8 @@
+FINAL V16 DEPLOY क्रम
+
+1. Supabase SQL Editor में 01_SUPABASE_CBT_FINAL_V16.sql पूरा Run करें। Success आने दें। यह additive migration है; पुराना data delete नहीं करता।
+2. GITHUB_ROOT_UPLOAD_FINAL_V16.zip extract करें।
+3. Extract किए folder को GitHub में folder की तरह upload नहीं करना है। उसके अंदर की सभी files repository group-d-6-months-app की main /(root) में upload/replace करें।
+4. GitHub Pages deployment पूरा होने दें।
+5. Browser में Ctrl+Shift+R करें। PWA installed हो तो पहले browser से live site check करें।
+6. VERSION_FINAL_V16.json खोलकर 16.0.0 verify किया जा सकता है।

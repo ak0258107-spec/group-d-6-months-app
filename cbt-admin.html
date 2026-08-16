@@ -6,9 +6,9 @@
     <title>CBT Question Bank Admin Panel - GK BY PURUSHOTAM SIR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=12.26.0"></script>
-    <script src="common.js?v=12.26.0"></script>
-    <script src="cbt-topics-data.js?v=12.26.0"></script>
+    <script src="config.js?v=16.0.0"></script>
+    <script src="common.js?v=16.0.0"></script>
+    <script src="cbt-topics-data.js?v=16.0.0"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -2773,10 +2773,10 @@ c. पश्चिमी हरियाणा
 
                 let autoSeriesReady = totalInserted <= 0;
                 let autoSeriesError = "";
-                if (totalInserted > 0 && typeof window.autoGenerateV15ForTopics === "function") {
+                if (totalInserted > 0 && typeof window.autoGenerateV16ForTopics === "function") {
                     setStatus("Questions upload हो गए ✅\nअब Fixed Test Series अपने-आप तैयार हो रही है...", "info", true);
                     try {
-                        await window.autoGenerateV15ForTopics(selectedTopics, difficulty);
+                        await window.autoGenerateV16ForTopics(selectedTopics, difficulty);
                         autoSeriesReady = true;
                         await loadQuestionCounts(true);
                     } catch (autoError) {
@@ -2822,6 +2822,6 @@ c. पश्चिमी हरियाणा
             }
         });
     </script>
-    <script src="cbt-admin-final-v15.js?v=15.0.0"></script>
+    <script src="cbt-admin-final-v16.js?v=16.0.0"></script>
 </body>
 </html>
