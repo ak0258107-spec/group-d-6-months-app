@@ -1,0 +1,15 @@
+FINAL V16.2 — LOGO ONLY
+
+Base: FINAL V16.1 COMPACT HOME + CLEAN ADMIN
+
+बदलाव केवल:
+1. cbt-logo.webp -> नया final logo
+2. favicon.png -> नया final logo
+3. apple-touch-icon.png -> नया final logo
+4. icon-192.png -> नया final logo
+5. icon-512.png -> नया final logo
+6. cbt-preview-banner.png में पुराने logo की जगह नया final logo
+7. sw.js cache key bump ताकि पुराना cached logo हटे
+8. VERSION_FINAL_V16.json में V16.2 logo-only marker
+
+कोई feature/UI/database बदलाव नहीं।

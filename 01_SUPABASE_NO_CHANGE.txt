@@ -1,0 +1,2 @@
+V16.2 के लिए Supabase में कुछ भी Run नहीं करना है।
+V16.1/V16 की existing database setup जस की तस रहेगी।

@@ -1,6 +1,6 @@
 {
-  "version": "16.0.0",
-  "name": "Premium Pastel CBT Final V16",
+  "version": "16.2.0",
+  "name": "Premium Pastel CBT Final V16.2 — Logo Only Update",
   "base": "V15 preserved + V16 class/topic UX",
   "student_tabs": [
     "Home",
@@ -45,5 +45,11 @@
     100
   ],
   "default_seconds_per_question": 17,
-  "poster_original_ratio": true
+  "poster_original_ratio": true,
+  "admin_duplicate_cbt_banner": false,
+  "admin_nested_cbt_scroll": false,
+  "student_home_compact": true,
+  "student_home_large_hero": false,
+  "logo_update_only": true,
+  "logo_source": "User supplied final GK BY PURUSHOTAM SIR logo"
 }

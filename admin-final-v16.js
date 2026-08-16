@@ -245,6 +245,21 @@ function tab(name,el){
   if(name==='students')loadStudents();
   window.scrollTo({top:0,behavior:'smooth'});
 }
+function syncCbtFrameHeight(){
+  const frame=document.querySelector('.v15-cbt-frame');if(!frame)return;
+  try{
+    const doc=frame.contentDocument||frame.contentWindow?.document;if(!doc)return;
+    const h=Math.max(doc.body?.scrollHeight||0,doc.documentElement?.scrollHeight||0,700);
+    frame.style.height=(h+18)+'px';
+    if(doc.documentElement)doc.documentElement.style.overflow='hidden';
+    if(doc.body)doc.body.style.overflow='hidden';
+  }catch(_){ }
+}
+function setupCbtFrameAutoHeight(){
+  const frame=document.querySelector('.v15-cbt-frame');if(!frame)return;
+  const attach=()=>{syncCbtFrameHeight();try{const doc=frame.contentDocument;const obs=new MutationObserver(()=>requestAnimationFrame(syncCbtFrameHeight));if(doc?.body)obs.observe(doc.body,{subtree:true,childList:true,attributes:true});}catch(_){ }setTimeout(syncCbtFrameHeight,300);setTimeout(syncCbtFrameHeight,1200)};
+  frame.addEventListener('load',attach);if(frame.contentDocument?.readyState==='complete')attach();
+}
 const CLASS_GROUP_MERGE={haryana_gk_003:'haryana_gk_002'};
 const CLASS_GROUP_NAMES={haryana_gk_002:'प्राचीन हरियाणा, पुरातात्विक स्थल एवं हड़प्पा सभ्यता'};
 function haryanaTopics(){
@@ -381,6 +396,6 @@ async function loadDashboard(){
   host.innerHTML=`<div class="kpi-card kpi-red span-3"><div class="muted">Active Fixed Test Series</div><div class="kpi">${activeSeries}</div></div><div class="kpi-card kpi-blue span-3"><div class="muted">Student Visible Subjects</div><div class="kpi">${visibleSubjects}</div></div><div class="kpi-card kpi-green span-3"><div class="muted">Haryana GK Classes</div><div class="kpi">${visibleClasses}</div></div><div class="kpi-card span-3"><div class="muted">Live Posters</div><div class="kpi">${visiblePosters}</div></div>`;
 }
 async function init(){
-  if(!(await guard()))return;adminUser=await requireAuth();if(!adminUser)return;if(byId('todayDate'))byId('todayDate').textContent=new Date().toLocaleDateString('hi-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});initInstallUI('adminInstallBtn');fillHaryanaTopics();await Promise.all([loadYoutubeClasses(),loadPostersAdmin(),loadImportantInfoAdmin(),loadStudents()]);tab('cbt');
+  if(!(await guard()))return;adminUser=await requireAuth();if(!adminUser)return;if(byId('todayDate'))byId('todayDate').textContent=new Date().toLocaleDateString('hi-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});initInstallUI('adminInstallBtn');fillHaryanaTopics();setupCbtFrameAutoHeight();await Promise.all([loadYoutubeClasses(),loadPostersAdmin(),loadImportantInfoAdmin(),loadStudents()]);tab('cbt');
 }
 init();

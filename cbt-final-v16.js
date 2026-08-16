@@ -3,7 +3,7 @@
 */
 (function(){
 'use strict';
-const FINAL_V13='16.0.0';
+const FINAL_V13='16.1.0';
 const legacyLoadCatalog=loadCatalog;
 const legacyRenderCurrentQuestion=renderCurrentQuestion;
 const legacySelectOption=selectOption;
